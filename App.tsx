@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase'; // Caminho correto conforme sua imagem
+import HomeScreen from './screens/HomeScreen';
 
 // Importações ajustadas para sua nova estrutura de pastas
 import AuthScreen from './screens/auth/AuthScreen';
 import LoadingPage from './components/LoadingPage/LoadingPage';
 
-// Nota: Se você ainda não criou o HomeScreen, crie um arquivo básico 
-// em ./screens/HomeScreen.tsx ou comente a linha abaixo.
-// import HomeScreen from './screens/HomeScreen'; 
+
+
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -36,8 +36,7 @@ export default function App() {
 
   // Se houver sessão, mostra Home (precisa criar o arquivo), senão mostra Auth
   return session ? (
-    /* Substitua por <HomeScreen session={session} /> quando criar o arquivo */
-    <AuthScreen />
+    <HomeScreen session={session} />
   ) : (
     <AuthScreen />
   );
