@@ -1,0 +1,37 @@
+/* Importação das fontes e ícones (adicione isso no seu index.html ou aqui) */
+@import url('https://fonts.googleapis.com/css?family=Poppins:400,500,600,700,800,900');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/4.5.0/css/bootstrap.min.css');
+@import url('https://unicons.iconscout.com/release/v2.1.9/css/unicons.css');
+
+.full-height {
+    min-height: 100vh;
+}
+
+/* ... Mantenha o resto do seu CSS original ... */
+
+/* Modificação específica para o React controlar o Flip */
+.card-3d-wrapper.show-back {
+    transform: rotateY(180deg);
+}
+
+.card-front,
+.card-back {
+    width: 100%;
+    height: 100%;
+    background-color: #2a2b38;
+    background-image: url('/bg.svg');
+    /* Caminho para a pasta public */
+    background-position: bottom center;
+    background-repeat: no-repeat;
+    background-size: 300%;
+    position: absolute;
+    border-radius: 6px;
+    backface-visibility: hidden;
+}
+
+/* Ajuste no botão para agir como botão real e não link */
+.btn {
+    cursor: pointer;
+    border: none;
+    outline: none;
+}
