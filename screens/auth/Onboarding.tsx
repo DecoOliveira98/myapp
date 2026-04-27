@@ -46,9 +46,8 @@ export default function Onboarding({ onComplete }: Props) {
   // Bloqueia o botão enquanto o upsert está em andamento
   const [saving, setSaving] = useState(false);
 
-  // Calcula os macros usando Mifflin-St Jeor e registra no console.
-  // Os valores serão persistidos no banco após a migration adicionar as colunas.
-  function calculateAndLogTargets(
+  // Calcula os macros usando Mifflin-St Jeor e retorna os valores para persistir no banco.
+  function calculateTargets(
     kg: number,
     cm: number,
     ageNum: number,
@@ -71,9 +70,7 @@ export default function Onboarding({ onComplete }: Props) {
     // O restante das calorias vem dos carboidratos (4 kcal/g)
     const carbsG = Math.max(0, Math.round((calories - proteinG * 4 - fatG * 9) / 4));
 
-    console.log('--- Targets calculados ---');
-    console.log({ calories, proteinG, fatG, carbsG });
-    console.log('TODO: persistir no DB após migration adicionar as colunas');
+    return { calories, proteinG, fatG, carbsG };
   }
 
   async function handleSave() {
@@ -104,8 +101,8 @@ export default function Onboarding({ onComplete }: Props) {
       return;
     }
 
-    // Calcula e loga os targets antes de salvar o perfil
-    calculateAndLogTargets(kg, cm, ageNum, gender, activity, goal);
+    // Calcula os targets para persistir junto com o perfil
+    const targets = calculateTargets(kg, cm, ageNum, gender, activity, goal);
 
     setSaving(true);
 
@@ -132,6 +129,12 @@ export default function Onboarding({ onComplete }: Props) {
       height_cm: cm,
       weight_kg: kg,
       date_of_birth: dateOfBirth,
+      activity_level: activity,
+      goal,
+      daily_calorie_target: targets.calories,
+      daily_protein_g: targets.proteinG,
+      daily_carbs_g: targets.carbsG,
+      daily_fat_g: targets.fatG,
     });
 
     if (upsertError) {
