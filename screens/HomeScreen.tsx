@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import MealDetailScreen from './MealDetailScreen';
 
 type Props = {
   session: Session;
@@ -22,9 +23,17 @@ type DailyTargets = {
   daily_fat_g: number;
 };
 
-// Refeições fixas do dia — a tabela de refeições ainda não existe,
-// então calorias consumidas ficam em 0 como placeholder visual
-const MEALS = ['Café da manhã', 'Almoço', 'Jantar', 'Lanche'] as const;
+type MealEntry = {
+  type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  label: string;
+};
+
+const MEALS: MealEntry[] = [
+  { type: 'breakfast', label: 'Café da manhã' },
+  { type: 'lunch',     label: 'Almoço' },
+  { type: 'dinner',    label: 'Jantar' },
+  { type: 'snack',     label: 'Lanche' },
+];
 
 // Formata a data de hoje em português sem precisar de biblioteca externa
 function formatDatePT(date: Date): string {
@@ -39,6 +48,7 @@ export default function HomeScreen({ session }: Props) {
   const [targets, setTargets] = useState<DailyTargets | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
+  const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
 
   // Busca as metas diárias do perfil ao montar a tela.
   // Só seleciona os 4 campos necessários para não trazer dados desnecessários.
@@ -95,6 +105,21 @@ export default function HomeScreen({ session }: Props) {
 
   const today = formatDatePT(new Date());
 
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  if (selectedMeal) {
+    return (
+      <MealDetailScreen
+        session={session}
+        mealType={selectedMeal.type}
+        mealLabel={selectedMeal.label}
+        date={todayISO}
+        onClose={() => setSelectedMeal(null)}
+      />
+    );
+  }
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
 
@@ -125,16 +150,17 @@ export default function HomeScreen({ session }: Props) {
       </View>
 
       {/* ── Cards de refeição ───────────────────────────────────────── */}
-      {/* Uma linha por refeição; "Adicionar" sem ação até ter tabela de refeições */}
       {MEALS.map((meal) => (
-        <View key={meal} style={styles.card}>
+        <View key={meal.type} style={styles.card}>
           <View style={styles.mealRow}>
             <View>
-              <Text style={styles.mealName}>{meal}</Text>
+              <Text style={styles.mealName}>{meal.label}</Text>
               <Text style={styles.mealKcal}>0 kcal</Text>
             </View>
-            {/* TODO: abrir modal de adição de alimento ao pressionar */}
-            <TouchableOpacity style={styles.addButton}>
+            <TouchableOpacity
+              style={styles.addButton}
+              onPress={() => setSelectedMeal(meal)}
+            >
               <Text style={styles.addButtonText}>Adicionar</Text>
             </TouchableOpacity>
           </View>
