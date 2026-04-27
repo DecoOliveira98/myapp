@@ -1,79 +1,72 @@
-import React, { useState } from 'react';
-import { StyleSheet, View, Text, SafeAreaView, StatusBar } from 'react-native';
-import NavBar from '../components/NavBar'; // Verifique se o caminho está correto
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Session } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
-export default function HomeScreen({ session }: { session: any }) {
-    const [currentTab, setCurrentTab] = useState(0);
+type Props = {
+  session: Session;
+};
 
-    // Função para renderizar o conteúdo baseado na aba selecionada
-    const renderContent = () => {
-        switch (currentTab) {
-            case 0:
-                return <Text style={styles.contentTitle}>Home - Bem vindo!</Text>;
-            case 1:
-                return <Text style={styles.contentTitle}>Perfil de {session?.user?.email?.split('@')[0]}</Text>;
-            case 2:
-                return <Text style={styles.contentTitle}>Mensagens / Chat</Text>;
-            case 3:
-                return <Text style={styles.contentTitle}>Câmara / Fotos</Text>;
-            case 4:
-                return <Text style={styles.contentTitle}>Configurações</Text>;
-            default:
-                return <Text style={styles.contentTitle}>Home</Text>;
-        }
-    };
+// HomeScreen é a tela principal pós-login e pós-onboarding.
+// Recebe session para saber quem está logado e exibir o e-mail.
+export default function HomeScreen({ session }: Props) {
+  async function handleSignOut() {
+    // signOut limpa a sessão local; o listener em App.tsx detecta a mudança
+    // e redireciona automaticamente para AuthScreen
+    await supabase.auth.signOut();
+  }
 
-    return (
-        <SafeAreaView style={styles.container}>
-            <StatusBar barStyle="light-content" />
+  return (
+    <View style={styles.container}>
+      <Text style={styles.greeting}>Olá!</Text>
+      <Text style={styles.email}>{session.user.email}</Text>
 
-            <View style={styles.header}>
-                <Text style={styles.headerText}>Meu App</Text>
-            </View>
+      {/* Placeholder descritivo das features que ainda virão */}
+      <Text style={styles.placeholder}>
+        Em breve você poderá registrar suas refeições, acompanhar suas calorias
+        diárias e escanear alimentos com a câmera.
+      </Text>
 
-            <View style={styles.main}>
-                {renderContent()}
-                <Text style={styles.subtitle}>
-                    Teste a sua nova NavBar cá em baixo
-                </Text>
-            </View>
-
-            {/* Passamos o estado para a NavBar saber onde está */}
-            <NavBar onTabChange={(index) => setCurrentTab(index)} />
-        </SafeAreaView>
-    );
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <Text style={styles.signOutText}>Sair</Text>
+      </TouchableOpacity>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#0c0c0c', // Fundo escuro para combinar com a NavBar
-    },
-    header: {
-        padding: 20,
-        alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#222',
-    },
-    headerText: {
-        color: '#fff',
-        fontSize: 20,
-        fontWeight: 'bold',
-    },
-    main: {
-        flex: 1,
-        justifyContent: 'center',
-        alignItems: 'center',
-        paddingBottom: 100, // Espaço para não cobrir a NavBar
-    },
-    contentTitle: {
-        color: '#fff',
-        fontSize: 24,
-        fontWeight: '600',
-        marginBottom: 10,
-    },
-    subtitle: {
-        color: '#666',
-        fontSize: 16,
-    },
+  container: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    backgroundColor: '#fff',
+  },
+  greeting: {
+    fontSize: 32,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  email: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 24,
+  },
+  placeholder: {
+    fontSize: 15,
+    color: '#888',
+    textAlign: 'center',
+    lineHeight: 22,
+    marginBottom: 48,
+  },
+  signOutButton: {
+    borderWidth: 1,
+    borderColor: '#ddd',
+    borderRadius: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  signOutText: {
+    fontSize: 15,
+    color: '#555',
+  },
 });
