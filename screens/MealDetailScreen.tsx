@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import AddFoodScreen from './AddFoodScreen';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -25,53 +26,78 @@ type FoodItem = {
   name: string;
   quantity_g: number;
   calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
 };
+
+type FormMode = { kind: 'add' } | { kind: 'edit'; food: FoodItem } | null;
 
 type ScreenState = 'loading' | 'error' | 'ready';
 
 export default function MealDetailScreen({ session, mealType, mealLabel, date, onClose }: Props) {
   const [state, setState] = useState<ScreenState>('loading');
   const [foods, setFoods] = useState<FoodItem[]>([]);
+  const [formMode, setFormMode] = useState<FormMode>(null);
 
-  useEffect(() => {
-    async function load() {
-      // Look up the meal row for this (user, date, type) combination
-      const { data: mealData, error: mealError } = await supabase
-        .from('meals')
-        .select('id')
-        .eq('user_id', session.user.id)
-        .eq('date', date)
-        .eq('meal_type', mealType)
-        .maybeSingle();
+  const loadFoods = useCallback(async () => {
+    setState('loading');
 
-      if (mealError) {
-        setState('error');
-        return;
-      }
+    const { data: mealData, error: mealError } = await supabase
+      .from('meals')
+      .select('id')
+      .eq('user_id', session.user.id)
+      .eq('date', date)
+      .eq('meal_type', mealType)
+      .maybeSingle();
 
-      // No meal row yet — treat as empty list, don't create it here
-      if (!mealData) {
-        setState('ready');
-        return;
-      }
-
-      const { data: foodData, error: foodError } = await supabase
-        .from('meal_foods')
-        .select('id, name, quantity_g, calories')
-        .eq('meal_id', mealData.id)
-        .order('created_at');
-
-      if (foodError) {
-        setState('error');
-        return;
-      }
-
-      setFoods(foodData as FoodItem[]);
-      setState('ready');
+    if (mealError) {
+      setState('error');
+      return;
     }
 
-    load();
+    if (!mealData) {
+      setFoods([]);
+      setState('ready');
+      return;
+    }
+
+    const { data: foodData, error: foodError } = await supabase
+      .from('meal_foods')
+      .select('id, name, quantity_g, calories, protein_g, carbs_g, fat_g')
+      .eq('meal_id', mealData.id)
+      .order('created_at');
+
+    if (foodError) {
+      setState('error');
+      return;
+    }
+
+    setFoods(foodData as FoodItem[]);
+    setState('ready');
   }, [session.user.id, date, mealType]);
+
+  useEffect(() => {
+    loadFoods();
+  }, [loadFoods]);
+
+  if (formMode !== null) {
+    const onFormDone = () => {
+      setFormMode(null);
+      loadFoods();
+    };
+    return (
+      <AddFoodScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        editingFood={formMode.kind === 'edit' ? formMode.food : undefined}
+        onCancel={() => setFormMode(null)}
+        onSaved={onFormDone}
+        onDeleted={onFormDone}
+      />
+    );
+  }
 
   if (state === 'loading') {
     return (
@@ -91,7 +117,6 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
 
   return (
     <View style={styles.screen}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} hitSlop={8}>
           <Text style={styles.backText}>← Voltar</Text>
@@ -99,7 +124,6 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
         <Text style={styles.title}>{mealLabel}</Text>
       </View>
 
-      {/* Food list */}
       <FlatList
         data={foods}
         keyExtractor={(item) => item.id}
@@ -110,20 +134,21 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
           </View>
         }
         renderItem={({ item }) => (
-          <View style={styles.foodCard}>
-            <Text style={styles.foodName}>{item.name}</Text>
-            <Text style={styles.foodMeta}>
-              {item.quantity_g}g · {item.calories} kcal
-            </Text>
-          </View>
+          <TouchableOpacity onPress={() => setFormMode({ kind: 'edit', food: item })}>
+            <View style={styles.foodCard}>
+              <Text style={styles.foodName}>{item.name}</Text>
+              <Text style={styles.foodMeta}>
+                {item.quantity_g}g · {item.calories} kcal
+              </Text>
+            </View>
+          </TouchableOpacity>
         )}
       />
 
-      {/* Add item button */}
       <View style={styles.footer}>
         <TouchableOpacity
           style={styles.addButton}
-          onPress={() => console.log('add item — todo')}
+          onPress={() => setFormMode({ kind: 'add' })}
         >
           <Text style={styles.addButtonText}>+ Adicionar item</Text>
         </TouchableOpacity>
