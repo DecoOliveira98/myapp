@@ -10,6 +10,7 @@ import {
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import MealDetailScreen from './MealDetailScreen';
+import WeightScreen from '../weight/WeightScreen';
 
 type Props = {
   session: Session;
@@ -38,6 +39,13 @@ type DailyTotals = {
 type MealEntry = {
   type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
   label: string;
+};
+
+type WeightSummary = {
+  current: number | null;
+  currentDate: string | null;
+  firstDate: string | null;
+  diff: number | null;
 };
 
 const MEALS: MealEntry[] = [
@@ -77,6 +85,12 @@ function formatDatePT(date: Date): string {
   return `${date.getDate()} de ${months[date.getMonth()]}`;
 }
 
+function formatDateShort(iso: string): string {
+  const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
+  const [, m, d] = iso.split('-').map(Number);
+  return `${d} ${months[m - 1]}`;
+}
+
 export default function HomeScreen({ session }: Props) {
   const todayISO = useMemo(() => isoToday(), []);
   const [selectedDateISO, setSelectedDateISO] = useState<string>(todayISO);
@@ -85,6 +99,13 @@ export default function HomeScreen({ session }: Props) {
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
+  const [showWeight, setShowWeight] = useState(false);
+  const [weight, setWeight] = useState<WeightSummary>({
+    current: null,
+    currentDate: null,
+    firstDate: null,
+    diff: null,
+  });
   const [totals, setTotals] = useState<DailyTotals>({
     kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0,
     byMeal: { breakfast: 0, lunch: 0, dinner: 0, snack: 0 },
@@ -150,9 +171,53 @@ export default function HomeScreen({ session }: Props) {
     });
   }, [session.user.id, selectedDateISO]);
 
+  const loadWeightSummary = useCallback(async () => {
+    const [latestRes, oldestRes] = await Promise.all([
+      supabase
+        .from('weight_log')
+        .select('date, weight_kg')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('weight_log')
+        .select('date, weight_kg')
+        .eq('user_id', session.user.id)
+        .order('date', { ascending: true })
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+    if (latestRes.error || oldestRes.error) {
+      console.warn('loadWeightSummary error');
+      return;
+    }
+
+    if (!latestRes.data) {
+      setWeight({ current: null, currentDate: null, firstDate: null, diff: null });
+      return;
+    }
+
+    const current = Number(latestRes.data.weight_kg);
+    const currentDate = latestRes.data.date;
+    const oldest = oldestRes.data ? Number(oldestRes.data.weight_kg) : null;
+    const firstDate = oldestRes.data ? oldestRes.data.date : null;
+
+    const diff = oldest !== null && firstDate !== currentDate
+      ? Math.round((current - oldest + Number.EPSILON) * 10) / 10
+      : null;
+
+    setWeight({ current, currentDate, firstDate, diff });
+  }, [session.user.id]);
+
   useEffect(() => {
     if (selectedMeal === null) loadTotals();
   }, [selectedMeal, loadTotals]);
+
+  useEffect(() => {
+    if (!showWeight) loadWeightSummary();
+  }, [showWeight, loadWeightSummary]);
 
   async function handleSignOut() {
     await supabase.auth.signOut();
@@ -192,6 +257,10 @@ export default function HomeScreen({ session }: Props) {
         onClose={() => setSelectedMeal(null)}
       />
     );
+  }
+
+  if (showWeight) {
+    return <WeightScreen session={session} onClose={() => setShowWeight(false)} />;
   }
 
   const yesterdayISO = addDaysIso(todayISO, -1);
@@ -276,6 +345,33 @@ export default function HomeScreen({ session }: Props) {
           </View>
         </View>
       ))}
+
+      {/* ── Card de peso ────────────────────────────────────────────── */}
+      <TouchableOpacity style={styles.weightCard} onPress={() => setShowWeight(true)} activeOpacity={0.7}>
+        <Text style={styles.weightLabel}>Peso</Text>
+
+        {weight.current === null ? (
+          <>
+            <Text style={styles.weightValueEmpty}>—</Text>
+            <Text style={styles.weightSubtitle}>Toque para adicionar tua primeira pesagem</Text>
+          </>
+        ) : (
+          <>
+            <Text style={styles.weightValue}>
+              {weight.current}
+              <Text style={styles.weightUnit}> kg</Text>
+            </Text>
+            <Text style={styles.weightSubtitle}>
+              {weight.diff === null
+                ? `Primeira pesagem em ${formatDateShort(weight.currentDate!)}`
+                : weight.diff === 0
+                  ? `Sem mudança desde ${formatDateShort(weight.firstDate!)}`
+                  : `${weight.diff < 0 ? '↓' : '↑'} ${Math.abs(weight.diff)} kg desde ${formatDateShort(weight.firstDate!)}`
+              }
+            </Text>
+          </>
+        )}
+      </TouchableOpacity>
 
       {/* ── Botão Sair ──────────────────────────────────────────────── */}
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -473,6 +569,42 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#222',
+  },
+
+  // Card de peso
+  weightCard: {
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    backgroundColor: '#fff',
+  },
+  weightLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#666',
+    marginBottom: 4,
+  },
+  weightValue: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#222',
+  },
+  weightValueEmpty: {
+    fontSize: 32,
+    fontWeight: '700',
+    color: '#ccc',
+  },
+  weightUnit: {
+    fontSize: 18,
+    fontWeight: '400',
+    color: '#666',
+  },
+  weightSubtitle: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
   },
 
   // Botão Sair
