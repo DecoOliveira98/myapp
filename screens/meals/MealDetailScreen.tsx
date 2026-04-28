@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +12,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import AddFoodScreen from './AddFoodScreen';
 import BarcodeScanScreen, { PrefillData } from '../scanner/BarcodeScanScreen';
+import DescribeMealScreen from './DescribeMealScreen';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -36,6 +38,7 @@ type FormMode =
   | { kind: 'add'; prefill?: PrefillData; infoMessage?: string }
   | { kind: 'edit'; food: FoodItem }
   | { kind: 'scan' }
+  | { kind: 'describe' }
   | null;
 
 type ScreenState = 'loading' | 'error' | 'ready';
@@ -44,6 +47,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   const [state, setState] = useState<ScreenState>('loading');
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [formMode, setFormMode] = useState<FormMode>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const loadFoods = useCallback(async () => {
     setState('loading');
@@ -86,6 +90,11 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
     loadFoods();
   }, [loadFoods]);
 
+  const onFormDone = () => {
+    setFormMode(null);
+    loadFoods();
+  };
+
   if (formMode?.kind === 'scan') {
     return (
       <BarcodeScanScreen
@@ -98,11 +107,19 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
     );
   }
 
+  if (formMode?.kind === 'describe') {
+    return (
+      <DescribeMealScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onSaved={onFormDone}
+      />
+    );
+  }
+
   if (formMode !== null) {
-    const onFormDone = () => {
-      setFormMode(null);
-      loadFoods();
-    };
     return (
       <AddFoodScreen
         session={session}
@@ -165,21 +182,61 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
       />
 
       <View style={styles.footer}>
-        <View style={styles.footerRow}>
-          <TouchableOpacity
-            style={[styles.addButton, styles.footerBtnFlex]}
-            onPress={() => setFormMode({ kind: 'add' })}
-          >
-            <Text style={styles.addButtonText}>+ Adicionar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.scanButton, styles.footerBtnFlex]}
-            onPress={() => setFormMode({ kind: 'scan' })}
-          >
-            <Text style={styles.scanButtonText}>📷 Escanear</Text>
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity
+          style={styles.registerButton}
+          onPress={() => setMenuOpen(true)}
+        >
+          <Text style={styles.registerButtonText}>Registrar</Text>
+        </TouchableOpacity>
       </View>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuOpen(false)}
+        >
+          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+            <Text style={styles.sheetTitle}>Como registrar?</Text>
+
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'add' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>+ Manual</Text>
+              <Text style={styles.sheetOptionDesc}>Digite os nutrientes</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'scan' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>📷 Escanear código</Text>
+              <Text style={styles.sheetOptionDesc}>Lê o barcode e busca os nutrientes</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'describe' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>✨ Descrever</Text>
+              <Text style={styles.sheetOptionDesc}>Escreva o que comeu, IA estrutura</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sheetCancel}
+              onPress={() => setMenuOpen(false)}
+            >
+              <Text style={styles.sheetCancelText}>Cancelar</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -254,36 +311,58 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#eee',
   },
-  addButton: {
-    borderWidth: 1,
-    borderColor: '#222',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  addButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#222',
-  },
-  footerRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  footerBtnFlex: {
-    flex: 1,
-  },
-  scanButton: {
-    borderWidth: 1,
-    borderColor: '#222',
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
+  registerButton: {
     backgroundColor: '#222',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
   },
-  scanButtonText: {
+  registerButtonText: {
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: '#fff',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    paddingBottom: 36,
+  },
+  sheetTitle: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#666',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
+  sheetOption: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#eee',
+  },
+  sheetOptionLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#111',
+  },
+  sheetOptionDesc: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 2,
+  },
+  sheetCancel: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  sheetCancelText: {
+    fontSize: 15,
+    color: '#666',
   },
 });
