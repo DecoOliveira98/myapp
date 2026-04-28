@@ -10,6 +10,7 @@ import {
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import AddFoodScreen from './AddFoodScreen';
+import BarcodeScanScreen, { PrefillData } from '../scanner/BarcodeScanScreen';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -31,7 +32,11 @@ type FoodItem = {
   fat_g: number;
 };
 
-type FormMode = { kind: 'add' } | { kind: 'edit'; food: FoodItem } | null;
+type FormMode =
+  | { kind: 'add'; prefill?: PrefillData; infoMessage?: string }
+  | { kind: 'edit'; food: FoodItem }
+  | { kind: 'scan' }
+  | null;
 
 type ScreenState = 'loading' | 'error' | 'ready';
 
@@ -81,6 +86,18 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
     loadFoods();
   }, [loadFoods]);
 
+  if (formMode?.kind === 'scan') {
+    return (
+      <BarcodeScanScreen
+        onCancel={() => setFormMode(null)}
+        onProductFound={(data) => setFormMode({ kind: 'add', prefill: data })}
+        onProductNotFound={(barcode) =>
+          setFormMode({ kind: 'add', infoMessage: `Produto ${barcode} não encontrado. Adicione manualmente.` })
+        }
+      />
+    );
+  }
+
   if (formMode !== null) {
     const onFormDone = () => {
       setFormMode(null);
@@ -92,6 +109,8 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
         mealType={mealType}
         date={date}
         editingFood={formMode.kind === 'edit' ? formMode.food : undefined}
+        prefill={formMode.kind === 'add' ? formMode.prefill : undefined}
+        infoMessage={formMode.kind === 'add' ? formMode.infoMessage : undefined}
         onCancel={() => setFormMode(null)}
         onSaved={onFormDone}
         onDeleted={onFormDone}
@@ -146,12 +165,20 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
       />
 
       <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.addButton}
-          onPress={() => setFormMode({ kind: 'add' })}
-        >
-          <Text style={styles.addButtonText}>+ Adicionar item</Text>
-        </TouchableOpacity>
+        <View style={styles.footerRow}>
+          <TouchableOpacity
+            style={[styles.addButton, styles.footerBtnFlex]}
+            onPress={() => setFormMode({ kind: 'add' })}
+          >
+            <Text style={styles.addButtonText}>+ Adicionar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.scanButton, styles.footerBtnFlex]}
+            onPress={() => setFormMode({ kind: 'scan' })}
+          >
+            <Text style={styles.scanButtonText}>📷 Escanear</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </View>
   );
@@ -238,5 +265,25 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#222',
+  },
+  footerRow: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  footerBtnFlex: {
+    flex: 1,
+  },
+  scanButton: {
+    borderWidth: 1,
+    borderColor: '#222',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    backgroundColor: '#222',
+  },
+  scanButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#fff',
   },
 });

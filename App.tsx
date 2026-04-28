@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 
@@ -8,16 +7,11 @@ import AuthScreen from './screens/auth/AuthScreen';
 import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
 import HomeScreen from './screens/meals/HomeScreen';
 import Onboarding from './screens/auth/Onboarding'; // <--- Crie este arquivo
-// TODO: remover na Parte B
-import BarcodeScanScreen, { PrefillData } from './screens/scanner/BarcodeScanScreen';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-  // TODO: remover na Parte B
-  const [testScanner, setTestScanner] = useState(false);
-
   useEffect(() => {
     // 1. Monitora a sessão e verifica o perfil
     const initializeAuth = async () => {
@@ -77,24 +71,6 @@ export default function App() {
     return <Onboarding onComplete={() => setNeedsOnboarding(false)} />;
   }
 
-  // TODO: remover na Parte B
-  if (testScanner) {
-    return (
-      <BarcodeScanScreen
-        onCancel={() => setTestScanner(false)}
-        onProductFound={(prefill: PrefillData) => {
-          console.log('onProductFound', prefill);
-          Alert.alert('Produto', JSON.stringify(prefill, null, 2));
-          setTestScanner(false);
-        }}
-        onProductNotFound={(barcode: string) => {
-          Alert.alert('Não encontrado', `Código: ${barcode}`);
-          setTestScanner(false);
-        }}
-      />
-    );
-  }
-
   // 3. Logado e com dados -> HomeScreen
-  return <HomeScreen session={session} onTestScanner={() => setTestScanner(true)} />;
+  return <HomeScreen session={session} />;
 }
