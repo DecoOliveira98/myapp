@@ -13,6 +13,8 @@ import MealDetailScreen from './MealDetailScreen';
 
 type Props = {
   session: Session;
+  // TODO: remover na Parte B
+  onTestScanner?: () => void;
 };
 
 type DailyTargets = {
@@ -55,7 +57,7 @@ function formatDatePT(date: Date): string {
   return `${date.getDate()} de ${months[date.getMonth()]}`;
 }
 
-export default function HomeScreen({ session }: Props) {
+export default function HomeScreen({ session, onTestScanner }: Props) {
   const now = new Date();
   const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
   const today = formatDatePT(now);
@@ -214,6 +216,13 @@ export default function HomeScreen({ session }: Props) {
           </View>
         </View>
       ))}
+
+      {/* TODO: remover na Parte B */}
+      {onTestScanner && (
+        <TouchableOpacity style={styles.testScannerButton} onPress={onTestScanner}>
+          <Text style={styles.testScannerText}>🧪 Testar Scanner</Text>
+        </TouchableOpacity>
+      )}
 
       {/* ── Botão Sair ──────────────────────────────────────────────── */}
       <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
@@ -385,6 +394,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '600',
     color: '#222',
+  },
+
+  // TODO: remover na Parte B
+  testScannerButton: {
+    borderWidth: 1,
+    borderColor: '#bbb',
+    borderRadius: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  testScannerText: {
+    fontSize: 14,
+    color: '#555',
   },
 
   // Botão Sair
