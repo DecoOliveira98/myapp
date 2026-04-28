@@ -1,0 +1,420 @@
+import { useState } from 'react';
+import {
+    Image,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
+} from 'react-native';
+import { Session } from '@supabase/supabase-js';
+import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { supabase } from '../../lib/supabase';
+
+type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
+
+type Props = {
+    session: Session;
+    mealType: MealType;
+    date: string;
+    onCancel: () => void;
+    onSaved: () => void;
+};
+
+type ParsedItem = {
+    name: string;
+    quantity_g: number;
+    calories: number;
+    protein_g: number;
+    carbs_g: number;
+    fat_g: number;
+    confidence: 'high' | 'medium' | 'low';
+};
+
+function round1(n: number): number {
+    return Math.round((n + Number.EPSILON) * 10) / 10;
+}
+
+export default function PhotoMealScreen({ session, mealType, date, onCancel, onSaved }: Props) {
+    const [photo, setPhoto] = useState<{ base64: string; mediaType: string; uri: string } | null>(null);
+    const [hint, setHint] = useState('');
+    const [pickingImage, setPickingImage] = useState(false);
+    const [parsing, setParsing] = useState(false);
+    const [saving, setSaving] = useState(false);
+    const [items, setItems] = useState<ParsedItem[] | null>(null);
+    const [error, setError] = useState<string | null>(null);
+
+    async function pickImage(source: 'camera' | 'gallery') {
+        setError(null);
+        setPickingImage(true);
+        try {
+            const perm = source === 'camera'
+                ? await ImagePicker.requestCameraPermissionsAsync()
+                : await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (!perm.granted) {
+                setError(source === 'camera' ? 'Permissão de câmera negada' : 'Permissão de galeria negada');
+                return;
+            }
+            const result = source === 'camera'
+                ? await ImagePicker.launchCameraAsync({ quality: 0.9, exif: false, mediaTypes: ['images'] })
+                : await ImagePicker.launchImageLibraryAsync({
+                    quality: 0.9,
+                    exif: false,
+                    mediaTypes: ['images'],
+                });
+            if (result.canceled || !result.assets?.[0]) return;
+            const asset = result.assets[0];
+            const compressed = await ImageManipulator.manipulateAsync(
+                asset.uri,
+                [
+                    {
+                        resize: {
+                            width: asset.width > asset.height ? 1024 : undefined,
+                            height: asset.height > asset.width ? 1024 : undefined,
+                        },
+                    },
+                ],
+                { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
+            );
+            if (!compressed.base64) {
+                setError('Erro ao processar imagem');
+                return;
+            }
+            setPhoto({ base64: compressed.base64, mediaType: 'image/jpeg', uri: compressed.uri });
+        } catch (e: any) {
+            setError(e?.message ?? 'Erro ao escolher foto');
+        } finally {
+            setPickingImage(false);
+        }
+    }
+
+    async function handleParse() {
+        if (!photo) return;
+        setError(null);
+        setParsing(true);
+
+        const { data, error: invokeErr } = await supabase.functions.invoke('analyze-meal-photo', {
+            body: {
+                image_base64: photo.base64,
+                media_type: photo.mediaType,
+                hint: hint.trim() || undefined,
+            },
+        });
+
+        if (invokeErr) {
+            setError('Erro de conexão. Tente de novo.');
+            setParsing(false);
+            return;
+        }
+        if ((data as any).error) {
+            setError('A IA não conseguiu analisar a foto.');
+            setParsing(false);
+            return;
+        }
+        const parsed = (data as any).items as ParsedItem[];
+        if (!parsed || parsed.length === 0) {
+            setError('Nenhum alimento identificado. Tente outra foto ou adicione manual.');
+            setParsing(false);
+            return;
+        }
+
+        setItems(parsed);
+        setParsing(false);
+    }
+
+    async function handleSave() {
+        if (!items) return;
+        setError(null);
+        setSaving(true);
+
+        try {
+            const { data: existing, error: fetchErr } = await supabase
+                .from('meals')
+                .select('id')
+                .eq('user_id', session.user.id)
+                .eq('date', date)
+                .eq('meal_type', mealType)
+                .maybeSingle();
+            if (fetchErr) throw fetchErr;
+
+            let mealId: string;
+            if (existing) {
+                mealId = existing.id;
+            } else {
+                const { data: newMeal, error: insErr } = await supabase
+                    .from('meals')
+                    .insert({ user_id: session.user.id, date, meal_type: mealType })
+                    .select('id')
+                    .single();
+                if (insErr) throw insErr;
+                mealId = newMeal.id;
+            }
+
+            const rows = items.map(it => ({
+                meal_id: mealId,
+                name: it.name,
+                quantity_g: round1(it.quantity_g),
+                calories: round1(it.calories),
+                protein_g: round1(it.protein_g),
+                carbs_g: round1(it.carbs_g),
+                fat_g: round1(it.fat_g),
+            }));
+
+            const { error: bulkErr } = await supabase.from('meal_foods').insert(rows);
+            if (bulkErr) throw bulkErr;
+
+            onSaved();
+        } catch (e: any) {
+            setError(e?.message ?? 'Erro ao salvar.');
+            setSaving(false);
+        }
+    }
+
+    // ── Modo preview ────────────────────────────────────────────────────────
+    if (items !== null) {
+        return (
+            <View style={styles.screen}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => setItems(null)} hitSlop={8}>
+                        <Text style={styles.cancelText}>← Voltar</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Confira antes de salvar</Text>
+                </View>
+
+                <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+                    <Text style={styles.subtitle}>
+                        Vou adicionar {items.length} {items.length === 1 ? 'item' : 'itens'}. Você pode ajustar valores depois tocando em cada item da lista.
+                    </Text>
+
+                    {items.map((item, i) => (
+                        <View key={i} style={styles.itemCard}>
+                            <Text style={styles.itemName}>{item.name}</Text>
+                            <Text style={styles.itemMeta}>{item.quantity_g}g · {item.calories} kcal</Text>
+                            <Text style={styles.itemMacros}>{item.protein_g}p · {item.carbs_g}c · {item.fat_g}g</Text>
+                            {item.confidence === 'low' && (
+                                <Text style={styles.lowConfidence}>⚠ Estimativa imprecisa — tire outra foto ou ajuste depois</Text>
+                            )}
+                        </View>
+                    ))}
+
+                    {error !== null && <Text style={styles.errorText}>{error}</Text>}
+
+                    <TouchableOpacity
+                        style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
+                        onPress={handleSave}
+                        disabled={saving}
+                    >
+                        <Text style={styles.saveBtnText}>{saving ? 'Salvando...' : 'Salvar todos'}</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </View>
+        );
+    }
+
+    // ── Modo foto-tirada ────────────────────────────────────────────────────
+    if (photo !== null) {
+        return (
+            <View style={styles.screen}>
+                <View style={styles.header}>
+                    <TouchableOpacity
+                        onPress={() => {
+                            setPhoto(null);
+                            setHint('');
+                            setError(null);
+                        }}
+                        hitSlop={8}
+                    >
+                        <Text style={styles.cancelText}>← Voltar</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.title}>Confirmar foto</Text>
+                </View>
+
+                <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+                    <Image
+                        source={{ uri: photo.uri }}
+                        style={{ width: '100%', aspectRatio: 1, borderRadius: 12, marginBottom: 12 }}
+                        resizeMode="cover"
+                    />
+
+                    <Text style={styles.label}>Dica (opcional)</Text>
+                    <TextInput
+                        style={styles.input}
+                        value={hint}
+                        onChangeText={setHint}
+                        placeholder="Ex: prato de almoço com arroz e feijão"
+                        placeholderTextColor="#aaa"
+                    />
+
+                    {error !== null && <Text style={styles.errorText}>{error}</Text>}
+
+                    <TouchableOpacity
+                        style={[styles.saveBtn, parsing && styles.saveBtnDisabled]}
+                        onPress={handleParse}
+                        disabled={parsing}
+                    >
+                        <Text style={styles.saveBtnText}>{parsing ? 'Estruturando...' : 'Estruturar com IA'}</Text>
+                    </TouchableOpacity>
+                </ScrollView>
+            </View>
+        );
+    }
+
+    // ── Modo escolher foto ──────────────────────────────────────────────────
+    return (
+        <View style={styles.screen}>
+            <View style={styles.header}>
+                <TouchableOpacity onPress={onCancel} hitSlop={8}>
+                    <Text style={styles.cancelText}>Cancelar</Text>
+                </TouchableOpacity>
+                <Text style={styles.title}>Foto da refeição</Text>
+            </View>
+
+            <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+                <Text style={styles.subtitle}>
+                    Tire uma foto ou escolha da galeria. A IA vai estimar os alimentos.
+                </Text>
+
+                <View style={styles.pickRow}>
+                    <TouchableOpacity
+                        style={[styles.pickBtn, pickingImage && styles.saveBtnDisabled]}
+                        onPress={() => pickImage('camera')}
+                        disabled={pickingImage}
+                    >
+                        <Text style={styles.pickBtnText}>📷 Tirar foto</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.pickBtn, pickingImage && styles.saveBtnDisabled]}
+                        onPress={() => pickImage('gallery')}
+                        disabled={pickingImage}
+                    >
+                        <Text style={styles.pickBtnText}>🖼 Galeria</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {error !== null && <Text style={styles.errorText}>{error}</Text>}
+            </ScrollView>
+        </View>
+    );
+}
+
+const styles = StyleSheet.create({
+    screen: {
+        flex: 1,
+        backgroundColor: '#fff',
+    },
+    header: {
+        paddingTop: 56,
+        paddingHorizontal: 20,
+        paddingBottom: 16,
+        borderBottomWidth: 1,
+        borderBottomColor: '#eee',
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+    },
+    cancelText: {
+        fontSize: 15,
+        color: '#666',
+    },
+    title: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: '#111',
+    },
+    body: {
+        padding: 20,
+        paddingBottom: 48,
+    },
+    subtitle: {
+        fontSize: 14,
+        color: '#666',
+        marginBottom: 20,
+        lineHeight: 20,
+    },
+    label: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: '#666',
+        marginBottom: 6,
+    },
+    input: {
+        borderWidth: 1,
+        borderColor: '#eee',
+        borderRadius: 12,
+        paddingHorizontal: 14,
+        paddingVertical: 12,
+        backgroundColor: '#fafafa',
+        fontSize: 15,
+        color: '#111',
+    },
+    pickRow: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    pickBtn: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: '#ddd',
+        borderRadius: 12,
+        paddingVertical: 28,
+        alignItems: 'center',
+        backgroundColor: '#fafafa',
+    },
+    pickBtnText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111',
+    },
+    errorText: {
+        color: '#c0392b',
+        fontSize: 13,
+        marginTop: 12,
+        textAlign: 'center',
+    },
+    saveBtn: {
+        marginTop: 20,
+        backgroundColor: '#222',
+        borderRadius: 12,
+        paddingVertical: 15,
+        alignItems: 'center',
+    },
+    saveBtnDisabled: {
+        backgroundColor: '#ccc',
+    },
+    saveBtnText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#fff',
+    },
+    itemCard: {
+        borderWidth: 1,
+        borderColor: '#eee',
+        borderRadius: 12,
+        padding: 16,
+        marginBottom: 12,
+        backgroundColor: '#fff',
+    },
+    itemName: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#111',
+    },
+    itemMeta: {
+        fontSize: 13,
+        color: '#666',
+        marginTop: 4,
+    },
+    itemMacros: {
+        fontSize: 12,
+        color: '#999',
+        marginTop: 2,
+    },
+    lowConfidence: {
+        fontSize: 12,
+        color: '#b07d2c',
+        marginTop: 6,
+    },
+});

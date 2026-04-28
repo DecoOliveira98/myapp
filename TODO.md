@@ -1,6 +1,6 @@
-- [x] Update import paths in App.tsx
-- [x] Update import paths in screens/meals/HomeScreen.tsx
-- [x] Update import paths in screens/meals/MealDetailScreen.tsx
-- [x] Update import paths in screens/meals/AddFoodScreen.tsx (if needed)
-- [x] Run TypeScript check (npx tsc --noEmit)
-- [x] Mark completion summary
+# Photo Meal Feature — TODO
+
+- [x] Install deps: `expo-image-picker`, `expo-image-manipulator`
+- [x] Update `app.json` (plugin + permissions)
+- [x] Create `screens/meals/PhotoMealScreen.tsx`
+- [x] Wire `PhotoMealScreen` into `MealDetailScreen.tsx` (FormMode + bottom sheet option)

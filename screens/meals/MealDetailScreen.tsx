@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import AddFoodScreen from './AddFoodScreen';
 import BarcodeScanScreen, { PrefillData } from '../scanner/BarcodeScanScreen';
 import DescribeMealScreen from './DescribeMealScreen';
+import PhotoMealScreen from './PhotoMealScreen';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -39,6 +40,7 @@ type FormMode =
   | { kind: 'edit'; food: FoodItem }
   | { kind: 'scan' }
   | { kind: 'describe' }
+  | { kind: 'photo' }
   | null;
 
 type ScreenState = 'loading' | 'error' | 'ready';
@@ -110,6 +112,18 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   if (formMode?.kind === 'describe') {
     return (
       <DescribeMealScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onSaved={onFormDone}
+      />
+    );
+  }
+
+  if (formMode?.kind === 'photo') {
+    return (
+      <PhotoMealScreen
         session={session}
         mealType={mealType}
         date={date}
@@ -218,6 +232,14 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
             >
               <Text style={styles.sheetOptionLabel}>📷 Escanear código</Text>
               <Text style={styles.sheetOptionDesc}>Lê o barcode e busca os nutrientes</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'photo' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>📸 Foto</Text>
+              <Text style={styles.sheetOptionDesc}>Tire ou escolha foto, IA estima</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
