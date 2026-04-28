@@ -13,7 +13,10 @@
       "backgroundColor": "#ffffff"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "Usado para escanear códigos de barras de alimentos"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -21,10 +24,14 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA"]
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      ["expo-camera", { "cameraPermission": "Permitir $(PRODUCT_NAME) acessar a câmera para escanear códigos de barras" }]
+    ]
   }
 }

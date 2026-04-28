@@ -4,15 +4,14 @@ import { supabase } from './lib/supabase';
 
 // Telas e Componentes
 import AuthScreen from './screens/auth/AuthScreen';
-import LoadingPage from './components/LoadingPage/LoadingPage';
-import HomeScreen from './screens/HomeScreen';
+import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
+import HomeScreen from './screens/meals/HomeScreen';
 import Onboarding from './screens/auth/Onboarding'; // <--- Crie este arquivo
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
-
   useEffect(() => {
     // 1. Monitora a sessão e verifica o perfil
     const initializeAuth = async () => {

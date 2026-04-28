@@ -1,5 +1,5 @@
 import { TextInput, StyleSheet, View } from 'react-native';
-import { Colors } from '../theme/colors';
+import { Colors } from '../../theme/colors';
 
 interface Props {
     placeholder: string;

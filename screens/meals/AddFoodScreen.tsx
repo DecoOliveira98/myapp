@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
+import { PrefillData } from '../scanner/BarcodeScanScreen';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -31,6 +32,8 @@ type Props = {
   onSaved: () => void;
   onDeleted: () => void;
   editingFood?: EditingFood;
+  prefill?: PrefillData;
+  infoMessage?: string;
 };
 
 type Mode = 'per100' | 'totals';
@@ -52,16 +55,46 @@ export default function AddFoodScreen({
   onSaved,
   onDeleted,
   editingFood,
+  prefill,
+  infoMessage,
 }: Props) {
   const isEditing = editingFood !== undefined;
 
-  const [mode, setMode] = useState<Mode>(isEditing ? 'totals' : 'per100');
-  const [name, setName] = useState(isEditing ? editingFood!.name : '');
-  const [quantity, setQuantity] = useState(isEditing ? String(editingFood!.quantity_g) : '');
-  const [cal, setCal] = useState(isEditing ? String(editingFood!.calories) : '');
-  const [protein, setProtein] = useState(isEditing ? String(editingFood!.protein_g) : '');
-  const [carbs, setCarbs] = useState(isEditing ? String(editingFood!.carbs_g) : '');
-  const [fat, setFat] = useState(isEditing ? String(editingFood!.fat_g) : '');
+  const [mode, setMode] = useState<Mode>(() => {
+    if (isEditing) return 'totals';
+    if (prefill) return 'per100';
+    return 'per100';
+  });
+  const [name, setName] = useState(() => {
+    if (isEditing) return editingFood!.name;
+    if (prefill) return prefill.name;
+    return '';
+  });
+  const [quantity, setQuantity] = useState(() => {
+    if (isEditing) return String(editingFood!.quantity_g);
+    if (prefill) return '100';
+    return '';
+  });
+  const [cal, setCal] = useState(() => {
+    if (isEditing) return String(editingFood!.calories);
+    if (prefill) return String(prefill.cal_per_100g);
+    return '';
+  });
+  const [protein, setProtein] = useState(() => {
+    if (isEditing) return String(editingFood!.protein_g);
+    if (prefill) return String(prefill.protein_per_100g);
+    return '';
+  });
+  const [carbs, setCarbs] = useState(() => {
+    if (isEditing) return String(editingFood!.carbs_g);
+    if (prefill) return String(prefill.carbs_per_100g);
+    return '';
+  });
+  const [fat, setFat] = useState(() => {
+    if (isEditing) return String(editingFood!.fat_g);
+    if (prefill) return String(prefill.fat_per_100g);
+    return '';
+  });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -217,6 +250,12 @@ export default function AddFoodScreen({
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
+        {infoMessage && (
+          <View style={styles.infoBox}>
+            <Text style={styles.infoText}>{infoMessage}</Text>
+          </View>
+        )}
+
         {!isEditing && (
           <View style={styles.toggle}>
             <TouchableOpacity
@@ -451,5 +490,17 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
     color: '#fff',
+  },
+  infoBox: {
+    padding: 12,
+    backgroundColor: '#fafafa',
+    borderWidth: 1,
+    borderColor: '#eee',
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  infoText: {
+    fontSize: 13,
+    color: '#666',
   },
 });

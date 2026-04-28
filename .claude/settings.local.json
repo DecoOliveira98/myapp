@@ -3,7 +3,9 @@
     "allow": [
       "Bash(npx expo *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "mcp__ide__getDiagnostics",
+      "Bash(npm install *)"
     ]
   }
 }

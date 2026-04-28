@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -8,19 +8,31 @@ import {
   View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import MealDetailScreen from './MealDetailScreen';
 
 type Props = {
   session: Session;
 };
 
-// Campos de meta diária vindos da tabela profiles
 type DailyTargets = {
   daily_calorie_target: number;
   daily_protein_g: number;
   daily_carbs_g: number;
   daily_fat_g: number;
+};
+
+type DailyTotals = {
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  byMeal: {
+    breakfast: number;
+    lunch: number;
+    dinner: number;
+    snack: number;
+  };
 };
 
 type MealEntry = {
@@ -30,12 +42,33 @@ type MealEntry = {
 
 const MEALS: MealEntry[] = [
   { type: 'breakfast', label: 'Café da manhã' },
-  { type: 'lunch',     label: 'Almoço' },
-  { type: 'dinner',    label: 'Jantar' },
-  { type: 'snack',     label: 'Lanche' },
+  { type: 'lunch', label: 'Almoço' },
+  { type: 'dinner', label: 'Jantar' },
+  { type: 'snack', label: 'Lanche' },
 ];
 
-// Formata a data de hoje em português sem precisar de biblioteca externa
+function isoToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function addDaysIso(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
+function isoToDate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function dayOfWeekPT(iso: string): string {
+  const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  return days[isoToDate(iso).getDay()];
+}
+
 function formatDatePT(date: Date): string {
   const months = [
     'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -45,13 +78,18 @@ function formatDatePT(date: Date): string {
 }
 
 export default function HomeScreen({ session }: Props) {
+  const todayISO = useMemo(() => isoToday(), []);
+  const [selectedDateISO, setSelectedDateISO] = useState<string>(todayISO);
+
   const [targets, setTargets] = useState<DailyTargets | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
+  const [totals, setTotals] = useState<DailyTotals>({
+    kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0,
+    byMeal: { breakfast: 0, lunch: 0, dinner: 0, snack: 0 },
+  });
 
-  // Busca as metas diárias do perfil ao montar a tela.
-  // Só seleciona os 4 campos necessários para não trazer dados desnecessários.
   useEffect(() => {
     async function fetchProfile() {
       const { data, error } = await supabase
@@ -71,12 +109,54 @@ export default function HomeScreen({ session }: Props) {
     fetchProfile();
   }, [session.user.id]);
 
+  const loadTotals = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('meal_foods')
+      .select('calories, protein_g, carbs_g, fat_g, meals!inner(meal_type, user_id, date)')
+      .eq('meals.user_id', session.user.id)
+      .eq('meals.date', selectedDateISO);
+
+    if (error) {
+      console.warn('loadTotals error:', error.message);
+      return;
+    }
+
+    let kcal = 0, protein_g = 0, carbs_g = 0, fat_g = 0;
+    const byMeal = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
+
+    for (const item of data ?? []) {
+      kcal += item.calories ?? 0;
+      protein_g += item.protein_g ?? 0;
+      carbs_g += item.carbs_g ?? 0;
+      fat_g += item.fat_g ?? 0;
+      const mealsField = item.meals as { meal_type: string } | { meal_type: string }[] | null | undefined;
+      const mealsObj = Array.isArray(mealsField) ? mealsField[0] : mealsField;
+      const mealType = mealsObj?.meal_type as keyof typeof byMeal | undefined;
+      if (mealType && mealType in byMeal) byMeal[mealType] += item.calories ?? 0;
+    }
+
+    const round = (n: number) => Math.round((n + Number.EPSILON) * 10) / 10;
+    setTotals({
+      kcal: round(kcal),
+      protein_g: round(protein_g),
+      carbs_g: round(carbs_g),
+      fat_g: round(fat_g),
+      byMeal: {
+        breakfast: round(byMeal.breakfast),
+        lunch: round(byMeal.lunch),
+        dinner: round(byMeal.dinner),
+        snack: round(byMeal.snack),
+      },
+    });
+  }, [session.user.id, selectedDateISO]);
+
+  useEffect(() => {
+    if (selectedMeal === null) loadTotals();
+  }, [selectedMeal, loadTotals]);
+
   async function handleSignOut() {
-    // signOut limpa a sessão local; o listener em App.tsx redireciona para AuthScreen
     await supabase.auth.signOut();
   }
-
-  // ── Estados de carregamento e erro ────────────────────────────────────────
 
   if (loading) {
     return (
@@ -94,7 +174,6 @@ export default function HomeScreen({ session }: Props) {
     );
   }
 
-  // Targets nulos significam que o onboarding não foi concluído corretamente
   if (!targets || targets.daily_calorie_target == null) {
     return (
       <View style={styles.centered}>
@@ -103,50 +182,81 @@ export default function HomeScreen({ session }: Props) {
     );
   }
 
-  const today = formatDatePT(new Date());
-
-  const now = new Date();
-  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
   if (selectedMeal) {
     return (
       <MealDetailScreen
         session={session}
         mealType={selectedMeal.type}
         mealLabel={selectedMeal.label}
-        date={todayISO}
+        date={selectedDateISO}
         onClose={() => setSelectedMeal(null)}
       />
     );
   }
 
+  const yesterdayISO = addDaysIso(todayISO, -1);
+  const canGoForward = selectedDateISO !== todayISO;
+
+  let titleLabel: string;
+  let subtitleLabel: string;
+  const dateFmt = formatDatePT(isoToDate(selectedDateISO));
+
+  if (selectedDateISO === todayISO) {
+    titleLabel = 'Hoje';
+    subtitleLabel = `${dateFmt} (${dayOfWeekPT(selectedDateISO)})`;
+  } else if (selectedDateISO === yesterdayISO) {
+    titleLabel = 'Ontem';
+    subtitleLabel = `${dateFmt} (${dayOfWeekPT(selectedDateISO)})`;
+  } else {
+    titleLabel = dateFmt;
+    subtitleLabel = dayOfWeekPT(selectedDateISO);
+  }
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
 
-      {/* ── Cabeçalho ───────────────────────────────────────────────── */}
-      <Text style={styles.title}>Hoje</Text>
-      <Text style={styles.date}>{today}</Text>
+      {/* ── Cabeçalho navegável ─────────────────────────────────────── */}
+      <View style={styles.dateHeader}>
+        <TouchableOpacity
+          style={styles.arrowBtn}
+          onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))}
+          hitSlop={8}
+        >
+          <Text style={styles.arrowText}>←</Text>
+        </TouchableOpacity>
+
+        <View style={styles.dateCenter}>
+          <Text style={styles.title}>{titleLabel}</Text>
+          <Text style={styles.date}>{subtitleLabel}</Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.arrowBtn, !canGoForward && styles.arrowBtnDisabled]}
+          onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
+          hitSlop={8}
+          disabled={!canGoForward}
+        >
+          <Text style={[styles.arrowText, !canGoForward && styles.arrowTextDisabled]}>→</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* ── Card de calorias em destaque ────────────────────────────── */}
-      {/* Consumido está fixo em 0 até a tabela de refeições existir */}
       <View style={styles.card}>
         <Text style={styles.calorieLabel}>Calorias</Text>
         <Text style={styles.calorieNumber}>
-          0{' '}
+          {totals.kcal}{' '}
           <Text style={styles.calorieTarget}>/ {targets.daily_calorie_target} kcal</Text>
         </Text>
-        {/* Barra de progresso: width em % do consumido/meta — sempre 0 por ora */}
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: '0%' }]} />
+          <View style={[styles.progressFill, { width: `${Math.min((totals.kcal / targets.daily_calorie_target) * 100, 100)}%` }]} />
         </View>
       </View>
 
       {/* ── Linha de macros ─────────────────────────────────────────── */}
-      {/* Três cards menores lado a lado para proteína, carboidrato e gordura */}
       <View style={styles.macroRow}>
-        <MacroCard label="Proteína" consumed={0} target={targets.daily_protein_g} />
-        <MacroCard label="Carbo"    consumed={0} target={targets.daily_carbs_g} />
-        <MacroCard label="Gordura"  consumed={0} target={targets.daily_fat_g} />
+        <MacroCard label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} />
+        <MacroCard label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} />
+        <MacroCard label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} />
       </View>
 
       {/* ── Cards de refeição ───────────────────────────────────────── */}
@@ -155,7 +265,7 @@ export default function HomeScreen({ session }: Props) {
           <View style={styles.mealRow}>
             <View>
               <Text style={styles.mealName}>{meal.label}</Text>
-              <Text style={styles.mealKcal}>0 kcal</Text>
+              <Text style={styles.mealKcal}>{totals.byMeal[meal.type]} kcal</Text>
             </View>
             <TouchableOpacity
               style={styles.addButton}
@@ -177,12 +287,9 @@ export default function HomeScreen({ session }: Props) {
 }
 
 // ── Componente interno MacroCard ───────────────────────────────────────────
-// Exibe label, "consumido / meta g" e uma barra de progresso fina.
-// Separado para evitar repetição nos três macros.
 type MacroCardProps = { label: string; consumed: number; target: number };
 
 function MacroCard({ label, consumed, target }: MacroCardProps) {
-  // Garante que a barra nunca ultrapasse 100% mesmo com dados futuros incorretos
   const pct = target > 0 ? Math.min((consumed / target) * 100, 100) : 0;
 
   return (
@@ -231,7 +338,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+  },
+
+  // Cabeçalho navegável
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
+  },
+  dateCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  arrowBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  arrowBtnDisabled: {
+    opacity: 0.3,
+  },
+  arrowText: {
+    fontSize: 22,
+    color: '#222',
+    fontWeight: '600',
+  },
+  arrowTextDisabled: {
+    color: '#ccc',
   },
 
   // Card base reutilizado em todos os blocos
