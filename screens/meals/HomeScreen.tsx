@@ -11,6 +11,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import MealDetailScreen from './MealDetailScreen';
 import WeightScreen from '../weight/WeightScreen';
+import ChatScreen from '../chat/ChatScreen';
 
 type Props = {
   session: Session;
@@ -100,6 +101,7 @@ export default function HomeScreen({ session }: Props) {
   const [fetchError, setFetchError] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
   const [showWeight, setShowWeight] = useState(false);
+  const [showChat, setShowChat] = useState(false);
   const [weight, setWeight] = useState<WeightSummary>({
     current: null,
     currentDate: null,
@@ -247,6 +249,10 @@ export default function HomeScreen({ session }: Props) {
     );
   }
 
+  if (showChat) {
+    return <ChatScreen session={session} onClose={() => setShowChat(false)} />;
+  }
+
   if (selectedMeal) {
     return (
       <MealDetailScreen
@@ -371,6 +377,12 @@ export default function HomeScreen({ session }: Props) {
             </Text>
           </>
         )}
+      </TouchableOpacity>
+
+      {/* ── Card de chat ────────────────────────────────────────────── */}
+      <TouchableOpacity style={styles.weightCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
+        <Text style={styles.weightLabel}>💬 Conversar com IA</Text>
+        <Text style={styles.weightSubtitle}>Pergunte sobre suas refeições, peso ou metas</Text>
       </TouchableOpacity>
 
       {/* ── Botão Sair ──────────────────────────────────────────────── */}
