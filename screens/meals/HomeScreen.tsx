@@ -108,7 +108,9 @@ export default function HomeScreen({ session }: Props) {
       protein_g += item.protein_g ?? 0;
       carbs_g += item.carbs_g ?? 0;
       fat_g += item.fat_g ?? 0;
-      const mealType = (item.meals as { meal_type: string }[] | undefined)?.[0]?.meal_type as keyof typeof byMeal | undefined;
+      const mealsField = item.meals as { meal_type: string } | { meal_type: string }[] | null | undefined;
+      const mealsObj = Array.isArray(mealsField) ? mealsField[0] : mealsField;
+      const mealType = mealsObj?.meal_type as keyof typeof byMeal | undefined;
       if (mealType && mealType in byMeal) byMeal[mealType] += item.calories ?? 0;
     }
 
