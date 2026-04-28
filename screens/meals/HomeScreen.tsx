@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -47,6 +47,28 @@ const MEALS: MealEntry[] = [
   { type: 'snack', label: 'Lanche' },
 ];
 
+function isoToday(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function addDaysIso(iso: string, n: number): string {
+  const [y, m, d] = iso.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + n);
+  return `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
+}
+
+function isoToDate(iso: string): Date {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
+function dayOfWeekPT(iso: string): string {
+  const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  return days[isoToDate(iso).getDay()];
+}
+
 function formatDatePT(date: Date): string {
   const months = [
     'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -56,9 +78,8 @@ function formatDatePT(date: Date): string {
 }
 
 export default function HomeScreen({ session }: Props) {
-  const now = new Date();
-  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-  const today = formatDatePT(now);
+  const todayISO = useMemo(() => isoToday(), []);
+  const [selectedDateISO, setSelectedDateISO] = useState<string>(todayISO);
 
   const [targets, setTargets] = useState<DailyTargets | null>(null);
   const [loading, setLoading] = useState(true);
@@ -93,7 +114,7 @@ export default function HomeScreen({ session }: Props) {
       .from('meal_foods')
       .select('calories, protein_g, carbs_g, fat_g, meals!inner(meal_type, user_id, date)')
       .eq('meals.user_id', session.user.id)
-      .eq('meals.date', todayISO);
+      .eq('meals.date', selectedDateISO);
 
     if (error) {
       console.warn('loadTotals error:', error.message);
@@ -127,7 +148,7 @@ export default function HomeScreen({ session }: Props) {
         snack: round(byMeal.snack),
       },
     });
-  }, [session.user.id, todayISO]);
+  }, [session.user.id, selectedDateISO]);
 
   useEffect(() => {
     if (selectedMeal === null) loadTotals();
@@ -167,18 +188,57 @@ export default function HomeScreen({ session }: Props) {
         session={session}
         mealType={selectedMeal.type}
         mealLabel={selectedMeal.label}
-        date={todayISO}
+        date={selectedDateISO}
         onClose={() => setSelectedMeal(null)}
       />
     );
   }
 
+  const yesterdayISO = addDaysIso(todayISO, -1);
+  const canGoForward = selectedDateISO !== todayISO;
+
+  let titleLabel: string;
+  let subtitleLabel: string;
+  const dateFmt = formatDatePT(isoToDate(selectedDateISO));
+
+  if (selectedDateISO === todayISO) {
+    titleLabel = 'Hoje';
+    subtitleLabel = `${dateFmt} (${dayOfWeekPT(selectedDateISO)})`;
+  } else if (selectedDateISO === yesterdayISO) {
+    titleLabel = 'Ontem';
+    subtitleLabel = `${dateFmt} (${dayOfWeekPT(selectedDateISO)})`;
+  } else {
+    titleLabel = dateFmt;
+    subtitleLabel = dayOfWeekPT(selectedDateISO);
+  }
+
   return (
     <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
 
-      {/* ── Cabeçalho ───────────────────────────────────────────────── */}
-      <Text style={styles.title}>Hoje</Text>
-      <Text style={styles.date}>{today}</Text>
+      {/* ── Cabeçalho navegável ─────────────────────────────────────── */}
+      <View style={styles.dateHeader}>
+        <TouchableOpacity
+          style={styles.arrowBtn}
+          onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))}
+          hitSlop={8}
+        >
+          <Text style={styles.arrowText}>←</Text>
+        </TouchableOpacity>
+
+        <View style={styles.dateCenter}>
+          <Text style={styles.title}>{titleLabel}</Text>
+          <Text style={styles.date}>{subtitleLabel}</Text>
+        </View>
+
+        <TouchableOpacity
+          style={[styles.arrowBtn, !canGoForward && styles.arrowBtnDisabled]}
+          onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
+          hitSlop={8}
+          disabled={!canGoForward}
+        >
+          <Text style={[styles.arrowText, !canGoForward && styles.arrowTextDisabled]}>→</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* ── Card de calorias em destaque ────────────────────────────── */}
       <View style={styles.card}>
@@ -278,7 +338,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#666',
     marginTop: 2,
+  },
+
+  // Cabeçalho navegável
+  dateHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 20,
+  },
+  dateCenter: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  arrowBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  arrowBtnDisabled: {
+    opacity: 0.3,
+  },
+  arrowText: {
+    fontSize: 22,
+    color: '#222',
+    fontWeight: '600',
+  },
+  arrowTextDisabled: {
+    color: '#ccc',
   },
 
   // Card base reutilizado em todos os blocos
