@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import AddFoodScreen from './AddFoodScreen';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';

@@ -8,7 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
-import { supabase } from '../lib/supabase';
+import { supabase } from '../../lib/supabase';
 import MealDetailScreen from './MealDetailScreen';
 
 type Props = {
@@ -44,9 +44,9 @@ type MealEntry = {
 
 const MEALS: MealEntry[] = [
   { type: 'breakfast', label: 'Café da manhã' },
-  { type: 'lunch',     label: 'Almoço' },
-  { type: 'dinner',    label: 'Jantar' },
-  { type: 'snack',     label: 'Lanche' },
+  { type: 'lunch', label: 'Almoço' },
+  { type: 'dinner', label: 'Jantar' },
+  { type: 'snack', label: 'Lanche' },
 ];
 
 function formatDatePT(date: Date): string {
@@ -106,25 +106,25 @@ export default function HomeScreen({ session, onTestScanner }: Props) {
     const byMeal = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
 
     for (const item of data ?? []) {
-      kcal      += item.calories   ?? 0;
-      protein_g += item.protein_g  ?? 0;
-      carbs_g   += item.carbs_g    ?? 0;
-      fat_g     += item.fat_g      ?? 0;
+      kcal += item.calories ?? 0;
+      protein_g += item.protein_g ?? 0;
+      carbs_g += item.carbs_g ?? 0;
+      fat_g += item.fat_g ?? 0;
       const mealType = (item.meals as { meal_type: string }).meal_type as keyof typeof byMeal;
       if (mealType in byMeal) byMeal[mealType] += item.calories ?? 0;
     }
 
     const round = (n: number) => Math.round((n + Number.EPSILON) * 10) / 10;
     setTotals({
-      kcal:      round(kcal),
+      kcal: round(kcal),
       protein_g: round(protein_g),
-      carbs_g:   round(carbs_g),
-      fat_g:     round(fat_g),
+      carbs_g: round(carbs_g),
+      fat_g: round(fat_g),
       byMeal: {
         breakfast: round(byMeal.breakfast),
-        lunch:     round(byMeal.lunch),
-        dinner:    round(byMeal.dinner),
-        snack:     round(byMeal.snack),
+        lunch: round(byMeal.lunch),
+        dinner: round(byMeal.dinner),
+        snack: round(byMeal.snack),
       },
     });
   }, [session.user.id, todayISO]);
@@ -195,8 +195,8 @@ export default function HomeScreen({ session, onTestScanner }: Props) {
       {/* ── Linha de macros ─────────────────────────────────────────── */}
       <View style={styles.macroRow}>
         <MacroCard label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} />
-        <MacroCard label="Carbo"    consumed={totals.carbs_g}   target={targets.daily_carbs_g} />
-        <MacroCard label="Gordura"  consumed={totals.fat_g}     target={targets.daily_fat_g} />
+        <MacroCard label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} />
+        <MacroCard label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} />
       </View>
 
       {/* ── Cards de refeição ───────────────────────────────────────── */}

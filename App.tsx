@@ -5,11 +5,11 @@ import { supabase } from './lib/supabase';
 
 // Telas e Componentes
 import AuthScreen from './screens/auth/AuthScreen';
-import LoadingPage from './components/LoadingPage/LoadingPage';
-import HomeScreen from './screens/HomeScreen';
+import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
+import HomeScreen from './screens/meals/HomeScreen';
 import Onboarding from './screens/auth/Onboarding'; // <--- Crie este arquivo
 // TODO: remover na Parte B
-import BarcodeScanScreen, { PrefillData } from './screens/BarcodeScanScreen';
+import BarcodeScanScreen, { PrefillData } from './screens/scanner/BarcodeScanScreen';
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
