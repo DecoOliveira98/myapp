@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -15,12 +15,24 @@ type Props = {
   session: Session;
 };
 
-// Campos de meta diária vindos da tabela profiles
 type DailyTargets = {
   daily_calorie_target: number;
   daily_protein_g: number;
   daily_carbs_g: number;
   daily_fat_g: number;
+};
+
+type DailyTotals = {
+  kcal: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+  byMeal: {
+    breakfast: number;
+    lunch: number;
+    dinner: number;
+    snack: number;
+  };
 };
 
 type MealEntry = {
@@ -35,7 +47,6 @@ const MEALS: MealEntry[] = [
   { type: 'snack',     label: 'Lanche' },
 ];
 
-// Formata a data de hoje em português sem precisar de biblioteca externa
 function formatDatePT(date: Date): string {
   const months = [
     'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
@@ -45,13 +56,19 @@ function formatDatePT(date: Date): string {
 }
 
 export default function HomeScreen({ session }: Props) {
+  const now = new Date();
+  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+  const today = formatDatePT(now);
+
   const [targets, setTargets] = useState<DailyTargets | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
+  const [totals, setTotals] = useState<DailyTotals>({
+    kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0,
+    byMeal: { breakfast: 0, lunch: 0, dinner: 0, snack: 0 },
+  });
 
-  // Busca as metas diárias do perfil ao montar a tela.
-  // Só seleciona os 4 campos necessários para não trazer dados desnecessários.
   useEffect(() => {
     async function fetchProfile() {
       const { data, error } = await supabase
@@ -71,12 +88,52 @@ export default function HomeScreen({ session }: Props) {
     fetchProfile();
   }, [session.user.id]);
 
+  const loadTotals = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('meal_foods')
+      .select('calories, protein_g, carbs_g, fat_g, meals!inner(meal_type, user_id, date)')
+      .eq('meals.user_id', session.user.id)
+      .eq('meals.date', todayISO);
+
+    if (error) {
+      console.warn('loadTotals error:', error.message);
+      return;
+    }
+
+    let kcal = 0, protein_g = 0, carbs_g = 0, fat_g = 0;
+    const byMeal = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
+
+    for (const item of data ?? []) {
+      kcal      += item.calories   ?? 0;
+      protein_g += item.protein_g  ?? 0;
+      carbs_g   += item.carbs_g    ?? 0;
+      fat_g     += item.fat_g      ?? 0;
+      const mealType = (item.meals as { meal_type: string }).meal_type as keyof typeof byMeal;
+      if (mealType in byMeal) byMeal[mealType] += item.calories ?? 0;
+    }
+
+    const round = (n: number) => Math.round((n + Number.EPSILON) * 10) / 10;
+    setTotals({
+      kcal:      round(kcal),
+      protein_g: round(protein_g),
+      carbs_g:   round(carbs_g),
+      fat_g:     round(fat_g),
+      byMeal: {
+        breakfast: round(byMeal.breakfast),
+        lunch:     round(byMeal.lunch),
+        dinner:    round(byMeal.dinner),
+        snack:     round(byMeal.snack),
+      },
+    });
+  }, [session.user.id, todayISO]);
+
+  useEffect(() => {
+    if (selectedMeal === null) loadTotals();
+  }, [selectedMeal, loadTotals]);
+
   async function handleSignOut() {
-    // signOut limpa a sessão local; o listener em App.tsx redireciona para AuthScreen
     await supabase.auth.signOut();
   }
-
-  // ── Estados de carregamento e erro ────────────────────────────────────────
 
   if (loading) {
     return (
@@ -94,7 +151,6 @@ export default function HomeScreen({ session }: Props) {
     );
   }
 
-  // Targets nulos significam que o onboarding não foi concluído corretamente
   if (!targets || targets.daily_calorie_target == null) {
     return (
       <View style={styles.centered}>
@@ -102,11 +158,6 @@ export default function HomeScreen({ session }: Props) {
       </View>
     );
   }
-
-  const today = formatDatePT(new Date());
-
-  const now = new Date();
-  const todayISO = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   if (selectedMeal) {
     return (
@@ -128,25 +179,22 @@ export default function HomeScreen({ session }: Props) {
       <Text style={styles.date}>{today}</Text>
 
       {/* ── Card de calorias em destaque ────────────────────────────── */}
-      {/* Consumido está fixo em 0 até a tabela de refeições existir */}
       <View style={styles.card}>
         <Text style={styles.calorieLabel}>Calorias</Text>
         <Text style={styles.calorieNumber}>
-          0{' '}
+          {totals.kcal}{' '}
           <Text style={styles.calorieTarget}>/ {targets.daily_calorie_target} kcal</Text>
         </Text>
-        {/* Barra de progresso: width em % do consumido/meta — sempre 0 por ora */}
         <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: '0%' }]} />
+          <View style={[styles.progressFill, { width: `${Math.min((totals.kcal / targets.daily_calorie_target) * 100, 100)}%` }]} />
         </View>
       </View>
 
       {/* ── Linha de macros ─────────────────────────────────────────── */}
-      {/* Três cards menores lado a lado para proteína, carboidrato e gordura */}
       <View style={styles.macroRow}>
-        <MacroCard label="Proteína" consumed={0} target={targets.daily_protein_g} />
-        <MacroCard label="Carbo"    consumed={0} target={targets.daily_carbs_g} />
-        <MacroCard label="Gordura"  consumed={0} target={targets.daily_fat_g} />
+        <MacroCard label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} />
+        <MacroCard label="Carbo"    consumed={totals.carbs_g}   target={targets.daily_carbs_g} />
+        <MacroCard label="Gordura"  consumed={totals.fat_g}     target={targets.daily_fat_g} />
       </View>
 
       {/* ── Cards de refeição ───────────────────────────────────────── */}
@@ -155,7 +203,7 @@ export default function HomeScreen({ session }: Props) {
           <View style={styles.mealRow}>
             <View>
               <Text style={styles.mealName}>{meal.label}</Text>
-              <Text style={styles.mealKcal}>0 kcal</Text>
+              <Text style={styles.mealKcal}>{totals.byMeal[meal.type]} kcal</Text>
             </View>
             <TouchableOpacity
               style={styles.addButton}
@@ -177,12 +225,9 @@ export default function HomeScreen({ session }: Props) {
 }
 
 // ── Componente interno MacroCard ───────────────────────────────────────────
-// Exibe label, "consumido / meta g" e uma barra de progresso fina.
-// Separado para evitar repetição nos três macros.
 type MacroCardProps = { label: string; consumed: number; target: number };
 
 function MacroCard({ label, consumed, target }: MacroCardProps) {
-  // Garante que a barra nunca ultrapasse 100% mesmo com dados futuros incorretos
   const pct = target > 0 ? Math.min((consumed / target) * 100, 100) : 0;
 
   return (
