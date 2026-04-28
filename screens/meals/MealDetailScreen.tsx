@@ -14,6 +14,7 @@ import AddFoodScreen from './AddFoodScreen';
 import BarcodeScanScreen, { PrefillData } from '../scanner/BarcodeScanScreen';
 import DescribeMealScreen from './DescribeMealScreen';
 import PhotoMealScreen from './PhotoMealScreen';
+import VoiceMealScreen from './VoiceMealScreen';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -41,6 +42,7 @@ type FormMode =
   | { kind: 'scan' }
   | { kind: 'describe' }
   | { kind: 'photo' }
+  | { kind: 'voice' }
   | null;
 
 type ScreenState = 'loading' | 'error' | 'ready';
@@ -124,6 +126,18 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   if (formMode?.kind === 'photo') {
     return (
       <PhotoMealScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onSaved={onFormDone}
+      />
+    );
+  }
+
+  if (formMode?.kind === 'voice') {
+    return (
+      <VoiceMealScreen
         session={session}
         mealType={mealType}
         date={date}
@@ -248,6 +262,14 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
             >
               <Text style={styles.sheetOptionLabel}>✨ Descrever</Text>
               <Text style={styles.sheetOptionDesc}>Escreva o que comeu, IA estrutura</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'voice' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>🎤 Falar</Text>
+              <Text style={styles.sheetOptionDesc}>Grave e a IA transcreve + estrutura</Text>
             </TouchableOpacity>
 
             <TouchableOpacity

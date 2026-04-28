@@ -16,7 +16,8 @@
       "supportsTablet": true,
       "infoPlist": {
         "NSCameraUsageDescription": "Usado para escanear códigos de barras de alimentos",
-        "NSPhotoLibraryUsageDescription": "Usado para escolher foto da refeição"
+        "NSPhotoLibraryUsageDescription": "Usado para escolher foto da refeição",
+        "NSMicrophoneUsageDescription": "Usado para gravar a descrição da refeição"
       }
     },
     "android": {
@@ -28,7 +29,8 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "CAMERA",
-        "READ_MEDIA_IMAGES"
+        "READ_MEDIA_IMAGES",
+        "RECORD_AUDIO"
       ]
     },
     "web": {
@@ -46,6 +48,12 @@
         {
           "photosPermission": "Permitir $(PRODUCT_NAME) acessar suas fotos para escolher imagem da refeição",
           "cameraPermission": "Permitir $(PRODUCT_NAME) acessar a câmera para tirar foto da refeição"
+        }
+      ],
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Permitir $(PRODUCT_NAME) acessar o microfone para descrever refeições"
         }
       ]
     ]
