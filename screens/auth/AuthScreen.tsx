@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
+import { T } from '../../theme/tokens';
 
 // AuthScreen não recebe props: o App.tsx escuta onAuthStateChange e
 // troca de tela automaticamente quando o login/cadastro tem sucesso.
@@ -53,7 +54,11 @@ export default function AuthScreen() {
       style={styles.container}
     >
       <View style={styles.inner}>
-        <Text style={styles.title}>Calorie Tracker</Text>
+        <Text style={styles.eyebrow}>BEM-VINDO</Text>
+        <Text style={styles.title}>
+          Faça login para continuar no{' '}
+          <Text style={styles.titleAccent}>Calorie Tracker</Text>
+        </Text>
 
         <TextInput
           style={styles.input}
@@ -99,49 +104,67 @@ export default function AuthScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
+    paddingHorizontal: T.sp5,
+  },
+  eyebrow: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    letterSpacing: 2,
+    color: T.textTertiary,
+    marginBottom: T.sp3,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 28,
-    fontWeight: '700',
-    marginBottom: 32,
-    textAlign: 'center',
+    fontFamily: T.fontDisplay,
+    fontSize: T.textXl,
+    color: T.textPrimary,
+    marginBottom: T.sp6,
+    lineHeight: 36,
+  },
+  titleAccent: {
+    color: T.accent,
+    fontFamily: T.fontDisplayItalic,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-    marginBottom: 12,
+    borderColor: T.borderSoft,
+    backgroundColor: T.surface1,
+    paddingHorizontal: T.sp4,
+    paddingVertical: 13,
+    fontSize: T.textBase,
+    marginBottom: T.sp3,
+    color: T.textPrimary,
+    fontFamily: T.fontBody,
   },
   button: {
-    backgroundColor: '#222',
-    borderRadius: 8,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
     paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: T.sp2,
   },
   buttonSecondary: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     borderWidth: 1,
-    borderColor: '#222',
+    borderColor: T.borderStrong,
   },
   buttonDisabled: {
     opacity: 0.5,
   },
   buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: T.bgBase,
+    fontSize: T.textXs,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   buttonTextSecondary: {
-    color: '#222',
+    color: T.textPrimary,
   },
 });
