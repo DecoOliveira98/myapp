@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
+  Animated,
   ScrollView,
   StyleSheet,
   Text,
@@ -9,13 +9,12 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { T } from '../../theme/tokens';
 import MealDetailScreen from './MealDetailScreen';
 import WeightScreen from '../weight/WeightScreen';
 import ChatScreen from '../chat/ChatScreen';
 
-type Props = {
-  session: Session;
-};
+type Props = { session: Session };
 
 type DailyTargets = {
   daily_calorie_target: number;
@@ -29,18 +28,10 @@ type DailyTotals = {
   protein_g: number;
   carbs_g: number;
   fat_g: number;
-  byMeal: {
-    breakfast: number;
-    lunch: number;
-    dinner: number;
-    snack: number;
-  };
+  byMeal: { breakfast: number; lunch: number; dinner: number; snack: number };
 };
 
-type MealEntry = {
-  type: 'breakfast' | 'lunch' | 'dinner' | 'snack';
-  label: string;
-};
+type MealEntry = { type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; label: string };
 
 type WeightSummary = {
   current: number | null;
@@ -51,10 +42,14 @@ type WeightSummary = {
 
 const MEALS: MealEntry[] = [
   { type: 'breakfast', label: 'Café da manhã' },
-  { type: 'lunch', label: 'Almoço' },
-  { type: 'dinner', label: 'Jantar' },
-  { type: 'snack', label: 'Lanche' },
+  { type: 'lunch',     label: 'Almoço' },
+  { type: 'dinner',    label: 'Jantar' },
+  { type: 'snack',     label: 'Lanche' },
 ];
+
+const BAR_MAX_H = 80;
+
+// ── Date helpers ─────────────────────────────────────────────────────────────
 
 function isoToday(): string {
   const d = new Date();
@@ -74,8 +69,12 @@ function isoToDate(iso: string): Date {
 }
 
 function dayOfWeekPT(iso: string): string {
-  const days = ['domingo', 'segunda', 'terça', 'quarta', 'quinta', 'sexta', 'sábado'];
+  const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
   return days[isoToDate(iso).getDay()];
+}
+
+function dayOfWeekShortPT(iso: string): string {
+  return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][isoToDate(iso).getDay()];
 }
 
 function formatDatePT(date: Date): string {
@@ -92,26 +91,67 @@ function formatDateShort(iso: string): string {
   return `${d} ${months[m - 1]}`;
 }
 
+function formatKcal(n: number): string {
+  const r = Math.round(n);
+  if (r >= 1000) {
+    return `${Math.floor(r / 1000)}.${String(r % 1000).padStart(3, '0')}`;
+  }
+  return String(r);
+}
+
+function getHeadline(
+  kcal: number,
+  target: number,
+  isToday: boolean,
+): { pre: string; italic: string; post: string } {
+  if (!isToday) {
+    const pct = target > 0 ? Math.round((kcal / target) * 100) : 0;
+    return { pre: 'Você atingiu', italic: `${pct}%`, post: ' da meta neste dia.' };
+  }
+  if (kcal === 0) {
+    return { pre: 'Como foi', italic: ' o dia', post: ' por aí?' };
+  }
+  const pct = kcal / target;
+  if (pct > 1.05) return { pre: 'Você', italic: ' passou da meta', post: ' hoje.' };
+  if (pct >= 0.8)  return { pre: 'Você está', italic: ' no caminho.', post: '' };
+  if (pct >= 0.5)  return { pre: 'Bom', italic: ' começo de dia.', post: '' };
+  return { pre: 'O dia ainda', italic: ' começa.', post: '' };
+}
+
+// ── Main screen ───────────────────────────────────────────────────────────────
+
 export default function HomeScreen({ session }: Props) {
   const todayISO = useMemo(() => isoToday(), []);
-  const [selectedDateISO, setSelectedDateISO] = useState<string>(todayISO);
-
+  const [selectedDateISO, setSelectedDateISO] = useState(todayISO);
   const [targets, setTargets] = useState<DailyTargets | null>(null);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
   const [showWeight, setShowWeight] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showMealPicker, setShowMealPicker] = useState(false);
   const [weight, setWeight] = useState<WeightSummary>({
-    current: null,
-    currentDate: null,
-    firstDate: null,
-    diff: null,
+    current: null, currentDate: null, firstDate: null, diff: null,
   });
   const [totals, setTotals] = useState<DailyTotals>({
     kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0,
     byMeal: { breakfast: 0, lunch: 0, dinner: 0, snack: 0 },
   });
+  const [weekData, setWeekData] = useState<Record<string, number>>({});
+  const [streak, setStreak] = useState(0);
+
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [mealsY, setMealsY] = useState(600);
+
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 0.2, duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1,   duration: 1200, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [pulseAnim]);
 
   useEffect(() => {
     async function fetchProfile() {
@@ -120,7 +160,6 @@ export default function HomeScreen({ session }: Props) {
         .select('daily_calorie_target, daily_protein_g, daily_carbs_g, daily_fat_g')
         .eq('id', session.user.id)
         .single();
-
       if (error || !data) {
         setFetchError(true);
       } else {
@@ -128,7 +167,6 @@ export default function HomeScreen({ session }: Props) {
       }
       setLoading(false);
     }
-
     fetchProfile();
   }, [session.user.id]);
 
@@ -139,120 +177,126 @@ export default function HomeScreen({ session }: Props) {
       .eq('meals.user_id', session.user.id)
       .eq('meals.date', selectedDateISO);
 
-    if (error) {
-      console.warn('loadTotals error:', error.message);
-      return;
-    }
+    if (error) { console.warn('loadTotals:', error.message); return; }
 
     let kcal = 0, protein_g = 0, carbs_g = 0, fat_g = 0;
     const byMeal = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
-
     for (const item of data ?? []) {
-      kcal += item.calories ?? 0;
-      protein_g += item.protein_g ?? 0;
-      carbs_g += item.carbs_g ?? 0;
-      fat_g += item.fat_g ?? 0;
-      const mealsField = item.meals as { meal_type: string } | { meal_type: string }[] | null | undefined;
-      const mealsObj = Array.isArray(mealsField) ? mealsField[0] : mealsField;
-      const mealType = mealsObj?.meal_type as keyof typeof byMeal | undefined;
-      if (mealType && mealType in byMeal) byMeal[mealType] += item.calories ?? 0;
+      kcal       += item.calories   ?? 0;
+      protein_g  += item.protein_g  ?? 0;
+      carbs_g    += item.carbs_g    ?? 0;
+      fat_g      += item.fat_g      ?? 0;
+      const mf = item.meals as { meal_type: string } | { meal_type: string }[] | null | undefined;
+      const mo = Array.isArray(mf) ? mf[0] : mf;
+      const mt = mo?.meal_type as keyof typeof byMeal | undefined;
+      if (mt && mt in byMeal) byMeal[mt] += item.calories ?? 0;
     }
-
     const round = (n: number) => Math.round((n + Number.EPSILON) * 10) / 10;
     setTotals({
-      kcal: round(kcal),
-      protein_g: round(protein_g),
-      carbs_g: round(carbs_g),
-      fat_g: round(fat_g),
+      kcal: round(kcal), protein_g: round(protein_g),
+      carbs_g: round(carbs_g), fat_g: round(fat_g),
       byMeal: {
-        breakfast: round(byMeal.breakfast),
-        lunch: round(byMeal.lunch),
-        dinner: round(byMeal.dinner),
-        snack: round(byMeal.snack),
+        breakfast: round(byMeal.breakfast), lunch: round(byMeal.lunch),
+        dinner: round(byMeal.dinner),       snack: round(byMeal.snack),
       },
     });
   }, [session.user.id, selectedDateISO]);
 
   const loadWeightSummary = useCallback(async () => {
     const [latestRes, oldestRes] = await Promise.all([
-      supabase
-        .from('weight_log')
-        .select('date, weight_kg')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from('weight_log')
-        .select('date, weight_kg')
-        .eq('user_id', session.user.id)
-        .order('date', { ascending: true })
-        .limit(1)
-        .maybeSingle(),
+      supabase.from('weight_log').select('date, weight_kg')
+        .eq('user_id', session.user.id).order('date', { ascending: false }).limit(1).maybeSingle(),
+      supabase.from('weight_log').select('date, weight_kg')
+        .eq('user_id', session.user.id).order('date', { ascending: true }).limit(1).maybeSingle(),
     ]);
-
-    if (latestRes.error || oldestRes.error) {
-      console.warn('loadWeightSummary error');
-      return;
-    }
-
-    if (!latestRes.data) {
-      setWeight({ current: null, currentDate: null, firstDate: null, diff: null });
-      return;
-    }
-
-    const current = Number(latestRes.data.weight_kg);
+    if (latestRes.error || oldestRes.error) { console.warn('loadWeightSummary error'); return; }
+    if (!latestRes.data) { setWeight({ current: null, currentDate: null, firstDate: null, diff: null }); return; }
+    const current     = Number(latestRes.data.weight_kg);
     const currentDate = latestRes.data.date;
-    const oldest = oldestRes.data ? Number(oldestRes.data.weight_kg) : null;
-    const firstDate = oldestRes.data ? oldestRes.data.date : null;
-
+    const oldest      = oldestRes.data ? Number(oldestRes.data.weight_kg) : null;
+    const firstDate   = oldestRes.data ? oldestRes.data.date : null;
     const diff = oldest !== null && firstDate !== currentDate
       ? Math.round((current - oldest + Number.EPSILON) * 10) / 10
       : null;
-
     setWeight({ current, currentDate, firstDate, diff });
   }, [session.user.id]);
 
+  const loadWeekData = useCallback(async () => {
+    const dates = Array.from({ length: 7 }, (_, i) => addDaysIso(todayISO, -(6 - i)));
+    const oldest = dates[0];
+    const { data, error } = await supabase
+      .from('meal_foods')
+      .select('calories, meals!inner(user_id, date)')
+      .eq('meals.user_id', session.user.id)
+      .gte('meals.date', oldest)
+      .lte('meals.date', todayISO);
+    if (error) { console.warn('loadWeekData:', error.message); return; }
+    const map: Record<string, number> = {};
+    dates.forEach(d => { map[d] = 0; });
+    for (const item of data ?? []) {
+      const mf = item.meals as { date: string } | { date: string }[] | null | undefined;
+      const mo = Array.isArray(mf) ? mf[0] : mf;
+      const date = mo?.date;
+      if (date && date in map) map[date] = (map[date] ?? 0) + (item.calories ?? 0);
+    }
+    setWeekData(map);
+  }, [session.user.id, todayISO]);
+
+  const loadStreak = useCallback(async () => {
+    const { data, error } = await supabase
+      .from('meals')
+      .select('date')
+      .eq('user_id', session.user.id)
+      .order('date', { ascending: false })
+      .limit(200);
+    if (error || !data || data.length === 0) { setStreak(0); return; }
+    const unique = [...new Set(data.map(m => m.date as string))].sort().reverse();
+    let count = 0;
+    let check = todayISO;
+    if (!unique.includes(todayISO)) check = addDaysIso(todayISO, -1);
+    for (const d of unique) {
+      if (d === check) { count++; check = addDaysIso(check, -1); }
+      else if (d < check) break;
+    }
+    setStreak(count);
+  }, [session.user.id, todayISO]);
+
   useEffect(() => {
-    if (selectedMeal === null) loadTotals();
-  }, [selectedMeal, loadTotals]);
+    if (selectedMeal === null) { loadTotals(); loadWeekData(); }
+  }, [selectedMeal, loadTotals, loadWeekData]);
 
   useEffect(() => {
     if (!showWeight) loadWeightSummary();
   }, [showWeight, loadWeightSummary]);
 
-  async function handleSignOut() {
-    await supabase.auth.signOut();
-  }
+  useEffect(() => { loadStreak(); }, [loadStreak]);
+
+  async function handleSignOut() { await supabase.auth.signOut(); }
+
+  // ── Loading / error states ────────────────────────────────────────────────
 
   if (loading) {
     return (
-      <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#222" />
+      <View style={ss.centered}>
+        <Text style={[ss.eyebrow, { marginBottom: 0 }]}>Carregando...</Text>
       </View>
     );
   }
-
   if (fetchError) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Erro ao carregar perfil</Text>
+      <View style={ss.centered}>
+        <Text style={ss.bodyText}>Erro ao carregar perfil</Text>
       </View>
     );
   }
-
   if (!targets || targets.daily_calorie_target == null) {
     return (
-      <View style={styles.centered}>
-        <Text style={styles.errorText}>Completa o onboarding primeiro</Text>
+      <View style={ss.centered}>
+        <Text style={ss.bodyText}>Completa o onboarding primeiro</Text>
       </View>
     );
   }
-
-  if (showChat) {
-    return <ChatScreen session={session} onClose={() => setShowChat(false)} />;
-  }
-
+  if (showChat) return <ChatScreen session={session} onClose={() => setShowChat(false)} />;
   if (selectedMeal) {
     return (
       <MealDetailScreen
@@ -264,372 +308,724 @@ export default function HomeScreen({ session }: Props) {
       />
     );
   }
+  if (showWeight) return <WeightScreen session={session} onClose={() => setShowWeight(false)} />;
 
-  if (showWeight) {
-    return <WeightScreen session={session} onClose={() => setShowWeight(false)} />;
-  }
+  // ── Derived values ────────────────────────────────────────────────────────
 
   const yesterdayISO = addDaysIso(todayISO, -1);
   const canGoForward = selectedDateISO !== todayISO;
+  const isToday      = selectedDateISO === todayISO;
 
-  let titleLabel: string;
-  let subtitleLabel: string;
-  const dateFmt = formatDatePT(isoToDate(selectedDateISO));
+  const progressPct = Math.min((totals.kcal / targets.daily_calorie_target) * 100, 100);
+  const remaining   = Math.max(targets.daily_calorie_target - totals.kcal, 0);
+  const headline    = getHeadline(totals.kcal, targets.daily_calorie_target, isToday);
 
-  if (selectedDateISO === todayISO) {
-    titleLabel = 'Hoje';
-    subtitleLabel = `${dateFmt} (${dayOfWeekPT(selectedDateISO)})`;
-  } else if (selectedDateISO === yesterdayISO) {
-    titleLabel = 'Ontem';
-    subtitleLabel = `${dateFmt} (${dayOfWeekPT(selectedDateISO)})`;
-  } else {
-    titleLabel = dateFmt;
-    subtitleLabel = dayOfWeekPT(selectedDateISO);
-  }
+  const weekDates = Array.from({ length: 7 }, (_, i) => addDaysIso(todayISO, -(6 - i)));
+  const maxWeekKcal = Math.max(
+    ...weekDates.map(d => weekData[d] ?? 0),
+    targets.daily_calorie_target,
+    1,
+  );
+  const weekAvgKcal = (() => {
+    const vals = weekDates.map(d => weekData[d] ?? 0).filter(v => v > 0);
+    return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
+  })();
+
+  const proteinPct = Math.round((targets.daily_protein_g * 4 / targets.daily_calorie_target) * 100);
+  const carbsPct   = Math.round((targets.daily_carbs_g   * 4 / targets.daily_calorie_target) * 100);
+  const fatPct     = Math.round((targets.daily_fat_g     * 9 / targets.daily_calorie_target) * 100);
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <ScrollView style={styles.scroll} contentContainerStyle={styles.container}>
+    <ScrollView
+      ref={scrollViewRef}
+      style={ss.scroll}
+      contentContainerStyle={ss.container}
+      showsVerticalScrollIndicator={false}
+    >
 
-      {/* ── Cabeçalho navegável ─────────────────────────────────────── */}
-      <View style={styles.dateHeader}>
-        <TouchableOpacity
-          style={styles.arrowBtn}
-          onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))}
-          hitSlop={8}
-        >
-          <Text style={styles.arrowText}>←</Text>
-        </TouchableOpacity>
-
-        <View style={styles.dateCenter}>
-          <Text style={styles.title}>{titleLabel}</Text>
-          <Text style={styles.date}>{subtitleLabel}</Text>
+      {/* ── Top row: date nav + streak ─────────────────────────────── */}
+      <View style={ss.topRow}>
+        <View style={ss.dateNav}>
+          <TouchableOpacity onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))} hitSlop={14}>
+            <Text style={ss.navArrow}>←</Text>
+          </TouchableOpacity>
+          <Text style={ss.eyebrow} numberOfLines={1}>
+            {dayOfWeekPT(selectedDateISO).toUpperCase()} · {formatDatePT(isoToDate(selectedDateISO)).toUpperCase()}
+          </Text>
+          <TouchableOpacity
+            onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
+            disabled={!canGoForward}
+            hitSlop={14}
+          >
+            <Text style={[ss.navArrow, !canGoForward && ss.navArrowDisabled]}>→</Text>
+          </TouchableOpacity>
         </View>
 
-        <TouchableOpacity
-          style={[styles.arrowBtn, !canGoForward && styles.arrowBtnDisabled]}
-          onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
-          hitSlop={8}
-          disabled={!canGoForward}
-        >
-          <Text style={[styles.arrowText, !canGoForward && styles.arrowTextDisabled]}>→</Text>
-        </TouchableOpacity>
+        {streak > 0 && (
+          <View style={ss.streakPill}>
+            <Animated.View style={[ss.pulseDot, { opacity: pulseAnim }]} />
+            <Text style={ss.streakText}>{streak} dia{streak !== 1 ? 's' : ''}</Text>
+          </View>
+        )}
       </View>
 
-      {/* ── Card de calorias em destaque ────────────────────────────── */}
-      <View style={styles.card}>
-        <Text style={styles.calorieLabel}>Calorias</Text>
-        <Text style={styles.calorieNumber}>
-          {totals.kcal}{' '}
-          <Text style={styles.calorieTarget}>/ {targets.daily_calorie_target} kcal</Text>
+      {/* ── Hero ───────────────────────────────────────────────────── */}
+      <View style={ss.hero}>
+        <Text style={ss.heroHeadline}>
+          {headline.pre}
+          <Text style={ss.heroHeadlineItalic}>{headline.italic}</Text>
+          {headline.post}
         </Text>
-        <View style={styles.progressTrack}>
-          <View style={[styles.progressFill, { width: `${Math.min((totals.kcal / targets.daily_calorie_target) * 100, 100)}%` }]} />
-        </View>
-      </View>
 
-      {/* ── Linha de macros ─────────────────────────────────────────── */}
-      <View style={styles.macroRow}>
-        <MacroCard label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} />
-        <MacroCard label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} />
-        <MacroCard label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} />
-      </View>
-
-      {/* ── Cards de refeição ───────────────────────────────────────── */}
-      {MEALS.map((meal) => (
-        <View key={meal.type} style={styles.card}>
-          <View style={styles.mealRow}>
-            <View>
-              <Text style={styles.mealName}>{meal.label}</Text>
-              <Text style={styles.mealKcal}>{totals.byMeal[meal.type]} kcal</Text>
-            </View>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setSelectedMeal(meal)}
-            >
-              <Text style={styles.addButtonText}>Adicionar</Text>
-            </TouchableOpacity>
+        <View style={ss.calorieRow}>
+          <Text style={ss.calorieNum} adjustsFontSizeToFit numberOfLines={1}>
+            {formatKcal(totals.kcal)}
+          </Text>
+          <View style={ss.calorieTarget}>
+            <Text style={ss.calorieTargetLabel}>META DIÁRIA</Text>
+            <Text style={ss.calorieTargetNum}>{formatKcal(targets.daily_calorie_target)} kcal</Text>
           </View>
         </View>
-      ))}
 
-      {/* ── Card de peso ────────────────────────────────────────────── */}
-      <TouchableOpacity style={styles.weightCard} onPress={() => setShowWeight(true)} activeOpacity={0.7}>
-        <Text style={styles.weightLabel}>Peso</Text>
+        <View style={ss.progressTrack}>
+          <View style={[ss.progressFill, { width: `${progressPct}%` as any }]} />
+        </View>
+        <View style={ss.progressMeta}>
+          <Text style={ss.progressMetaText}>
+            <Text style={ss.progressMetaBold}>{Math.round(progressPct)}%</Text> consumido
+          </Text>
+          <Text style={ss.progressMetaText}>{formatKcal(remaining)} kcal restantes</Text>
+        </View>
 
+        <View style={ss.actions}>
+          <TouchableOpacity
+            style={ss.btnPrimary}
+            onPress={() => setShowMealPicker(v => !v)}
+            activeOpacity={0.85}
+          >
+            <Text style={ss.btnPrimaryText}>REGISTRAR  ↗</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={ss.btnGhost}
+            onPress={() => scrollViewRef.current?.scrollTo({ y: mealsY, animated: true })}
+            activeOpacity={0.75}
+          >
+            <Text style={ss.btnGhostText}>VER DETALHES</Text>
+          </TouchableOpacity>
+        </View>
+
+        {showMealPicker && (
+          <View style={ss.mealPicker}>
+            {MEALS.map(meal => (
+              <TouchableOpacity
+                key={meal.type}
+                style={ss.mealPickerBtn}
+                onPress={() => { setSelectedMeal(meal); setShowMealPicker(false); }}
+                activeOpacity={0.7}
+              >
+                <Text style={ss.mealPickerBtnText}>{meal.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+
+      {/* ── Macros ─────────────────────────────────────────────────── */}
+      <View style={ss.macrosCard}>
+        <View style={ss.macrosHeader}>
+          <Text style={ss.macrosTitle}>Macros</Text>
+          <Text style={ss.macrosRatio}>{proteinPct}P · {carbsPct}C · {fatPct}G</Text>
+        </View>
+        <MacroRow label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} />
+        <MacroRow label="Carbo"    consumed={totals.carbs_g}   target={targets.daily_carbs_g}   fillColor="#C9A878" />
+        <MacroRow label="Gordura"  consumed={totals.fat_g}     target={targets.daily_fat_g}     fillColor="#6E5B43" />
+      </View>
+
+      {/* ── Refeições ──────────────────────────────────────────────── */}
+      <View
+        style={ss.sectionHeader}
+        onLayout={e => setMealsY(e.nativeEvent.layout.y)}
+      >
+        <Text style={ss.sectionTitle}>Refeições de hoje</Text>
+        <Text style={ss.sectionMeta}>{MEALS.length} refeições</Text>
+      </View>
+
+      <View style={ss.mealsGrid}>
+        {MEALS.map(meal => (
+          <MealCard
+            key={meal.type}
+            label={meal.label}
+            kcal={totals.byMeal[meal.type]}
+            onPress={() => setSelectedMeal(meal)}
+          />
+        ))}
+      </View>
+
+      {/* ── Últimos 7 dias ─────────────────────────────────────────── */}
+      <View style={ss.sectionHeader}>
+        <Text style={ss.sectionTitle}>Últimos sete dias</Text>
+        {weekAvgKcal > 0 && (
+          <Text style={ss.sectionMeta}>
+            média{' '}
+            <Text style={{ color: T.accent }}>{formatKcal(weekAvgKcal)}</Text>
+            {' '}kcal
+          </Text>
+        )}
+      </View>
+
+      <View style={ss.weekChart}>
+        {weekDates.map(date => {
+          const dayKcal  = weekData[date] ?? 0;
+          const barH     = dayKcal === 0 ? 0 : Math.max((dayKcal / maxWeekKcal) * BAR_MAX_H, 6);
+          const isThisToday = date === todayISO;
+          return (
+            <View key={date} style={ss.weekDay}>
+              <View style={ss.weekBarTrack}>
+                <View
+                  style={[
+                    ss.weekBar,
+                    isThisToday ? ss.weekBarToday : ss.weekBarDefault,
+                    { height: barH },
+                  ]}
+                />
+              </View>
+              <Text style={[ss.weekDayLabel, isThisToday && ss.weekDayLabelToday]}>
+                {dayOfWeekShortPT(date)}
+              </Text>
+              <Text style={[ss.weekDayNum, isThisToday && ss.weekDayNumToday]}>
+                {dayKcal > 0 ? String(Math.round(dayKcal)) : '—'}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* ── Peso ───────────────────────────────────────────────────── */}
+      <TouchableOpacity style={ss.auxCard} onPress={() => setShowWeight(true)} activeOpacity={0.7}>
+        <Text style={ss.auxCardLabel}>Peso</Text>
         {weight.current === null ? (
           <>
-            <Text style={styles.weightValueEmpty}>—</Text>
-            <Text style={styles.weightSubtitle}>Toque para adicionar tua primeira pesagem</Text>
+            <Text style={ss.auxCardValueEmpty}>—</Text>
+            <Text style={ss.auxCardSub}>Toque para registrar</Text>
           </>
         ) : (
           <>
-            <Text style={styles.weightValue}>
+            <Text style={ss.auxCardValue}>
               {weight.current}
-              <Text style={styles.weightUnit}> kg</Text>
+              <Text style={ss.auxCardUnit}> kg</Text>
             </Text>
-            <Text style={styles.weightSubtitle}>
+            <Text style={ss.auxCardSub}>
               {weight.diff === null
                 ? `Primeira pesagem em ${formatDateShort(weight.currentDate!)}`
                 : weight.diff === 0
                   ? `Sem mudança desde ${formatDateShort(weight.firstDate!)}`
-                  : `${weight.diff < 0 ? '↓' : '↑'} ${Math.abs(weight.diff)} kg desde ${formatDateShort(weight.firstDate!)}`
-              }
+                  : `${weight.diff < 0 ? '↓' : '↑'} ${Math.abs(weight.diff)} kg desde ${formatDateShort(weight.firstDate!)}`}
             </Text>
           </>
         )}
       </TouchableOpacity>
 
-      {/* ── Card de chat ────────────────────────────────────────────── */}
-      <TouchableOpacity style={styles.weightCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
-        <Text style={styles.weightLabel}>💬 Conversar com IA</Text>
-        <Text style={styles.weightSubtitle}>Pergunte sobre suas refeições, peso ou metas</Text>
+      {/* ── Chat ───────────────────────────────────────────────────── */}
+      <TouchableOpacity style={ss.auxCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
+        <Text style={ss.auxCardLabel}>Assistente IA</Text>
+        <Text style={ss.auxCardSub}>Pergunte sobre refeições, peso ou metas</Text>
       </TouchableOpacity>
 
-      {/* ── Botão Sair ──────────────────────────────────────────────── */}
-      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
-        <Text style={styles.signOutText}>Sair</Text>
+      {/* ── Sair ───────────────────────────────────────────────────── */}
+      <TouchableOpacity style={ss.signOutBtn} onPress={handleSignOut} activeOpacity={0.6}>
+        <Text style={ss.signOutText}>Sair</Text>
       </TouchableOpacity>
 
     </ScrollView>
   );
 }
 
-// ── Componente interno MacroCard ───────────────────────────────────────────
-type MacroCardProps = { label: string; consumed: number; target: number };
+// ── MacroRow ──────────────────────────────────────────────────────────────────
 
-function MacroCard({ label, consumed, target }: MacroCardProps) {
+type MacroRowProps = { label: string; consumed: number; target: number; fillColor: string };
+
+function MacroRow({ label, consumed, target, fillColor }: MacroRowProps) {
   const pct = target > 0 ? Math.min((consumed / target) * 100, 100) : 0;
-
   return (
-    <View style={[styles.card, styles.macroCard]}>
-      <Text style={styles.macroLabel}>{label}</Text>
-      <Text style={styles.macroValue}>
-        {consumed}
-        <Text style={styles.macroTarget}> / {target}g</Text>
-      </Text>
-      <View style={styles.macroTrack}>
-        <View style={[styles.macroFill, { width: `${pct}%` }]} />
+    <View style={ss.macroRow}>
+      <Text style={ss.macroLabel}>{label}</Text>
+      <View style={ss.macroBarTrack}>
+        <View style={[ss.macroBarFill, { width: `${pct}%` as any, backgroundColor: fillColor }]} />
       </View>
+      <Text style={ss.macroValue}>
+        {Math.round(consumed)}
+        <Text style={ss.macroOf}> / {target}g</Text>
+      </Text>
     </View>
   );
 }
 
-// ── Estilos ───────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+// ── MealCard ──────────────────────────────────────────────────────────────────
+
+type MealCardProps = { label: string; kcal: number; onPress: () => void };
+
+function MealCard({ label, kcal, onPress }: MealCardProps) {
+  return (
+    <TouchableOpacity style={ss.mealCard} onPress={onPress} activeOpacity={0.75}>
+      <View style={ss.mealCardInner}>
+        <View>
+          <Text style={ss.mealCardName}>{label}</Text>
+          <Text style={ss.mealCardKcal}>
+            {kcal > 0 ? (
+              <>
+                <Text style={{ color: T.accent }}>{formatKcal(kcal)}</Text>
+                <Text> kcal</Text>
+              </>
+            ) : (
+              'Vazio'
+            )}
+          </Text>
+        </View>
+        <View style={ss.addBtn}>
+          <Text style={ss.addBtnText}>+</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ── Styles ────────────────────────────────────────────────────────────────────
+
+const ss = StyleSheet.create({
   scroll: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   container: {
-    padding: 20,
+    paddingHorizontal: T.sp5,
     paddingTop: 56,
-    paddingBottom: 40,
+    paddingBottom: 80,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
-  errorText: {
-    fontSize: 16,
-    color: '#666',
-  },
-
-  // Cabeçalho
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111',
-  },
-  date: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 2,
+  bodyText: {
+    fontFamily: T.fontBody,
+    fontSize: T.textBase,
+    color: T.textSecondary,
   },
 
-  // Cabeçalho navegável
-  dateHeader: {
+  // ── Top row ────────────────────────────────
+  topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 20,
+    marginBottom: T.sp7,
   },
-  dateCenter: {
-    flex: 1,
+  dateNav: {
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: T.sp3,
+    flex: 1,
   },
-  arrowBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  eyebrow: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    letterSpacing: 2.4,
+    color: T.textTertiary,
+    flex: 1,
+    textAlign: 'center',
   },
-  arrowBtnDisabled: {
-    opacity: 0.3,
+  navArrow: {
+    fontFamily: T.fontBody,
+    fontSize: T.textMd,
+    color: T.textSecondary,
   },
-  arrowText: {
-    fontSize: 22,
-    color: '#222',
-    fontWeight: '600',
+  navArrowDisabled: {
+    color: T.textFaint,
   },
-  arrowTextDisabled: {
-    color: '#ccc',
-  },
-
-  // Card base reutilizado em todos os blocos
-  card: {
+  streakPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: T.sp2,
+    paddingHorizontal: T.sp3,
+    paddingVertical: 5,
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+    borderColor: T.accentLine,
+    borderRadius: T.rPill,
+    backgroundColor: T.accentBg,
+  },
+  pulseDot: {
+    width: 5,
+    height: 5,
+    borderRadius: T.rPill,
+    backgroundColor: T.accent,
+  },
+  streakText: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    letterSpacing: 1.2,
   },
 
-  // Calories card
-  calorieLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-    marginBottom: 4,
+  // ── Hero ───────────────────────────────────
+  hero: {
+    marginBottom: T.sp9,
   },
-  calorieNumber: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#222',
+  heroHeadline: {
+    fontFamily: T.fontDisplay,
+    fontSize: T.textLg,
+    lineHeight: T.textLg * 1.32,
+    color: T.textSecondary,
+    letterSpacing: -0.2,
+    marginBottom: T.sp7,
+  },
+  heroHeadlineItalic: {
+    fontFamily: T.fontDisplayItalic,
+    fontSize: T.textLg,
+    color: T.textPrimary,
+  },
+  calorieRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    gap: T.sp4,
+    marginBottom: T.sp5,
+  },
+  calorieNum: {
+    fontFamily: T.fontDisplay,
+    fontSize: T.text4xl,
+    lineHeight: T.text4xl * 0.92,
+    color: T.textPrimary,
+    letterSpacing: -3.5,
+    flexShrink: 1,
   },
   calorieTarget: {
-    fontSize: 18,
-    fontWeight: '400',
-    color: '#666',
+    flexDirection: 'column',
+    gap: 3,
+    paddingBottom: 6,
+  },
+  calorieTargetLabel: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    letterSpacing: 1.6,
+    color: T.textTertiary,
+  },
+  calorieTargetNum: {
+    fontFamily: T.fontMono,
+    fontSize: T.textSm,
+    color: T.accent,
+    letterSpacing: 0.4,
+    fontWeight: '500',
   },
   progressTrack: {
-    height: 8,
-    backgroundColor: '#eee',
-    borderRadius: 4,
-    marginTop: 12,
-    overflow: 'hidden',
+    height: 1,
+    backgroundColor: T.borderSoft,
+    marginBottom: T.sp2,
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: '#222',
-    borderRadius: 4,
+    height: 1,
+    backgroundColor: T.accent,
+  },
+  progressMeta: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: T.sp7,
+  },
+  progressMetaText: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    letterSpacing: 1.6,
+  },
+  progressMetaBold: {
+    color: T.textSecondary,
+    fontFamily: T.fontMonoMedium,
+  },
+  actions: {
+    flexDirection: 'row',
+    gap: T.sp3,
+    flexWrap: 'wrap',
+  },
+  btnPrimary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: T.sp5,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
+  },
+  btnPrimaryText: {
+    fontFamily: T.fontMonoMedium,
+    fontSize: T.textXs,
+    letterSpacing: 2,
+    color: T.bgBase,
+  },
+  btnGhost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 13,
+    paddingHorizontal: T.sp5,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: T.borderStrong,
+  },
+  btnGhostText: {
+    fontFamily: T.fontMonoMedium,
+    fontSize: T.textXs,
+    letterSpacing: 2,
+    color: T.textPrimary,
+  },
+  mealPicker: {
+    marginTop: T.sp4,
+    borderWidth: 1,
+    borderColor: T.borderSoft,
+    backgroundColor: T.surface1,
+  },
+  mealPickerBtn: {
+    paddingVertical: T.sp3,
+    paddingHorizontal: T.sp4,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderFaint,
+  },
+  mealPickerBtnText: {
+    fontFamily: T.fontBody,
+    fontSize: T.textBase,
+    color: T.textPrimary,
   },
 
-  // Linha de macros
+  // ── Macros ─────────────────────────────────
+  macrosCard: {
+    borderTopWidth: 1,
+    borderTopColor: T.borderSoft,
+    paddingTop: T.sp5,
+    marginBottom: T.sp9,
+  },
+  macrosHeader: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: T.sp3,
+    marginBottom: T.sp5,
+  },
+  macrosTitle: {
+    fontFamily: T.fontDisplay,
+    fontSize: T.textMd,
+    color: T.textPrimary,
+    letterSpacing: -0.1,
+  },
+  macrosRatio: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    letterSpacing: 1.6,
+  },
   macroRow: {
     flexDirection: 'row',
-    gap: 8,
-    marginBottom: 0,
-  },
-  macroCard: {
-    flex: 1,
-    marginBottom: 12,
+    alignItems: 'center',
+    gap: T.sp3,
+    paddingVertical: T.sp3,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderFaint,
   },
   macroLabel: {
-    fontSize: 12,
-    fontWeight: '500',
-    color: '#666',
-    marginBottom: 2,
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+    width: 70,
   },
-  macroValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#222',
-  },
-  macroTarget: {
-    fontSize: 12,
-    fontWeight: '400',
-    color: '#666',
-  },
-  macroTrack: {
+  macroBarTrack: {
+    flex: 1,
     height: 4,
-    backgroundColor: '#eee',
-    borderRadius: 2,
-    marginTop: 8,
+    backgroundColor: T.surface1,
     overflow: 'hidden',
   },
-  macroFill: {
+  macroBarFill: {
     height: '100%',
-    backgroundColor: '#222',
-    borderRadius: 2,
+  },
+  macroValue: {
+    fontFamily: T.fontMono,
+    fontSize: T.textSm,
+    color: T.textPrimary,
+    textAlign: 'right',
+    minWidth: 80,
+  },
+  macroOf: {
+    color: T.textTertiary,
   },
 
-  // Cards de refeição
-  mealRow: {
+  // ── Section header ──────────────────────────
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    paddingBottom: T.sp4,
+    marginBottom: 0,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderSoft,
+  },
+  sectionTitle: {
+    fontFamily: T.fontDisplayItalic,
+    fontSize: T.textXl,
+    color: T.textPrimary,
+    letterSpacing: -0.5,
+    fontWeight: '400',
+  },
+  sectionMeta: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    letterSpacing: 1.6,
+  },
+
+  // ── Meals grid ─────────────────────────────
+  mealsGrid: {
+    borderLeftWidth: 1,
+    borderLeftColor: T.borderSoft,
+    marginBottom: T.sp9,
+  },
+  mealCard: {
+    borderRightWidth: 1,
+    borderRightColor: T.borderSoft,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderSoft,
+  },
+  mealCardInner: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingHorizontal: T.sp5,
+    paddingVertical: T.sp5,
   },
-  mealName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#222',
+  mealCardName: {
+    fontFamily: T.fontDisplay,
+    fontSize: T.textLg,
+    color: T.textPrimary,
+    letterSpacing: -0.3,
+    marginBottom: T.sp1,
   },
-  mealKcal: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 2,
+  mealCardKcal: {
+    fontFamily: T.fontMono,
+    fontSize: T.textSm,
+    color: T.textSecondary,
   },
-  addButton: {
+  addBtn: {
+    width: 34,
+    height: 34,
     borderWidth: 1,
-    borderColor: '#222',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-  },
-  addButtonText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#222',
-  },
-
-  // Card de peso
-  weightCard: {
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#fff',
-  },
-  weightLabel: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
-    marginBottom: 4,
-  },
-  weightValue: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#222',
-  },
-  weightValueEmpty: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: '#ccc',
-  },
-  weightUnit: {
-    fontSize: 18,
-    fontWeight: '400',
-    color: '#666',
-  },
-  weightSubtitle: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 4,
-  },
-
-  // Botão Sair
-  signOutButton: {
-    borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 8,
-    paddingVertical: 12,
+    borderColor: T.borderStrong,
     alignItems: 'center',
-    marginTop: 8,
+    justifyContent: 'center',
+  },
+  addBtnText: {
+    fontFamily: T.fontBody,
+    fontSize: T.textMd,
+    color: T.textPrimary,
+    lineHeight: T.textMd,
+  },
+
+  // ── Week chart ─────────────────────────────
+  weekChart: {
+    flexDirection: 'row',
+    gap: T.sp2,
+    marginTop: T.sp5,
+    marginBottom: T.sp9,
+    alignItems: 'flex-end',
+  },
+  weekDay: {
+    flex: 1,
+    alignItems: 'center',
+    gap: T.sp2,
+  },
+  weekBarTrack: {
+    width: '100%',
+    height: BAR_MAX_H,
+    justifyContent: 'flex-end',
+  },
+  weekBar: {
+    width: '100%',
+  },
+  weekBarDefault: {
+    backgroundColor: T.surface2,
+  },
+  weekBarToday: {
+    backgroundColor: T.accentBg,
+    borderBottomWidth: 2,
+    borderBottomColor: T.accent,
+  },
+  weekDayLabel: {
+    fontFamily: T.fontMono,
+    fontSize: 10,
+    color: T.textTertiary,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
+  weekDayLabelToday: {
+    color: T.accent,
+  },
+  weekDayNum: {
+    fontFamily: T.fontMono,
+    fontSize: 9,
+    color: T.textTertiary,
+    letterSpacing: 0.4,
+  },
+  weekDayNumToday: {
+    color: T.textSecondary,
+  },
+
+  // ── Aux cards (peso / chat) ─────────────────
+  auxCard: {
+    borderWidth: 1,
+    borderColor: T.borderSoft,
+    backgroundColor: T.surface1,
+    padding: T.sp4,
+    marginBottom: T.sp3,
+  },
+  auxCardLabel: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+    marginBottom: T.sp1,
+  },
+  auxCardValue: {
+    fontFamily: T.fontDisplay,
+    fontSize: T.textXl,
+    color: T.textPrimary,
+    letterSpacing: -0.5,
+  },
+  auxCardValueEmpty: {
+    fontFamily: T.fontDisplay,
+    fontSize: T.textXl,
+    color: T.textFaint,
+  },
+  auxCardUnit: {
+    fontFamily: T.fontBody,
+    fontSize: T.textMd,
+    color: T.textSecondary,
+  },
+  auxCardSub: {
+    fontFamily: T.fontBody,
+    fontSize: T.textSm,
+    color: T.textTertiary,
+    marginTop: T.sp1,
+  },
+
+  // ── Sign out ───────────────────────────────
+  signOutBtn: {
+    borderWidth: 1,
+    borderColor: T.borderFaint,
+    paddingVertical: T.sp3,
+    alignItems: 'center',
+    marginTop: T.sp5,
   },
   signOutText: {
-    fontSize: 15,
-    color: '#666',
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });
