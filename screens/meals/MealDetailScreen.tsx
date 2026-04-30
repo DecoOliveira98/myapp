@@ -15,6 +15,7 @@ import BarcodeScanScreen, { PrefillData } from '../scanner/BarcodeScanScreen';
 import DescribeMealScreen from './DescribeMealScreen';
 import PhotoMealScreen from './PhotoMealScreen';
 import VoiceMealScreen from './VoiceMealScreen';
+import ApplyRecipeScreen from '../recipes/ApplyRecipeScreen';
 import { T } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -44,6 +45,7 @@ type FormMode =
   | { kind: 'describe' }
   | { kind: 'photo' }
   | { kind: 'voice' }
+  | { kind: 'apply_recipe' }
   | null;
 
 type ScreenState = 'loading' | 'error' | 'ready';
@@ -144,6 +146,18 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
         date={date}
         onCancel={() => setFormMode(null)}
         onSaved={onFormDone}
+      />
+    );
+  }
+
+  if (formMode?.kind === 'apply_recipe') {
+    return (
+      <ApplyRecipeScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onApplied={onFormDone}
       />
     );
   }
@@ -271,6 +285,14 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
             >
               <Text style={styles.sheetOptionLabel}>🎤 Falar</Text>
               <Text style={styles.sheetOptionDesc}>Grave e a IA transcreve + estrutura</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'apply_recipe' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>📖 Da receita</Text>
+              <Text style={styles.sheetOptionDesc}>Aplique uma receita salva à refeição</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
