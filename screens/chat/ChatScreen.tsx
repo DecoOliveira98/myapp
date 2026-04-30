@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { T } from '../../theme/tokens';
 
 type Props = {
   session: Session;
@@ -123,7 +124,7 @@ export default function ChatScreen({ session, onClose }: Props) {
       {/* Body */}
       {loadingHistory ? (
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color="#222" />
+          <ActivityIndicator size="large" color={T.accent} />
         </View>
       ) : isEmpty ? (
         <View style={styles.emptyContainer}>
@@ -181,7 +182,7 @@ export default function ChatScreen({ session, onClose }: Props) {
             onChangeText={setInput}
             multiline
             placeholder="Pergunte algo..."
-            placeholderTextColor="#aaa"
+            placeholderTextColor={T.textTertiary}
             textAlignVertical="top"
             onSubmitEditing={send}
             blurOnSubmit={false}
@@ -202,26 +203,30 @@ export default function ChatScreen({ session, onClose }: Props) {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   header: {
     paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: T.sp5,
+    paddingBottom: T.sp4,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: T.sp3,
   },
   backText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: T.textMd,
+    color: T.textPrimary,
+    fontFamily: T.fontDisplay,
+    letterSpacing: -0.2,
   },
   centered: {
     flex: 1,
@@ -230,111 +235,117 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    padding: 24,
+    padding: T.sp5,
     justifyContent: 'center',
     alignItems: 'center',
   },
   emptyText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textBase,
+    color: T.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
-    marginBottom: 24,
+    marginBottom: T.sp5,
+    fontFamily: T.fontBody,
   },
   suggestion: {
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    marginBottom: 10,
+    borderColor: T.borderSoft,
+    paddingVertical: T.sp3,
+    paddingHorizontal: T.sp4,
+    marginBottom: T.sp3,
     alignSelf: 'stretch',
+    backgroundColor: T.surface1,
   },
   suggestionText: {
-    fontSize: 14,
-    color: '#333',
+    fontSize: T.textSm,
+    color: T.textPrimary,
     textAlign: 'center',
+    fontFamily: T.fontBody,
   },
   listContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp3,
   },
   bubble: {
-    maxWidth: '80%',
-    borderRadius: 16,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    marginBottom: 6,
+    maxWidth: '84%',
+    paddingHorizontal: T.sp3,
+    paddingVertical: T.sp2,
+    marginBottom: T.sp2,
+    borderWidth: 1,
   },
   bubbleUser: {
-    backgroundColor: '#222',
+    backgroundColor: T.accent,
+    borderColor: T.accent,
     alignSelf: 'flex-end',
-    borderBottomRightRadius: 4,
   },
   bubbleAssistant: {
-    backgroundColor: '#f3f3f3',
+    backgroundColor: T.surface1,
+    borderColor: T.borderSoft,
     alignSelf: 'flex-start',
-    borderBottomLeftRadius: 4,
   },
   bubbleText: {
-    fontSize: 15,
+    fontSize: T.textBase,
     lineHeight: 21,
+    fontFamily: T.fontBody,
   },
   bubbleTextUser: {
-    color: '#fff',
+    color: T.bgBase,
   },
   bubbleTextAssistant: {
-    color: '#111',
+    color: T.textPrimary,
   },
   thinkingText: {
-    color: '#999',
+    color: T.textTertiary,
     fontStyle: 'italic',
   },
   footer: {
     borderTopWidth: 1,
-    borderTopColor: '#eee',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    borderTopColor: T.borderSoft,
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp3,
     paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   errorText: {
-    color: '#c0392b',
-    fontSize: 13,
-    marginBottom: 8,
+    color: T.danger,
+    fontSize: T.textXs,
+    marginBottom: T.sp2,
     textAlign: 'center',
+    fontFamily: T.fontBody,
   },
   inputRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: 10,
+    gap: T.sp2,
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    backgroundColor: '#fafafa',
-    fontSize: 15,
-    color: '#111',
+    borderColor: T.borderSoft,
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp3,
+    backgroundColor: T.surface1,
+    fontSize: T.textBase,
+    color: T.textPrimary,
     maxHeight: 80,
+    fontFamily: T.fontBody,
   },
   sendBtn: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    backgroundColor: '#222',
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
     justifyContent: 'center',
     alignItems: 'center',
   },
   sendBtnDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: T.surface3,
+    borderColor: T.surface3,
   },
   sendBtnText: {
-    fontSize: 18,
-    color: '#fff',
-    fontWeight: '700',
+    fontSize: T.textMd,
+    color: T.bgBase,
+    fontFamily: T.fontMonoMedium,
   },
 });

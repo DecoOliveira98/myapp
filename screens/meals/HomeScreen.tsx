@@ -620,7 +620,7 @@ const ss = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: T.sp7,
+    marginBottom: T.sp5,
   },
   dateNav: {
     flexDirection: 'row',
@@ -670,7 +670,7 @@ const ss = StyleSheet.create({
 
   // ── Hero ───────────────────────────────────
   hero: {
-    marginBottom: T.sp9,
+    marginBottom: T.sp6,
   },
   heroHeadline: {
     fontFamily: T.fontDisplay,
@@ -678,7 +678,7 @@ const ss = StyleSheet.create({
     lineHeight: T.textLg * 1.32,
     color: T.textSecondary,
     letterSpacing: -0.2,
-    marginBottom: T.sp7,
+    marginBottom: T.sp6,
   },
   heroHeadlineItalic: {
     fontFamily: T.fontDisplayItalic,
@@ -694,7 +694,7 @@ const ss = StyleSheet.create({
   calorieNum: {
     fontFamily: T.fontDisplay,
     fontSize: T.text4xl,
-    lineHeight: T.text4xl * 0.92,
+    lineHeight: T.text4xl,
     color: T.textPrimary,
     letterSpacing: -3.5,
     flexShrink: 1,
@@ -729,7 +729,7 @@ const ss = StyleSheet.create({
   progressMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: T.sp7,
+    marginBottom: T.sp5,
   },
   progressMetaText: {
     fontFamily: T.fontMono,

@@ -14,6 +14,7 @@ import {
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { T } from '../../theme/tokens';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -178,7 +179,7 @@ export default function WeightScreen({ session, onClose }: Props) {
           value={weight}
           onChangeText={setWeight}
           placeholder="Ex: 75.4"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
@@ -213,7 +214,7 @@ export default function WeightScreen({ session, onClose }: Props) {
         <WeightChart data={chartData} />
 
         {state === 'loading' && (
-          <ActivityIndicator size="small" color="#222" style={styles.loader} />
+          <ActivityIndicator size="small" color={T.accent} style={styles.loader} />
         )}
 
         {state === 'error' && (
@@ -268,15 +269,15 @@ function WeightChart({ data }: { data: Array<{ date: string; weight: number }> }
   return (
     <View style={{ marginVertical: 12 }}>
       <Svg width={width} height={HEIGHT}>
-        <Line x1={0} y1={HEIGHT - PADDING_V} x2={width} y2={HEIGHT - PADDING_V} stroke="#eee" strokeWidth={1} />
-        <Polyline points={polylinePoints} fill="none" stroke="#222" strokeWidth={2} />
+        <Line x1={0} y1={HEIGHT - PADDING_V} x2={width} y2={HEIGHT - PADDING_V} stroke={T.borderSoft} strokeWidth={1} />
+        <Polyline points={polylinePoints} fill="none" stroke={T.accent} strokeWidth={2} />
         {points.map((p, i) => (
-          <Circle key={i} cx={p.x} cy={p.y} r={3} fill="#222" />
+          <Circle key={i} cx={p.x} cy={p.y} r={3} fill={T.accent} />
         ))}
       </Svg>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-        <Text style={{ fontSize: 11, color: '#999' }}>30 dias atrás</Text>
-        <Text style={{ fontSize: 11, color: '#999' }}>hoje</Text>
+        <Text style={{ fontSize: 11, color: T.textTertiary, fontFamily: T.fontMono }}>30 dias atrás</Text>
+        <Text style={{ fontSize: 11, color: T.textTertiary, fontFamily: T.fontMono }}>hoje</Text>
       </View>
     </View>
   );
@@ -285,121 +286,141 @@ function WeightChart({ data }: { data: Array<{ date: string; weight: number }> }
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   header: {
     paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: T.sp5,
+    paddingBottom: T.sp4,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: T.sp3,
   },
   backText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: T.textMd,
+    color: T.textPrimary,
+    fontFamily: T.fontDisplay,
+    letterSpacing: -0.2,
   },
   body: {
-    padding: 20,
-    paddingBottom: 48,
+    padding: T.sp5,
+    paddingBottom: T.sp8,
   },
   editingSubtitle: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 4,
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    marginBottom: T.sp1,
+    fontFamily: T.fontBody,
   },
   label: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 6,
-    marginTop: 16,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    marginBottom: T.sp2,
+    marginTop: T.sp4,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#111',
+    borderColor: T.borderSoft,
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp3,
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    backgroundColor: T.surface1,
+    fontFamily: T.fontBody,
   },
   errorText: {
-    color: '#c0392b',
-    fontSize: 13,
-    marginTop: 12,
+    color: T.danger,
+    fontSize: T.textXs,
+    marginTop: T.sp3,
     textAlign: 'center',
+    fontFamily: T.fontBody,
   },
   saveBtn: {
-    marginTop: 20,
-    backgroundColor: '#222',
-    borderRadius: 12,
-    paddingVertical: 15,
+    marginTop: T.sp5,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   saveBtnDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: T.surface3,
+    borderColor: T.surface3,
   },
   saveBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: T.textXs,
+    color: T.bgBase,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   deleteBtn: {
-    marginTop: 12,
-    backgroundColor: '#c0392b',
-    borderRadius: 12,
-    paddingVertical: 15,
+    marginTop: T.sp3,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: T.danger,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   deleteBtnDisabled: {
-    backgroundColor: '#ccc',
+    opacity: 0.45,
   },
   deleteBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: T.textXs,
+    color: T.danger,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   separator: {
     height: 1,
-    backgroundColor: '#eee',
-    marginVertical: 16,
+    backgroundColor: T.borderSoft,
+    marginVertical: T.sp4,
   },
   sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#111',
-    marginBottom: 12,
+    fontSize: T.textLg,
+    color: T.textPrimary,
+    marginBottom: T.sp3,
+    fontFamily: T.fontDisplayItalic,
   },
   loader: {
-    marginTop: 16,
+    marginTop: T.sp4,
   },
   listItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: T.sp3,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
   },
   listDate: {
-    fontSize: 15,
-    color: '#111',
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    fontFamily: T.fontBody,
   },
   listWeight: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textBase,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
   },
   emptyText: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
     textAlign: 'center',
-    marginTop: 24,
+    marginTop: T.sp5,
+    fontFamily: T.fontBody,
   },
 });

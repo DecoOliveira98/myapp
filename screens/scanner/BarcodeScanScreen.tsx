@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { T } from '../../theme/tokens';
 
 export type PrefillData = {
   name: string;
@@ -47,10 +48,10 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
 
       onProductFound({
         name: product.product_name_pt || product.product_name || 'Produto sem nome',
-        cal_per_100g:     nutriments['energy-kcal_100g'],
-        protein_per_100g: nutriments.proteins_100g       ?? 0,
-        carbs_per_100g:   nutriments.carbohydrates_100g  ?? 0,
-        fat_per_100g:     nutriments.fat_100g            ?? 0,
+        cal_per_100g: nutriments['energy-kcal_100g'],
+        protein_per_100g: nutriments.proteins_100g ?? 0,
+        carbs_per_100g: nutriments.carbohydrates_100g ?? 0,
+        fat_per_100g: nutriments.fat_100g ?? 0,
       });
     } catch {
       onProductNotFound(barcode);
@@ -115,7 +116,7 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
           ) : (
             <>
               <Text style={styles.infoText}>Buscando...</Text>
-              <ActivityIndicator style={{ marginTop: 8 }} color="#222" />
+              <ActivityIndicator style={{ marginTop: 8 }} color={T.accent} />
             </>
           )}
         </View>
@@ -129,41 +130,48 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 32,
-    gap: 12,
+    backgroundColor: T.bgBase,
+    padding: T.sp6,
+    gap: T.sp3,
   },
   permissionText: {
-    fontSize: 16,
-    color: '#222',
+    fontSize: T.textBase,
+    color: T.textPrimary,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: T.sp2,
+    fontFamily: T.fontBody,
   },
   primaryButton: {
-    backgroundColor: '#222',
-    borderRadius: 10,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
     paddingVertical: 12,
-    paddingHorizontal: 32,
+    paddingHorizontal: T.sp6,
     width: '100%',
     alignItems: 'center',
   },
   primaryButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
+    color: T.bgBase,
+    fontSize: T.textXs,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
   secondaryButton: {
     borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
+    borderColor: T.borderStrong,
     paddingVertical: 12,
-    paddingHorizontal: 32,
+    paddingHorizontal: T.sp6,
     width: '100%',
     alignItems: 'center',
+    backgroundColor: 'transparent',
   },
   secondaryButtonText: {
-    color: '#444',
-    fontSize: 15,
+    color: T.textSecondary,
+    fontSize: T.textXs,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
 
   // Camera overlay
@@ -176,31 +184,37 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
+    paddingHorizontal: T.sp5,
     paddingTop: 56,
-    paddingBottom: 12,
+    paddingBottom: T.sp3,
   },
   cancelText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-    width: 60,
+    color: T.textPrimary,
+    fontSize: T.textSm,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    width: 70,
+    textTransform: 'uppercase',
   },
   headerTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: T.textPrimary,
+    fontSize: T.textSm,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
   infoBox: {
     marginHorizontal: 40,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    padding: 16,
-    borderRadius: 12,
+    backgroundColor: 'rgba(14,14,16,0.92)',
+    borderWidth: 1,
+    borderColor: T.borderSoft,
+    padding: T.sp4,
     alignItems: 'center',
   },
   infoText: {
-    fontSize: 15,
-    color: '#222',
+    fontSize: T.textSm,
+    color: T.textPrimary,
     textAlign: 'center',
+    fontFamily: T.fontBody,
   },
 });

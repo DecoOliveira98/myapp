@@ -15,6 +15,7 @@ import BarcodeScanScreen, { PrefillData } from '../scanner/BarcodeScanScreen';
 import DescribeMealScreen from './DescribeMealScreen';
 import PhotoMealScreen from './PhotoMealScreen';
 import VoiceMealScreen from './VoiceMealScreen';
+import { T } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -166,7 +167,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   if (state === 'loading') {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#222" />
+        <ActivityIndicator size="large" color={T.accent} />
       </View>
     );
   }
@@ -288,125 +289,142 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   header: {
     paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: T.sp5,
+    paddingBottom: T.sp4,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
   },
   backText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    marginBottom: T.sp2,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: T.textXl,
+    color: T.textPrimary,
+    fontFamily: T.fontDisplay,
+    letterSpacing: -0.5,
   },
   listContent: {
-    padding: 20,
+    padding: T.sp5,
     paddingBottom: 0,
     flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: T.sp7,
   },
   emptyText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textBase,
+    color: T.textSecondary,
+    fontFamily: T.fontBody,
   },
   secondaryText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textBase,
+    color: T.textSecondary,
+    fontFamily: T.fontBody,
   },
   foodCard: {
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+    borderColor: T.borderSoft,
+    padding: T.sp4,
+    marginBottom: T.sp3,
+    backgroundColor: T.surface1,
   },
   foodName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111',
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    fontFamily: T.fontBodySemiBold,
   },
   foodMeta: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
     marginTop: 2,
+    fontFamily: T.fontBody,
   },
   footer: {
-    padding: 20,
+    padding: T.sp5,
     paddingBottom: 36,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: T.borderSoft,
   },
   registerButton: {
-    backgroundColor: '#222',
-    borderRadius: 12,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
     paddingVertical: 14,
     alignItems: 'center',
   },
   registerButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: T.textXs,
+    color: T.bgBase,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.4)',
+    backgroundColor: 'rgba(0,0,0,0.55)',
     justifyContent: 'flex-end',
   },
   sheet: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    padding: 20,
+    backgroundColor: T.bgWarm,
+    borderTopWidth: 1,
+    borderTopColor: T.borderSoft,
+    padding: T.sp5,
     paddingBottom: 36,
   },
   sheetTitle: {
-    fontSize: 13,
-    fontWeight: '500',
-    color: '#666',
+    fontSize: T.textXs,
+    color: T.textTertiary,
     textAlign: 'center',
-    marginBottom: 16,
+    marginBottom: T.sp4,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
   sheetOption: {
     paddingVertical: 14,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
   },
   sheetOptionLabel: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111',
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    fontFamily: T.fontBodySemiBold,
   },
   sheetOptionDesc: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
     marginTop: 2,
+    fontFamily: T.fontBody,
   },
   sheetCancel: {
-    marginTop: 16,
-    paddingVertical: 12,
+    marginTop: T.sp4,
+    paddingVertical: T.sp3,
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: T.borderStrong,
   },
   sheetCancelText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
 });

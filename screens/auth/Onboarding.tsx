@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
+import { T } from '../../theme/tokens';
 
 // Tipos auxiliares para deixar as opções de chip fortemente tipadas
 type Gender = 'male' | 'female';
@@ -152,6 +153,7 @@ export default function Onboarding({ onComplete }: Props) {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
+      <Text style={styles.eyebrow}>ONBOARDING</Text>
       <Text style={styles.title}>Vamos te conhecer!</Text>
       <Text style={styles.subtitle}>Essas informações calculam suas metas diárias.</Text>
 
@@ -160,6 +162,7 @@ export default function Onboarding({ onComplete }: Props) {
       <TextInput
         style={styles.input}
         placeholder="Ex: 25"
+        placeholderTextColor={T.textTertiary}
         value={age}
         onChangeText={setAge}
         keyboardType="numeric"
@@ -185,6 +188,7 @@ export default function Onboarding({ onComplete }: Props) {
       <TextInput
         style={styles.input}
         placeholder="Ex: 170"
+        placeholderTextColor={T.textTertiary}
         value={heightCm}
         onChangeText={setHeightCm}
         keyboardType="numeric"
@@ -195,6 +199,7 @@ export default function Onboarding({ onComplete }: Props) {
       <TextInput
         style={styles.input}
         placeholder="Ex: 70"
+        placeholderTextColor={T.textTertiary}
         value={weightKg}
         onChangeText={setWeightKg}
         keyboardType="numeric"
@@ -203,19 +208,19 @@ export default function Onboarding({ onComplete }: Props) {
       {/* ── Nível de atividade ────────────────────────────────────── */}
       <Text style={styles.label}>Nível de atividade</Text>
       <View style={styles.chipRow}>
-        <Chip label="Sedentário"  selected={activity === 'sedentary'}  onPress={() => setActivity('sedentary')} />
-        <Chip label="Leve"        selected={activity === 'light'}      onPress={() => setActivity('light')} />
-        <Chip label="Moderado"    selected={activity === 'moderate'}   onPress={() => setActivity('moderate')} />
-        <Chip label="Ativo"       selected={activity === 'active'}     onPress={() => setActivity('active')} />
+        <Chip label="Sedentário" selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} />
+        <Chip label="Leve" selected={activity === 'light'} onPress={() => setActivity('light')} />
+        <Chip label="Moderado" selected={activity === 'moderate'} onPress={() => setActivity('moderate')} />
+        <Chip label="Ativo" selected={activity === 'active'} onPress={() => setActivity('active')} />
         <Chip label="Muito ativo" selected={activity === 'very_active'} onPress={() => setActivity('very_active')} />
       </View>
 
       {/* ── Meta ──────────────────────────────────────────────────── */}
       <Text style={styles.label}>Meta</Text>
       <View style={styles.chipRow}>
-        <Chip label="Perder peso" selected={goal === 'lose'}     onPress={() => setGoal('lose')} />
-        <Chip label="Manter"      selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
-        <Chip label="Ganhar peso" selected={goal === 'gain'}     onPress={() => setGoal('gain')} />
+        <Chip label="Perder peso" selected={goal === 'lose'} onPress={() => setGoal('lose')} />
+        <Chip label="Manter" selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
+        <Chip label="Ganhar peso" selected={goal === 'gain'} onPress={() => setGoal('gain')} />
       </View>
 
       <TouchableOpacity
@@ -254,71 +259,91 @@ function Chip({ label, selected, onPress }: ChipProps) {
 // ── Estilos ───────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
-    padding: 24,
+    padding: T.sp5,
     paddingTop: 60,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
+  },
+  eyebrow: {
+    fontFamily: T.fontMono,
+    fontSize: T.textXs,
+    letterSpacing: 2,
+    color: T.textTertiary,
+    marginBottom: T.sp2,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 6,
+    fontSize: T.textXl,
+    color: T.textPrimary,
+    marginBottom: T.sp1,
+    fontFamily: T.fontDisplay,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 28,
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    marginBottom: T.sp6,
+    fontFamily: T.fontBody,
   },
   label: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    marginBottom: T.sp2,
+    marginTop: T.sp4,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
+    borderColor: T.borderSoft,
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp3,
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    backgroundColor: T.surface1,
+    fontFamily: T.fontBody,
   },
   chipRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    gap: T.sp2,
   },
   chip: {
     borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    borderColor: T.borderStrong,
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp2,
+    backgroundColor: 'transparent',
   },
   chipSelected: {
-    backgroundColor: '#222',
-    borderColor: '#222',
+    backgroundColor: T.accentBg,
+    borderColor: T.accent,
   },
   chipText: {
-    fontSize: 14,
-    color: '#444',
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    fontFamily: T.fontBody,
   },
   chipTextSelected: {
-    color: '#fff',
+    color: T.accent,
+    fontFamily: T.fontBodySemiBold,
   },
   saveButton: {
-    backgroundColor: '#222',
-    borderRadius: 8,
-    paddingVertical: 16,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
+    paddingVertical: 14,
     alignItems: 'center',
-    marginTop: 36,
-    marginBottom: 24,
+    marginTop: T.sp7,
+    marginBottom: T.sp5,
   },
   saveButtonDisabled: {
     opacity: 0.5,
   },
   saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
+    color: T.bgBase,
+    fontSize: T.textXs,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
 });

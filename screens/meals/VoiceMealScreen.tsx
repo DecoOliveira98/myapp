@@ -12,6 +12,7 @@ import { Session } from '@supabase/supabase-js';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
+import { T } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -262,7 +263,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
             activeOpacity={0.8}
           >
             {transcribing ? (
-              <ActivityIndicator color="#fff" size="small" />
+              <ActivityIndicator color={T.bgBase} size="small" />
             ) : (
               <Text style={styles.micIcon}>{recording ? '⏹' : '🎤'}</Text>
             )}
@@ -282,7 +283,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
               onChangeText={setText}
               multiline
               textAlignVertical="top"
-              placeholderTextColor="#aaa"
+              placeholderTextColor={T.textTertiary}
             />
           </View>
         )}
@@ -304,142 +305,165 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   header: {
     paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: T.sp5,
+    paddingBottom: T.sp4,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: T.sp3,
   },
   cancelText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: T.textMd,
+    color: T.textPrimary,
+    fontFamily: T.fontDisplay,
+    letterSpacing: -0.2,
   },
   body: {
-    padding: 20,
-    paddingBottom: 48,
+    padding: T.sp5,
+    paddingBottom: T.sp8,
     alignItems: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 32,
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    marginBottom: T.sp6,
     lineHeight: 20,
     alignSelf: 'stretch',
     textAlign: 'center',
+    fontFamily: T.fontBody,
   },
   micContainer: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: T.sp6,
   },
   micButton: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: '#222',
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: T.sp3,
   },
   micButtonActive: {
-    backgroundColor: '#c0392b',
+    backgroundColor: T.danger,
+    borderColor: T.danger,
   },
   micButtonDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: T.surface3,
+    borderColor: T.surface3,
   },
   micIcon: {
     fontSize: 36,
   },
   micLabel: {
-    fontSize: 14,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   transcriptBox: {
     alignSelf: 'stretch',
-    marginBottom: 8,
+    marginBottom: T.sp2,
   },
   transcriptLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#111',
+    fontSize: T.textXs,
+    color: T.textPrimary,
     marginBottom: 2,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   transcriptHint: {
-    fontSize: 12,
-    color: '#999',
-    marginBottom: 10,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    marginBottom: T.sp3,
+    fontFamily: T.fontBody,
   },
   textArea: {
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    padding: 14,
-    backgroundColor: '#fafafa',
-    fontSize: 15,
-    color: '#111',
+    borderColor: T.borderSoft,
+    padding: T.sp4,
+    backgroundColor: T.surface1,
+    fontSize: T.textBase,
+    color: T.textPrimary,
     minHeight: 100,
     alignSelf: 'stretch',
+    fontFamily: T.fontBody,
   },
   errorText: {
-    color: '#c0392b',
-    fontSize: 13,
-    marginTop: 12,
+    color: T.danger,
+    fontSize: T.textXs,
+    marginTop: T.sp3,
     textAlign: 'center',
     alignSelf: 'stretch',
+    fontFamily: T.fontBody,
   },
   actionBtn: {
-    marginTop: 20,
-    backgroundColor: '#222',
-    borderRadius: 12,
-    paddingVertical: 15,
+    marginTop: T.sp5,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
+    paddingVertical: 14,
     alignItems: 'center',
     alignSelf: 'stretch',
   },
   actionBtnDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: T.surface3,
+    borderColor: T.surface3,
   },
   actionBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: T.textXs,
+    color: T.bgBase,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   itemCard: {
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+    borderColor: T.borderSoft,
+    padding: T.sp4,
+    marginBottom: T.sp3,
+    backgroundColor: T.surface1,
     alignSelf: 'stretch',
   },
   itemName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111',
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    fontFamily: T.fontBodySemiBold,
   },
   itemMeta: {
-    fontSize: 13,
-    color: '#666',
-    marginTop: 4,
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    marginTop: T.sp1,
+    fontFamily: T.fontBody,
   },
   itemMacros: {
-    fontSize: 12,
-    color: '#999',
+    fontSize: T.textXs,
+    color: T.textTertiary,
     marginTop: 2,
+    fontFamily: T.fontMono,
+    letterSpacing: 1,
   },
   lowConfidence: {
-    fontSize: 12,
-    color: '#b07d2c',
-    marginTop: 6,
+    fontSize: T.textXs,
+    color: T.accentSoft,
+    marginTop: T.sp2,
+    fontFamily: T.fontBody,
   },
 });
