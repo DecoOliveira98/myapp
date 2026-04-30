@@ -15,8 +15,11 @@ import WeightScreen from '../weight/WeightScreen';
 import ChatScreen from '../chat/ChatScreen';
 import RecipesListScreen from '../recipes/RecipesListScreen';
 import NavBar from '../../components/navigation/NavBar';
+import FastingScreen from '../fasting/FastingScreen';
 
 type Props = { session: Session };
+
+type ActiveFasting = { started_at: string; goal_hours: number | null };
 
 type DailyTargets = {
   daily_calorie_target: number;
@@ -132,6 +135,9 @@ export default function HomeScreen({ session }: Props) {
   const [showWeight, setShowWeight] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
+  const [showFasting, setShowFasting] = useState(false);
+  const [activeFasting, setActiveFasting] = useState<ActiveFasting | null>(null);
+  const [fastingNow, setFastingNow] = useState(new Date());
   const [showMealPicker, setShowMealPicker] = useState(false);
   const [weight, setWeight] = useState<WeightSummary>({
     current: null, currentDate: null, firstDate: null, diff: null,
@@ -205,6 +211,16 @@ export default function HomeScreen({ session }: Props) {
     });
   }, [session.user.id, selectedDateISO]);
 
+  const loadActiveFasting = useCallback(async () => {
+    const { data } = await supabase
+      .from('fasting_sessions')
+      .select('started_at, goal_hours')
+      .eq('user_id', session.user.id)
+      .is('ended_at', null)
+      .maybeSingle();
+    setActiveFasting(data ?? null);
+  }, [session.user.id]);
+
   const loadWeightSummary = useCallback(async () => {
     const [latestRes, oldestRes] = await Promise.all([
       supabase.from('weight_log').select('date, weight_kg')
@@ -272,6 +288,16 @@ export default function HomeScreen({ session }: Props) {
     if (!showWeight) loadWeightSummary();
   }, [showWeight, loadWeightSummary]);
 
+  useEffect(() => {
+    if (!showFasting) loadActiveFasting();
+  }, [showFasting, loadActiveFasting]);
+
+  useEffect(() => {
+    if (!activeFasting) return;
+    const id = setInterval(() => setFastingNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, [activeFasting]);
+
   useEffect(() => { loadStreak(); }, [loadStreak]);
 
   async function handleSignOut() { await supabase.auth.signOut(); }
@@ -299,6 +325,7 @@ export default function HomeScreen({ session }: Props) {
       </View>
     );
   }
+  if (showFasting) return <FastingScreen session={session} onClose={() => setShowFasting(false)} />;
   if (showRecipes) return <RecipesListScreen session={session} onClose={() => setShowRecipes(false)} />;
   if (showChat) return <ChatScreen session={session} onClose={() => setShowChat(false)} />;
   if (selectedMeal) {
@@ -334,6 +361,12 @@ export default function HomeScreen({ session }: Props) {
     const vals = weekDates.map(d => weekData[d] ?? 0).filter(v => v > 0);
     return vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : 0;
   })();
+
+  const fastingElapsed = activeFasting
+    ? fastingNow.getTime() - new Date(activeFasting.started_at).getTime()
+    : 0;
+  const fastingH = Math.floor(fastingElapsed / 3_600_000);
+  const fastingM = Math.floor((fastingElapsed % 3_600_000) / 60_000);
 
   const proteinPct = Math.round((targets.daily_protein_g * 4 / targets.daily_calorie_target) * 100);
   const carbsPct = Math.round((targets.daily_carbs_g * 4 / targets.daily_calorie_target) * 100);
@@ -542,6 +575,21 @@ export default function HomeScreen({ session }: Props) {
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipes(true)} activeOpacity={0.7}>
           <Text style={ss.auxCardLabel}>Receitas</Text>
           <Text style={ss.auxCardSub}>Crie atalhos pras suas comidas frequentes</Text>
+        </TouchableOpacity>
+
+        {/* ── Jejum ──────────────────────────────────────────────────── */}
+        <TouchableOpacity style={ss.auxCard} onPress={() => setShowFasting(true)} activeOpacity={0.7}>
+          <Text style={ss.auxCardLabel}>⏱ Jejum</Text>
+          {activeFasting !== null ? (
+            <>
+              <Text style={ss.auxCardValue}>
+                Jejuando há {fastingH}h {fastingM}min
+              </Text>
+              <Text style={ss.auxCardSub}>Toque para encerrar ou ver detalhes</Text>
+            </>
+          ) : (
+            <Text style={ss.auxCardSub}>Toque para iniciar</Text>
+          )}
         </TouchableOpacity>
 
         {/* ── Sair ───────────────────────────────────────────────────── */}
