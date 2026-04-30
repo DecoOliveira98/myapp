@@ -14,6 +14,7 @@ import MealDetailScreen from './MealDetailScreen';
 import WeightScreen from '../weight/WeightScreen';
 import ChatScreen from '../chat/ChatScreen';
 import RecipesListScreen from '../recipes/RecipesListScreen';
+import NavBar from '../../components/navigation/NavBar';
 
 type Props = { session: Session };
 
@@ -43,9 +44,9 @@ type WeightSummary = {
 
 const MEALS: MealEntry[] = [
   { type: 'breakfast', label: 'Café da manhã' },
-  { type: 'lunch',     label: 'Almoço' },
-  { type: 'dinner',    label: 'Jantar' },
-  { type: 'snack',     label: 'Lanche' },
+  { type: 'lunch', label: 'Almoço' },
+  { type: 'dinner', label: 'Jantar' },
+  { type: 'snack', label: 'Lanche' },
 ];
 
 const BAR_MAX_H = 80;
@@ -114,8 +115,8 @@ function getHeadline(
   }
   const pct = kcal / target;
   if (pct > 1.05) return { pre: 'Você', italic: ' passou da meta', post: ' hoje.' };
-  if (pct >= 0.8)  return { pre: 'Você está', italic: ' no caminho.', post: '' };
-  if (pct >= 0.5)  return { pre: 'Bom', italic: ' começo de dia.', post: '' };
+  if (pct >= 0.8) return { pre: 'Você está', italic: ' no caminho.', post: '' };
+  if (pct >= 0.5) return { pre: 'Bom', italic: ' começo de dia.', post: '' };
   return { pre: 'O dia ainda', italic: ' começa.', post: '' };
 }
 
@@ -150,7 +151,7 @@ export default function HomeScreen({ session }: Props) {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 0.2, duration: 1200, useNativeDriver: true }),
-        Animated.timing(pulseAnim, { toValue: 1,   duration: 1200, useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1, duration: 1200, useNativeDriver: true }),
       ])
     ).start();
   }, [pulseAnim]);
@@ -184,10 +185,10 @@ export default function HomeScreen({ session }: Props) {
     let kcal = 0, protein_g = 0, carbs_g = 0, fat_g = 0;
     const byMeal = { breakfast: 0, lunch: 0, dinner: 0, snack: 0 };
     for (const item of data ?? []) {
-      kcal       += item.calories   ?? 0;
-      protein_g  += item.protein_g  ?? 0;
-      carbs_g    += item.carbs_g    ?? 0;
-      fat_g      += item.fat_g      ?? 0;
+      kcal += item.calories ?? 0;
+      protein_g += item.protein_g ?? 0;
+      carbs_g += item.carbs_g ?? 0;
+      fat_g += item.fat_g ?? 0;
       const mf = item.meals as { meal_type: string } | { meal_type: string }[] | null | undefined;
       const mo = Array.isArray(mf) ? mf[0] : mf;
       const mt = mo?.meal_type as keyof typeof byMeal | undefined;
@@ -199,7 +200,7 @@ export default function HomeScreen({ session }: Props) {
       carbs_g: round(carbs_g), fat_g: round(fat_g),
       byMeal: {
         breakfast: round(byMeal.breakfast), lunch: round(byMeal.lunch),
-        dinner: round(byMeal.dinner),       snack: round(byMeal.snack),
+        dinner: round(byMeal.dinner), snack: round(byMeal.snack),
       },
     });
   }, [session.user.id, selectedDateISO]);
@@ -213,10 +214,10 @@ export default function HomeScreen({ session }: Props) {
     ]);
     if (latestRes.error || oldestRes.error) { console.warn('loadWeightSummary error'); return; }
     if (!latestRes.data) { setWeight({ current: null, currentDate: null, firstDate: null, diff: null }); return; }
-    const current     = Number(latestRes.data.weight_kg);
+    const current = Number(latestRes.data.weight_kg);
     const currentDate = latestRes.data.date;
-    const oldest      = oldestRes.data ? Number(oldestRes.data.weight_kg) : null;
-    const firstDate   = oldestRes.data ? oldestRes.data.date : null;
+    const oldest = oldestRes.data ? Number(oldestRes.data.weight_kg) : null;
+    const firstDate = oldestRes.data ? oldestRes.data.date : null;
     const diff = oldest !== null && firstDate !== currentDate
       ? Math.round((current - oldest + Number.EPSILON) * 10) / 10
       : null;
@@ -317,11 +318,11 @@ export default function HomeScreen({ session }: Props) {
 
   const yesterdayISO = addDaysIso(todayISO, -1);
   const canGoForward = selectedDateISO !== todayISO;
-  const isToday      = selectedDateISO === todayISO;
+  const isToday = selectedDateISO === todayISO;
 
   const progressPct = Math.min((totals.kcal / targets.daily_calorie_target) * 100, 100);
-  const remaining   = Math.max(targets.daily_calorie_target - totals.kcal, 0);
-  const headline    = getHeadline(totals.kcal, targets.daily_calorie_target, isToday);
+  const remaining = Math.max(targets.daily_calorie_target - totals.kcal, 0);
+  const headline = getHeadline(totals.kcal, targets.daily_calorie_target, isToday);
 
   const weekDates = Array.from({ length: 7 }, (_, i) => addDaysIso(todayISO, -(6 - i)));
   const maxWeekKcal = Math.max(
@@ -335,219 +336,237 @@ export default function HomeScreen({ session }: Props) {
   })();
 
   const proteinPct = Math.round((targets.daily_protein_g * 4 / targets.daily_calorie_target) * 100);
-  const carbsPct   = Math.round((targets.daily_carbs_g   * 4 / targets.daily_calorie_target) * 100);
-  const fatPct     = Math.round((targets.daily_fat_g     * 9 / targets.daily_calorie_target) * 100);
+  const carbsPct = Math.round((targets.daily_carbs_g * 4 / targets.daily_calorie_target) * 100);
+  const fatPct = Math.round((targets.daily_fat_g * 9 / targets.daily_calorie_target) * 100);
 
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <ScrollView
-      ref={scrollViewRef}
-      style={ss.scroll}
-      contentContainerStyle={ss.container}
-      showsVerticalScrollIndicator={false}
-    >
-
-      {/* ── Top row: date nav + streak ─────────────────────────────── */}
-      <View style={ss.topRow}>
-        <View style={ss.dateNav}>
-          <TouchableOpacity onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))} hitSlop={14}>
-            <Text style={ss.navArrow}>←</Text>
-          </TouchableOpacity>
-          <Text style={ss.eyebrow} numberOfLines={1}>
-            {dayOfWeekPT(selectedDateISO).toUpperCase()} · {formatDatePT(isoToDate(selectedDateISO)).toUpperCase()}
-          </Text>
-          <TouchableOpacity
-            onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
-            disabled={!canGoForward}
-            hitSlop={14}
-          >
-            <Text style={[ss.navArrow, !canGoForward && ss.navArrowDisabled]}>→</Text>
-          </TouchableOpacity>
-        </View>
-
-        {streak > 0 && (
-          <View style={ss.streakPill}>
-            <Animated.View style={[ss.pulseDot, { opacity: pulseAnim }]} />
-            <Text style={ss.streakText}>{streak} dia{streak !== 1 ? 's' : ''}</Text>
-          </View>
-        )}
-      </View>
-
-      {/* ── Hero ───────────────────────────────────────────────────── */}
-      <View style={ss.hero}>
-        <Text style={ss.heroHeadline}>
-          {headline.pre}
-          <Text style={ss.heroHeadlineItalic}>{headline.italic}</Text>
-          {headline.post}
-        </Text>
-
-        <View style={ss.calorieRow}>
-          <Text style={ss.calorieNum} adjustsFontSizeToFit numberOfLines={1}>
-            {formatKcal(totals.kcal)}
-          </Text>
-          <View style={ss.calorieTarget}>
-            <Text style={ss.calorieTargetLabel}>META DIÁRIA</Text>
-            <Text style={ss.calorieTargetNum}>{formatKcal(targets.daily_calorie_target)} kcal</Text>
-          </View>
-        </View>
-
-        <View style={ss.progressTrack}>
-          <View style={[ss.progressFill, { width: `${progressPct}%` as any }]} />
-        </View>
-        <View style={ss.progressMeta}>
-          <Text style={ss.progressMetaText}>
-            <Text style={ss.progressMetaBold}>{Math.round(progressPct)}%</Text> consumido
-          </Text>
-          <Text style={ss.progressMetaText}>{formatKcal(remaining)} kcal restantes</Text>
-        </View>
-
-        <View style={ss.actions}>
-          <TouchableOpacity
-            style={ss.btnPrimary}
-            onPress={() => setShowMealPicker(v => !v)}
-            activeOpacity={0.85}
-          >
-            <Text style={ss.btnPrimaryText}>REGISTRAR  ↗</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={ss.btnGhost}
-            onPress={() => scrollViewRef.current?.scrollTo({ y: mealsY, animated: true })}
-            activeOpacity={0.75}
-          >
-            <Text style={ss.btnGhostText}>VER DETALHES</Text>
-          </TouchableOpacity>
-        </View>
-
-        {showMealPicker && (
-          <View style={ss.mealPicker}>
-            {MEALS.map(meal => (
-              <TouchableOpacity
-                key={meal.type}
-                style={ss.mealPickerBtn}
-                onPress={() => { setSelectedMeal(meal); setShowMealPicker(false); }}
-                activeOpacity={0.7}
-              >
-                <Text style={ss.mealPickerBtnText}>{meal.label}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-      </View>
-
-      {/* ── Macros ─────────────────────────────────────────────────── */}
-      <View style={ss.macrosCard}>
-        <View style={ss.macrosHeader}>
-          <Text style={ss.macrosTitle}>Macros</Text>
-          <Text style={ss.macrosRatio}>{proteinPct}P · {carbsPct}C · {fatPct}G</Text>
-        </View>
-        <MacroRow label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} />
-        <MacroRow label="Carbo"    consumed={totals.carbs_g}   target={targets.daily_carbs_g}   fillColor="#C9A878" />
-        <MacroRow label="Gordura"  consumed={totals.fat_g}     target={targets.daily_fat_g}     fillColor="#6E5B43" />
-      </View>
-
-      {/* ── Refeições ──────────────────────────────────────────────── */}
-      <View
-        style={ss.sectionHeader}
-        onLayout={e => setMealsY(e.nativeEvent.layout.y)}
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        ref={scrollViewRef}
+        style={ss.scroll}
+        contentContainerStyle={ss.container}
+        showsVerticalScrollIndicator={false}
       >
-        <Text style={ss.sectionTitle}>Refeições de hoje</Text>
-        <Text style={ss.sectionMeta}>{MEALS.length} refeições</Text>
-      </View>
 
-      <View style={ss.mealsGrid}>
-        {MEALS.map(meal => (
-          <MealCard
-            key={meal.type}
-            label={meal.label}
-            kcal={totals.byMeal[meal.type]}
-            onPress={() => setSelectedMeal(meal)}
-          />
-        ))}
-      </View>
+        {/* ── Top row: date nav + streak ─────────────────────────────── */}
+        <View style={ss.topRow}>
+          <View style={ss.dateNav}>
+            <TouchableOpacity onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))} hitSlop={14}>
+              <Text style={ss.navArrow}>←</Text>
+            </TouchableOpacity>
+            <Text style={ss.eyebrow} numberOfLines={1}>
+              {dayOfWeekPT(selectedDateISO).toUpperCase()} · {formatDatePT(isoToDate(selectedDateISO)).toUpperCase()}
+            </Text>
+            <TouchableOpacity
+              onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
+              disabled={!canGoForward}
+              hitSlop={14}
+            >
+              <Text style={[ss.navArrow, !canGoForward && ss.navArrowDisabled]}>→</Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* ── Últimos 7 dias ─────────────────────────────────────────── */}
-      <View style={ss.sectionHeader}>
-        <Text style={ss.sectionTitle}>Últimos sete dias</Text>
-        {weekAvgKcal > 0 && (
-          <Text style={ss.sectionMeta}>
-            média{' '}
-            <Text style={{ color: T.accent }}>{formatKcal(weekAvgKcal)}</Text>
-            {' '}kcal
-          </Text>
-        )}
-      </View>
-
-      <View style={ss.weekChart}>
-        {weekDates.map(date => {
-          const dayKcal  = weekData[date] ?? 0;
-          const barH     = dayKcal === 0 ? 0 : Math.max((dayKcal / maxWeekKcal) * BAR_MAX_H, 6);
-          const isThisToday = date === todayISO;
-          return (
-            <View key={date} style={ss.weekDay}>
-              <View style={ss.weekBarTrack}>
-                <View
-                  style={[
-                    ss.weekBar,
-                    isThisToday ? ss.weekBarToday : ss.weekBarDefault,
-                    { height: barH },
-                  ]}
-                />
-              </View>
-              <Text style={[ss.weekDayLabel, isThisToday && ss.weekDayLabelToday]}>
-                {dayOfWeekShortPT(date)}
-              </Text>
-              <Text style={[ss.weekDayNum, isThisToday && ss.weekDayNumToday]}>
-                {dayKcal > 0 ? String(Math.round(dayKcal)) : '—'}
-              </Text>
+          {streak > 0 && (
+            <View style={ss.streakPill}>
+              <Animated.View style={[ss.pulseDot, { opacity: pulseAnim }]} />
+              <Text style={ss.streakText}>{streak} dia{streak !== 1 ? 's' : ''}</Text>
             </View>
-          );
-        })}
-      </View>
+          )}
+        </View>
 
-      {/* ── Peso ───────────────────────────────────────────────────── */}
-      <TouchableOpacity style={ss.auxCard} onPress={() => setShowWeight(true)} activeOpacity={0.7}>
-        <Text style={ss.auxCardLabel}>Peso</Text>
-        {weight.current === null ? (
-          <>
-            <Text style={ss.auxCardValueEmpty}>—</Text>
-            <Text style={ss.auxCardSub}>Toque para registrar</Text>
-          </>
-        ) : (
-          <>
-            <Text style={ss.auxCardValue}>
-              {weight.current}
-              <Text style={ss.auxCardUnit}> kg</Text>
+        {/* ── Hero ───────────────────────────────────────────────────── */}
+        <View style={ss.hero}>
+          <Text style={ss.heroHeadline}>
+            {headline.pre}
+            <Text style={ss.heroHeadlineItalic}>{headline.italic}</Text>
+            {headline.post}
+          </Text>
+
+          <View style={ss.calorieRow}>
+            <Text style={ss.calorieNum} adjustsFontSizeToFit numberOfLines={1}>
+              {formatKcal(totals.kcal)}
             </Text>
-            <Text style={ss.auxCardSub}>
-              {weight.diff === null
-                ? `Primeira pesagem em ${formatDateShort(weight.currentDate!)}`
-                : weight.diff === 0
-                  ? `Sem mudança desde ${formatDateShort(weight.firstDate!)}`
-                  : `${weight.diff < 0 ? '↓' : '↑'} ${Math.abs(weight.diff)} kg desde ${formatDateShort(weight.firstDate!)}`}
+            <View style={ss.calorieTarget}>
+              <Text style={ss.calorieTargetLabel}>META DIÁRIA</Text>
+              <Text style={ss.calorieTargetNum}>{formatKcal(targets.daily_calorie_target)} kcal</Text>
+            </View>
+          </View>
+
+          <View style={ss.progressTrack}>
+            <View style={[ss.progressFill, { width: `${progressPct}%` as any }]} />
+          </View>
+          <View style={ss.progressMeta}>
+            <Text style={ss.progressMetaText}>
+              <Text style={ss.progressMetaBold}>{Math.round(progressPct)}%</Text> consumido
             </Text>
-          </>
-        )}
-      </TouchableOpacity>
+            <Text style={ss.progressMetaText}>{formatKcal(remaining)} kcal restantes</Text>
+          </View>
 
-      {/* ── Chat ───────────────────────────────────────────────────── */}
-      <TouchableOpacity style={ss.auxCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
-        <Text style={ss.auxCardLabel}>Assistente IA</Text>
-        <Text style={ss.auxCardSub}>Pergunte sobre refeições, peso ou metas</Text>
-      </TouchableOpacity>
+          <View style={ss.actions}>
+            <TouchableOpacity
+              style={ss.btnPrimary}
+              onPress={() => setShowMealPicker(v => !v)}
+              activeOpacity={0.85}
+            >
+              <Text style={ss.btnPrimaryText}>REGISTRAR  ↗</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={ss.btnGhost}
+              onPress={() => scrollViewRef.current?.scrollTo({ y: mealsY, animated: true })}
+              activeOpacity={0.75}
+            >
+              <Text style={ss.btnGhostText}>VER DETALHES</Text>
+            </TouchableOpacity>
+          </View>
 
-      {/* ── Receitas ───────────────────────────────────────────────── */}
-      <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipes(true)} activeOpacity={0.7}>
-        <Text style={ss.auxCardLabel}>Receitas</Text>
-        <Text style={ss.auxCardSub}>Crie atalhos pras suas comidas frequentes</Text>
-      </TouchableOpacity>
+          {showMealPicker && (
+            <View style={ss.mealPicker}>
+              {MEALS.map(meal => (
+                <TouchableOpacity
+                  key={meal.type}
+                  style={ss.mealPickerBtn}
+                  onPress={() => { setSelectedMeal(meal); setShowMealPicker(false); }}
+                  activeOpacity={0.7}
+                >
+                  <Text style={ss.mealPickerBtnText}>{meal.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+        </View>
 
-      {/* ── Sair ───────────────────────────────────────────────────── */}
-      <TouchableOpacity style={ss.signOutBtn} onPress={handleSignOut} activeOpacity={0.6}>
-        <Text style={ss.signOutText}>Sair</Text>
-      </TouchableOpacity>
+        {/* ── Macros ─────────────────────────────────────────────────── */}
+        <View style={ss.macrosCard}>
+          <View style={ss.macrosHeader}>
+            <Text style={ss.macrosTitle}>Macros</Text>
+            <Text style={ss.macrosRatio}>{proteinPct}P · {carbsPct}C · {fatPct}G</Text>
+          </View>
+          <MacroRow label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} />
+          <MacroRow label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor="#C9A878" />
+          <MacroRow label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} fillColor="#6E5B43" />
+        </View>
 
-    </ScrollView>
+        {/* ── Refeições ──────────────────────────────────────────────── */}
+        <View
+          style={ss.sectionHeader}
+          onLayout={e => setMealsY(e.nativeEvent.layout.y)}
+        >
+          <Text style={ss.sectionTitle}>Refeições de hoje</Text>
+          <Text style={ss.sectionMeta}>{MEALS.length} refeições</Text>
+        </View>
+
+        <View style={ss.mealsGrid}>
+          {MEALS.map(meal => (
+            <MealCard
+              key={meal.type}
+              label={meal.label}
+              kcal={totals.byMeal[meal.type]}
+              onPress={() => setSelectedMeal(meal)}
+            />
+          ))}
+        </View>
+
+        {/* ── Últimos 7 dias ─────────────────────────────────────────── */}
+        <View style={ss.sectionHeader}>
+          <Text style={ss.sectionTitle}>Últimos sete dias</Text>
+          {weekAvgKcal > 0 && (
+            <Text style={ss.sectionMeta}>
+              média{' '}
+              <Text style={{ color: T.accent }}>{formatKcal(weekAvgKcal)}</Text>
+              {' '}kcal
+            </Text>
+          )}
+        </View>
+
+        <View style={ss.weekChart}>
+          {weekDates.map(date => {
+            const dayKcal = weekData[date] ?? 0;
+            const barH = dayKcal === 0 ? 0 : Math.max((dayKcal / maxWeekKcal) * BAR_MAX_H, 6);
+            const isThisToday = date === todayISO;
+            return (
+              <View key={date} style={ss.weekDay}>
+                <View style={ss.weekBarTrack}>
+                  <View
+                    style={[
+                      ss.weekBar,
+                      isThisToday ? ss.weekBarToday : ss.weekBarDefault,
+                      { height: barH },
+                    ]}
+                  />
+                </View>
+                <Text style={[ss.weekDayLabel, isThisToday && ss.weekDayLabelToday]}>
+                  {dayOfWeekShortPT(date)}
+                </Text>
+                <Text style={[ss.weekDayNum, isThisToday && ss.weekDayNumToday]}>
+                  {dayKcal > 0 ? String(Math.round(dayKcal)) : '—'}
+                </Text>
+              </View>
+            );
+          })}
+        </View>
+
+        {/* ── Peso ───────────────────────────────────────────────────── */}
+        <TouchableOpacity style={ss.auxCard} onPress={() => setShowWeight(true)} activeOpacity={0.7}>
+          <Text style={ss.auxCardLabel}>Peso</Text>
+          {weight.current === null ? (
+            <>
+              <Text style={ss.auxCardValueEmpty}>—</Text>
+              <Text style={ss.auxCardSub}>Toque para registrar</Text>
+            </>
+          ) : (
+            <>
+              <Text style={ss.auxCardValue}>
+                {weight.current}
+                <Text style={ss.auxCardUnit}> kg</Text>
+              </Text>
+              <Text style={ss.auxCardSub}>
+                {weight.diff === null
+                  ? `Primeira pesagem em ${formatDateShort(weight.currentDate!)}`
+                  : weight.diff === 0
+                    ? `Sem mudança desde ${formatDateShort(weight.firstDate!)}`
+                    : `${weight.diff < 0 ? '↓' : '↑'} ${Math.abs(weight.diff)} kg desde ${formatDateShort(weight.firstDate!)}`}
+              </Text>
+            </>
+          )}
+        </TouchableOpacity>
+
+        {/* ── Chat ───────────────────────────────────────────────────── */}
+        <TouchableOpacity style={ss.auxCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
+          <Text style={ss.auxCardLabel}>Assistente IA</Text>
+          <Text style={ss.auxCardSub}>Pergunte sobre refeições, peso ou metas</Text>
+        </TouchableOpacity>
+
+        {/* ── Receitas ───────────────────────────────────────────────── */}
+        <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipes(true)} activeOpacity={0.7}>
+          <Text style={ss.auxCardLabel}>Receitas</Text>
+          <Text style={ss.auxCardSub}>Crie atalhos pras suas comidas frequentes</Text>
+        </TouchableOpacity>
+
+        {/* ── Sair ───────────────────────────────────────────────────── */}
+        <TouchableOpacity style={ss.signOutBtn} onPress={handleSignOut} activeOpacity={0.6}>
+          <Text style={ss.signOutText}>Sair</Text>
+        </TouchableOpacity>
+
+      </ScrollView>
+
+      <NavBar
+        onTabChange={(index) => {
+          if (index === 0) {
+            setShowChat(false);
+            setShowWeight(false);
+            setShowRecipes(false);
+          } else if (index === 2) {
+            setShowChat(true);
+          } else if (index === 3) {
+            // placeholder future: scanner
+          } else if (index === 4) {
+            setShowWeight(true);
+          }
+        }}
+      />
+    </View>
   );
 }
 
