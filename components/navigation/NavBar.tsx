@@ -1,24 +1,25 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { StyleSheet, View, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 const TAB_WIDTH = 70;
 
-// Paleta Premium: Tons de Grafite, Dourado e Cinza Sedoso
+// Paleta Premium: Tons de Grafite, Dourado e Cinza Sedoso (aligned with theme colors.ts)
 const Colors = {
-    primary: '#E2B042', // Dourado Premium
-    background: '#121212', // Preto profundo
-    card: '#1E1E1E', // Cinza do card
+    primary: '#ffeba7', // Theme primary gold
+    background: '#1f2029', // Theme bg
+    card: '#2a2b38', // Theme card
     textInactive: '#555555',
     indicatorBorder: '#0c0c0c',
+    aiGlow: '#FFD700', // Special AI gold glow
 };
 
 const menuItems = [
-    { icon: 'grid-outline', activeIcon: 'grid' },
-    { icon: 'person-outline', activeIcon: 'person' },
-    { icon: 'add-circle-outline', activeIcon: 'add-circle' },
-    { icon: 'chatbubbles-outline', activeIcon: 'chatbubbles' },
-    { icon: 'settings-outline', activeIcon: 'settings' },
+    { icon: 'grid-outline', activeIcon: 'grid', label: 'Home' },
+    { icon: 'person-outline', activeIcon: 'person', label: 'Profile' },
+    { icon: 'sparkles-outline', activeIcon: 'sparkles', label: 'AI', isAI: true }, // Central AI highlighted
+    { icon: 'barcode-outline', activeIcon: 'barcode', label: 'Scanner' },
+    { icon: 'trending-up-outline', activeIcon: 'trending-up', label: 'Weight' },
 ];
 
 interface NavBarProps {
@@ -26,8 +27,30 @@ interface NavBarProps {
 }
 
 export default function NavBar({ onTabChange }: NavBarProps) {
-    const [activeIndex, setActiveIndex] = useState(0);
-    const translateX = useRef(new Animated.Value(0)).current;
+    const [activeIndex, setActiveIndex] = useState(2); // Start on central AI
+    const translateX = useRef(new Animated.Value(2 * TAB_WIDTH)).current;
+    const aiScale = useRef(new Animated.Value(1)).current; // AI pulse animation
+
+    useEffect(() => {
+        if (activeIndex === 2) { // AI active - start pulse
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(aiScale, {
+                        toValue: 1.1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(aiScale, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        } else {
+            aiScale.setValue(1);
+        }
+    }, [activeIndex]);
 
     const handlePress = (index: number) => {
         setActiveIndex(index);
@@ -68,16 +91,22 @@ export default function NavBar({ onTabChange }: NavBarProps) {
                                 isActive && {
                                     backgroundColor: Colors.primary,
                                     transform: [{ translateY: -28 }],
-                                    // Sombra no ícone ativo para brilho
                                     shadowColor: Colors.primary,
                                     shadowOffset: { width: 0, height: 10 },
                                     shadowOpacity: 0.5,
                                     shadowRadius: 10,
+                                },
+                                item.isAI && isActive && {
+                                    transform: [{ translateY: -28 }, { scale: aiScale }],
+                                    borderWidth: 2,
+                                    borderColor: Colors.aiGlow,
+                                    shadowColor: Colors.aiGlow,
+                                    shadowOpacity: 0.8,
                                 }
                             ]}>
                                 <Ionicons
                                     name={(isActive ? item.activeIcon : item.icon) as any}
-                                    size={26}
+                                    size={item.isAI ? (isActive ? 32 : 28) : 26}
                                     color={isActive ? '#000' : Colors.textInactive}
                                 />
                             </Animated.View>
