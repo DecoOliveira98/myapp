@@ -13,6 +13,7 @@ import { T } from '../../theme/tokens';
 import MealDetailScreen from './MealDetailScreen';
 import WeightScreen from '../weight/WeightScreen';
 import ChatScreen from '../chat/ChatScreen';
+import RecipesListScreen from '../recipes/RecipesListScreen';
 
 type Props = { session: Session };
 
@@ -129,6 +130,7 @@ export default function HomeScreen({ session }: Props) {
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
   const [showWeight, setShowWeight] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showRecipes, setShowRecipes] = useState(false);
   const [showMealPicker, setShowMealPicker] = useState(false);
   const [weight, setWeight] = useState<WeightSummary>({
     current: null, currentDate: null, firstDate: null, diff: null,
@@ -296,6 +298,7 @@ export default function HomeScreen({ session }: Props) {
       </View>
     );
   }
+  if (showRecipes) return <RecipesListScreen session={session} onClose={() => setShowRecipes(false)} />;
   if (showChat) return <ChatScreen session={session} onClose={() => setShowChat(false)} />;
   if (selectedMeal) {
     return (
@@ -531,6 +534,12 @@ export default function HomeScreen({ session }: Props) {
       <TouchableOpacity style={ss.auxCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
         <Text style={ss.auxCardLabel}>Assistente IA</Text>
         <Text style={ss.auxCardSub}>Pergunte sobre refeições, peso ou metas</Text>
+      </TouchableOpacity>
+
+      {/* ── Receitas ───────────────────────────────────────────────── */}
+      <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipes(true)} activeOpacity={0.7}>
+        <Text style={ss.auxCardLabel}>Receitas</Text>
+        <Text style={ss.auxCardSub}>Crie atalhos pras suas comidas frequentes</Text>
       </TouchableOpacity>
 
       {/* ── Sair ───────────────────────────────────────────────────── */}
