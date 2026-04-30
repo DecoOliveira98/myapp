@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
 import { T } from '../../theme/tokens';
 
@@ -48,6 +49,25 @@ export default function AuthScreen() {
     setLoading(false);
   }
 
+  async function handleGoogleSignIn() {
+    setLoading(true);
+    const redirectTo =
+      typeof window !== 'undefined' && window.location?.origin
+        ? `${window.location.origin}/auth/callback`
+        : 'myapp://auth/callback';
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo },
+    });
+
+    if (error) {
+      Alert.alert('Erro ao entrar', 'Não foi possível entrar com o Google. Tente novamente.');
+      setLoading(false);
+      return;
+    }
+  }
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -59,6 +79,29 @@ export default function AuthScreen() {
           Faça login para continuar no{' '}
           <Text style={styles.titleAccent}>Calorie Tracker</Text>
         </Text>
+
+        <TouchableOpacity
+          style={[styles.button, styles.googleButton, loading && styles.buttonDisabled]}
+          onPress={handleGoogleSignIn}
+          disabled={loading}
+        >
+          <View style={styles.googleContent}>
+            <Svg width={18} height={18} viewBox="0 0 18 18" fill="none">
+              <Path d="M17.64 9.2045C17.64 8.56632 17.5827 7.95268 17.4764 7.36359H9V10.8454H13.8436C13.635 11.9704 12.9973 12.9232 12.0445 13.5613V15.8195H14.9564C16.6591 14.2513 17.64 11.9363 17.64 9.2045Z" fill="#4285F4" />
+              <Path d="M9 18C11.43 18 13.4673 17.1941 14.9564 15.8195L12.0445 13.5614C11.2386 14.1014 10.2095 14.4205 9 14.4205C6.65591 14.4205 4.67182 12.8373 3.96409 10.71H0.954529V13.0418C2.43545 15.9827 5.47773 18 9 18Z" fill="#34A853" />
+              <Path d="M3.96409 10.71C3.78409 10.17 3.68182 9.59318 3.68182 9C3.68182 8.40682 3.78409 7.82999 3.96409 7.28999V4.95817H0.954527C0.347727 6.16726 0 7.53317 0 9C0 10.4668 0.347727 11.8327 0.954527 13.0418L3.96409 10.71Z" fill="#FBBC05" />
+              <Path d="M9 3.57955C10.3195 3.57955 11.5041 4.03364 12.435 4.92545L15.0218 2.33864C13.4632 0.871364 11.4259 0 9 0C5.47773 0 2.43545 2.01727 0.954529 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335" />
+              <Circle cx="9" cy="9" r="8.5" stroke={T.borderStrong} />
+            </Svg>
+            <Text style={styles.googleButtonText}>Continuar com Google</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>ou</Text>
+          <View style={styles.dividerLine} />
+        </View>
 
         <TextInput
           style={styles.input}
@@ -153,6 +196,45 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: T.borderStrong,
+  },
+  googleButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: T.borderStrong,
+    minHeight: 48,
+    justifyContent: 'center',
+    marginTop: 0,
+    marginBottom: T.sp3,
+  },
+  googleContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: T.sp2,
+  },
+  googleButtonText: {
+    color: T.textPrimary,
+    fontSize: T.textXs,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
+  },
+  dividerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: T.sp3,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: T.borderSoft,
+  },
+  dividerText: {
+    color: T.textTertiary,
+    fontFamily: T.fontBody,
+    fontSize: T.textSm,
+    marginHorizontal: T.sp3,
+    textTransform: 'lowercase',
   },
   buttonDisabled: {
     opacity: 0.5,

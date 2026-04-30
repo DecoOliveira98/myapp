@@ -16,6 +16,7 @@ import ChatScreen from '../chat/ChatScreen';
 import RecipesListScreen from '../recipes/RecipesListScreen';
 import NavBar from '../../components/navigation/NavBar';
 import FastingScreen from '../fasting/FastingScreen';
+import ReportScreen from '../reports/ReportScreen';
 
 type Props = { session: Session };
 
@@ -136,6 +137,7 @@ export default function HomeScreen({ session }: Props) {
   const [showChat, setShowChat] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
   const [showFasting, setShowFasting] = useState(false);
+  const [showReport, setShowReport] = useState(false);
   const [activeFasting, setActiveFasting] = useState<ActiveFasting | null>(null);
   const [fastingNow, setFastingNow] = useState(new Date());
   const [showMealPicker, setShowMealPicker] = useState(false);
@@ -325,6 +327,7 @@ export default function HomeScreen({ session }: Props) {
       </View>
     );
   }
+  if (showReport) return <ReportScreen session={session} onClose={() => setShowReport(false)} />;
   if (showFasting) return <FastingScreen session={session} onClose={() => setShowFasting(false)} />;
   if (showRecipes) return <RecipesListScreen session={session} onClose={() => setShowRecipes(false)} />;
   if (showChat) return <ChatScreen session={session} onClose={() => setShowChat(false)} />;
@@ -592,6 +595,12 @@ export default function HomeScreen({ session }: Props) {
           )}
         </TouchableOpacity>
 
+        {/* ── Relatório ──────────────────────────────────────────────── */}
+        <TouchableOpacity style={ss.auxCard} onPress={() => setShowReport(true)} activeOpacity={0.7}>
+          <Text style={ss.auxCardLabel}>📊 Relatório</Text>
+          <Text style={ss.auxCardSub}>Exportar histórico em PDF</Text>
+        </TouchableOpacity>
+
         {/* ── Sair ───────────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.signOutBtn} onPress={handleSignOut} activeOpacity={0.6}>
           <Text style={ss.signOutText}>Sair</Text>
@@ -605,6 +614,7 @@ export default function HomeScreen({ session }: Props) {
             setShowChat(false);
             setShowWeight(false);
             setShowRecipes(false);
+            setShowReport(false);
           } else if (index === 2) {
             setShowChat(true);
           } else if (index === 3) {
