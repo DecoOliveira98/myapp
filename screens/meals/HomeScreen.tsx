@@ -14,9 +14,11 @@ import MealDetailScreen from './MealDetailScreen';
 import WeightScreen from '../weight/WeightScreen';
 import ChatScreen from '../chat/ChatScreen';
 import RecipesListScreen from '../recipes/RecipesListScreen';
+import RecipeSearchScreen from '../recipes/RecipeSearchScreen';
 import NavBar from '../../components/navigation/NavBar';
 import FastingScreen from '../fasting/FastingScreen';
 import ReportScreen from '../reports/ReportScreen';
+import AvatarMenu from '../../components/avatar/AvatarMenu';
 
 type Props = { session: Session };
 
@@ -136,6 +138,7 @@ export default function HomeScreen({ session }: Props) {
   const [showWeight, setShowWeight] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showRecipes, setShowRecipes] = useState(false);
+  const [showRecipeSearch, setShowRecipeSearch] = useState(false);
   const [showFasting, setShowFasting] = useState(false);
   const [showReport, setShowReport] = useState(false);
   const [activeFasting, setActiveFasting] = useState<ActiveFasting | null>(null);
@@ -150,6 +153,16 @@ export default function HomeScreen({ session }: Props) {
   });
   const [weekData, setWeekData] = useState<Record<string, number>>({});
   const [streak, setStreak] = useState(0);
+
+  const userAvatarSrc =
+    session.user.user_metadata?.avatar_url ??
+    session.user.user_metadata?.picture ??
+    undefined;
+  const userDisplayName =
+    session.user.user_metadata?.name ??
+    session.user.user_metadata?.full_name ??
+    session.user.email ??
+    'User';
 
   const scrollViewRef = useRef<ScrollView>(null);
   const [mealsY, setMealsY] = useState(600);
@@ -327,6 +340,7 @@ export default function HomeScreen({ session }: Props) {
       </View>
     );
   }
+  if (showRecipeSearch) return <RecipeSearchScreen session={session} onClose={() => setShowRecipeSearch(false)} />;
   if (showReport) return <ReportScreen session={session} onClose={() => setShowReport(false)} />;
   if (showFasting) return <FastingScreen session={session} onClose={() => setShowFasting(false)} />;
   if (showRecipes) return <RecipesListScreen session={session} onClose={() => setShowRecipes(false)} />;
@@ -388,20 +402,29 @@ export default function HomeScreen({ session }: Props) {
 
         {/* ── Top row: date nav + streak ─────────────────────────────── */}
         <View style={ss.topRow}>
-          <View style={ss.dateNav}>
-            <TouchableOpacity onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))} hitSlop={14}>
-              <Text style={ss.navArrow}>←</Text>
-            </TouchableOpacity>
-            <Text style={ss.eyebrow} numberOfLines={1}>
-              {dayOfWeekPT(selectedDateISO).toUpperCase()} · {formatDatePT(isoToDate(selectedDateISO)).toUpperCase()}
-            </Text>
-            <TouchableOpacity
-              onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
-              disabled={!canGoForward}
-              hitSlop={14}
-            >
-              <Text style={[ss.navArrow, !canGoForward && ss.navArrowDisabled]}>→</Text>
-            </TouchableOpacity>
+          <View style={ss.topRowMain}>
+            <View style={ss.dateNav}>
+              <TouchableOpacity onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))} hitSlop={14}>
+                <Text style={ss.navArrow}>←</Text>
+              </TouchableOpacity>
+              <Text style={ss.eyebrow} numberOfLines={1}>
+                {dayOfWeekPT(selectedDateISO).toUpperCase()} · {formatDatePT(isoToDate(selectedDateISO)).toUpperCase()}
+              </Text>
+              <TouchableOpacity
+                onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
+                disabled={!canGoForward}
+                hitSlop={14}
+              >
+                <Text style={[ss.navArrow, !canGoForward && ss.navArrowDisabled]}>→</Text>
+              </TouchableOpacity>
+            </View>
+
+            <AvatarMenu
+              src={userAvatarSrc}
+              name={userDisplayName}
+              email={session.user.email}
+              onSignOut={handleSignOut}
+            />
           </View>
 
           {streak > 0 && (
@@ -580,6 +603,12 @@ export default function HomeScreen({ session }: Props) {
           <Text style={ss.auxCardSub}>Crie atalhos pras suas comidas frequentes</Text>
         </TouchableOpacity>
 
+        {/* ── Explorar receitas ─────────────────────────────────────── */}
+        <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipeSearch(true)} activeOpacity={0.7}>
+          <Text style={ss.auxCardLabel}>🔎 Explorar receitas</Text>
+          <Text style={ss.auxCardSub}>Buscar receitas no Spoonacular</Text>
+        </TouchableOpacity>
+
         {/* ── Jejum ──────────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowFasting(true)} activeOpacity={0.7}>
           <Text style={ss.auxCardLabel}>⏱ Jejum</Text>
@@ -614,6 +643,7 @@ export default function HomeScreen({ session }: Props) {
             setShowChat(false);
             setShowWeight(false);
             setShowRecipes(false);
+            setShowRecipeSearch(false);
             setShowReport(false);
           } else if (index === 2) {
             setShowChat(true);
@@ -703,10 +733,14 @@ const ss = StyleSheet.create({
 
   // ── Top row ────────────────────────────────
   topRow: {
+    marginBottom: T.sp5,
+    gap: T.sp3,
+  },
+  topRowMain: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: T.sp5,
+    gap: T.sp3,
   },
   dateNav: {
     flexDirection: 'row',
