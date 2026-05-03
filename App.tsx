@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as WebBrowser from 'expo-web-browser';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { useFonts } from 'expo-font';
@@ -15,6 +16,8 @@ import AuthCallbackScreen from './screens/auth/AuthCallbackScreen';
 import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
 import HomeScreen from './screens/meals/HomeScreen';
 import Onboarding from './screens/auth/Onboarding';
+
+WebBrowser.maybeCompleteAuthSession();
 
 export default function App() {
   const [session, setSession] = useState<Session | null>(null);
@@ -63,14 +66,19 @@ export default function App() {
       }
     };
 
-    if (typeof window !== 'undefined') {
+    const canListenWindowEvents =
+      typeof window !== 'undefined' &&
+      typeof window.addEventListener === 'function' &&
+      typeof window.removeEventListener === 'function';
+
+    if (canListenWindowEvents) {
       window.addEventListener('popstate', handlePathChange);
       window.addEventListener('hashchange', handlePathChange);
     }
 
     return () => {
       listener.subscription.unsubscribe();
-      if (typeof window !== 'undefined') {
+      if (canListenWindowEvents) {
         window.removeEventListener('popstate', handlePathChange);
         window.removeEventListener('hashchange', handlePathChange);
       }

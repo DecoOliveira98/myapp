@@ -9,6 +9,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
 import { T } from '../../theme/tokens';
@@ -50,21 +52,47 @@ export default function AuthScreen() {
   }
 
   async function handleGoogleSignIn() {
-    setLoading(true);
-    const redirectTo =
-      typeof window !== 'undefined' && window.location?.origin
-        ? `${window.location.origin}/auth/callback`
-        : 'myapp://auth/callback';
+    try {
+      setLoading(true);
 
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo },
-    });
+      const redirectTo =
+        Platform.OS === 'web'
+          ? `${window.location.origin}/auth/callback`
+          : Linking.createURL('/auth/callback');
 
-    if (error) {
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo,
+          skipBrowserRedirect: true,
+        },
+      });
+
+      if (error) throw error;
+      if (!data?.url) throw new Error('No OAuth URL returned');
+
+      if (Platform.OS === 'web') {
+        window.location.href = data.url;
+        return;
+      }
+
+      const result = await WebBrowser.openAuthSessionAsync(data.url, redirectTo);
+
+      if (result.type === 'success' && result.url) {
+        const url = new URL(result.url);
+        const code = url.searchParams.get('code');
+        if (code) {
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
+          if (exchangeError) throw exchangeError;
+        }
+      } else if (result.type === 'cancel' || result.type === 'dismiss') {
+        // usuário cancelou — não exibe erro
+      }
+    } catch (error) {
+      console.error('Google sign-in error:', error);
       Alert.alert('Erro ao entrar', 'Não foi possível entrar com o Google. Tente novamente.');
+    } finally {
       setLoading(false);
-      return;
     }
   }
 
