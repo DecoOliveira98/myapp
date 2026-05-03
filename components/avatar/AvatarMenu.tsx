@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-    Alert,
     Modal,
     Pressable,
     StyleSheet,
@@ -17,9 +16,10 @@ type Props = {
     name: string;
     email?: string | null;
     onSignOut: () => void | Promise<void>;
+    onNavigateProfile: () => void;
 };
 
-export default function AvatarMenu({ src, name, email, onSignOut }: Props) {
+export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProfile }: Props) {
     const [isOpen, setIsOpen] = useState(false);
     const profileItemRef = useRef<any>(null);
 
@@ -45,8 +45,7 @@ export default function AvatarMenu({ src, name, email, onSignOut }: Props) {
 
     function handleProfilePress() {
         closeMenu();
-        console.log('TODO: navegar para /perfil');
-        Alert.alert('Em breve', 'A navegação para Perfil será adicionada em breve.');
+        onNavigateProfile();
     }
 
     async function handleSignOutPress() {

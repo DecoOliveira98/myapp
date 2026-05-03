@@ -19,6 +19,8 @@ import NavBar from '../../components/navigation/NavBar';
 import FastingScreen from '../fasting/FastingScreen';
 import ReportScreen from '../reports/ReportScreen';
 import AvatarMenu from '../../components/avatar/AvatarMenu';
+import { useProfile } from '../../hooks/useProfile';
+import ProfileScreen from '../profile/ProfileScreen';
 
 type Props = { session: Session };
 
@@ -131,9 +133,6 @@ function getHeadline(
 export default function HomeScreen({ session }: Props) {
   const todayISO = useMemo(() => isoToday(), []);
   const [selectedDateISO, setSelectedDateISO] = useState(todayISO);
-  const [targets, setTargets] = useState<DailyTargets | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState(false);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
   const [showWeight, setShowWeight] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -141,6 +140,9 @@ export default function HomeScreen({ session }: Props) {
   const [showRecipeSearch, setShowRecipeSearch] = useState(false);
   const [showFasting, setShowFasting] = useState(false);
   const [showReport, setShowReport] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+
+  const { profile, loading, error: profileError, refetch: refetchProfile } = useProfile(session);
   const [activeFasting, setActiveFasting] = useState<ActiveFasting | null>(null);
   const [fastingNow, setFastingNow] = useState(new Date());
   const [showMealPicker, setShowMealPicker] = useState(false);
@@ -155,10 +157,12 @@ export default function HomeScreen({ session }: Props) {
   const [streak, setStreak] = useState(0);
 
   const userAvatarSrc =
+    profile?.avatar_url ??
     session.user.user_metadata?.avatar_url ??
     session.user.user_metadata?.picture ??
     undefined;
   const userDisplayName =
+    profile?.display_name ??
     session.user.user_metadata?.name ??
     session.user.user_metadata?.full_name ??
     session.user.email ??
@@ -177,22 +181,15 @@ export default function HomeScreen({ session }: Props) {
     ).start();
   }, [pulseAnim]);
 
-  useEffect(() => {
-    async function fetchProfile() {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('daily_calorie_target, daily_protein_g, daily_carbs_g, daily_fat_g')
-        .eq('id', session.user.id)
-        .single();
-      if (error || !data) {
-        setFetchError(true);
-      } else {
-        setTargets(data as DailyTargets);
-      }
-      setLoading(false);
-    }
-    fetchProfile();
-  }, [session.user.id]);
+  const targets: DailyTargets | null =
+    profile && profile.daily_calorie_target != null
+      ? {
+          daily_calorie_target: profile.daily_calorie_target,
+          daily_protein_g: profile.daily_protein_g ?? 0,
+          daily_carbs_g: profile.daily_carbs_g ?? 0,
+          daily_fat_g: profile.daily_fat_g ?? 0,
+        }
+      : null;
 
   const loadTotals = useCallback(async () => {
     const { data, error } = await supabase
@@ -326,7 +323,7 @@ export default function HomeScreen({ session }: Props) {
       </View>
     );
   }
-  if (fetchError) {
+  if (profileError) {
     return (
       <View style={ss.centered}>
         <Text style={ss.bodyText}>Erro ao carregar perfil</Text>
@@ -338,6 +335,16 @@ export default function HomeScreen({ session }: Props) {
       <View style={ss.centered}>
         <Text style={ss.bodyText}>Completa o onboarding primeiro</Text>
       </View>
+    );
+  }
+  if (showProfile) {
+    return (
+      <ProfileScreen
+        session={session}
+        profile={profile}
+        onClose={() => setShowProfile(false)}
+        refetchProfile={refetchProfile}
+      />
     );
   }
   if (showRecipeSearch) return <RecipeSearchScreen session={session} onClose={() => setShowRecipeSearch(false)} />;
@@ -424,6 +431,7 @@ export default function HomeScreen({ session }: Props) {
               name={userDisplayName}
               email={session.user.email}
               onSignOut={handleSignOut}
+              onNavigateProfile={() => setShowProfile(true)}
             />
           </View>
 
@@ -645,6 +653,9 @@ export default function HomeScreen({ session }: Props) {
             setShowRecipes(false);
             setShowRecipeSearch(false);
             setShowReport(false);
+            setShowProfile(false);
+          } else if (index === 1) {
+            setShowProfile(true);
           } else if (index === 2) {
             setShowChat(true);
           } else if (index === 3) {
