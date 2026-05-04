@@ -184,11 +184,11 @@ export default function HomeScreen({ session }: Props) {
   const targets: DailyTargets | null =
     profile && profile.daily_calorie_target != null
       ? {
-          daily_calorie_target: profile.daily_calorie_target,
-          daily_protein_g: profile.daily_protein_g ?? 0,
-          daily_carbs_g: profile.daily_carbs_g ?? 0,
-          daily_fat_g: profile.daily_fat_g ?? 0,
-        }
+        daily_calorie_target: profile.daily_calorie_target,
+        daily_protein_g: profile.daily_protein_g ?? 0,
+        daily_carbs_g: profile.daily_carbs_g ?? 0,
+        daily_fat_g: profile.daily_fat_g ?? 0,
+      }
       : null;
 
   const loadTotals = useCallback(async () => {
@@ -435,12 +435,10 @@ export default function HomeScreen({ session }: Props) {
             />
           </View>
 
-          {streak > 0 && (
-            <View style={ss.streakPill}>
-              <Animated.View style={[ss.pulseDot, { opacity: pulseAnim }]} />
-              <Text style={ss.streakText}>{streak} dia{streak !== 1 ? 's' : ''}</Text>
-            </View>
-          )}
+          <View style={ss.streakPill}>
+            <Animated.View style={[ss.pulseDot, { opacity: pulseAnim }]} />
+            <Text style={ss.streakText}>{streak} dia{streak !== 1 ? 's' : ''}</Text>
+          </View>
         </View>
 
         {/* ── Hero ───────────────────────────────────────────────────── */}
@@ -819,16 +817,18 @@ const ss = StyleSheet.create({
   calorieRow: {
     flexDirection: 'row',
     alignItems: 'flex-end',
-    gap: T.sp4,
+    gap: T.sp3,
     marginBottom: T.sp5,
   },
   calorieNum: {
     fontFamily: T.fontDisplay,
-    fontSize: T.text4xl,
-    lineHeight: T.text4xl,
+    fontSize: 92,
+    lineHeight: 92,
+    height: 100,
     color: T.textPrimary,
-    letterSpacing: -3.5,
+    letterSpacing: -2.2,
     flexShrink: 1,
+    minWidth: 210,
   },
   calorieTarget: {
     flexDirection: 'column',
