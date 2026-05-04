@@ -11,6 +11,7 @@ import {
 import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold } from '@expo-google-fonts/geist';
 import { GeistMono_400Regular, GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
 
+import { ThemeProvider } from './theme/ThemeContext';
 import AuthScreen from './screens/auth/AuthScreen';
 import AuthCallbackScreen from './screens/auth/AuthCallbackScreen';
 import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
@@ -99,14 +100,19 @@ export default function App() {
     }
   }
 
-  if (initializing || (!fontsLoaded && !fontError)) {
-    return <LoadingPage />;
-  }
-
-  if (!session && isHandlingAuthCallback) {
-    return <AuthCallbackScreen onResolved={() => setIsHandlingAuthCallback(false)} />;
-  }
-  if (!session) return <AuthScreen />;
-  if (needsOnboarding) return <Onboarding onComplete={() => setNeedsOnboarding(false)} />;
-  return <HomeScreen session={session} />;
+  return (
+    <ThemeProvider>
+      {initializing || (!fontsLoaded && !fontError) ? (
+        <LoadingPage />
+      ) : !session && isHandlingAuthCallback ? (
+        <AuthCallbackScreen onResolved={() => setIsHandlingAuthCallback(false)} />
+      ) : !session ? (
+        <AuthScreen />
+      ) : needsOnboarding ? (
+        <Onboarding onComplete={() => setNeedsOnboarding(false)} />
+      ) : (
+        <HomeScreen session={session} />
+      )}
+    </ThemeProvider>
+  );
 }

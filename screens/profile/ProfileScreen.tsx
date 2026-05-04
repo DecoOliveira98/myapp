@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
+  Pressable,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -12,14 +14,26 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Session } from '@supabase/supabase-js';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
 import { T } from '../../theme/tokens';
+import { useTheme, type ThemePreference } from '../../theme/ThemeContext';
 import { type Profile } from '../../hooks/useProfile';
 import Avatar from '../../components/avatar/Avatar';
+import {
+  ActivityLevel,
+  calculateAge,
+  calculateBMR,
+  calculateCalorieTarget,
+  calculateMacroGrams,
+  calculateTDEE,
+  Goal,
+  Sex,
+} from '../../lib/calculations/nutrition';
 
 type Props = {
   session: Session;
@@ -58,7 +72,6 @@ function profileToForm(p: Profile | null): FormState {
   };
 }
 
-// Converts base64 to ArrayBuffer without external dependencies (atob is globally available in RN)
 function base64ToArrayBuffer(base64: string): ArrayBuffer {
   const binaryString = atob(base64);
   const bytes = new Uint8Array(binaryString.length);
@@ -75,7 +88,28 @@ function getStoragePath(avatarUrl: string): string {
   return idx >= 0 ? url.slice(idx + marker.length) : '';
 }
 
-// ── Segmented control ─────────────────────────────────────────────────────────
+function parseISODate(dateISO: string): Date | null {
+  if (!dateISO) return null;
+  const d = new Date(`${dateISO}T00:00:00`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function toISODateOnly(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function formatPtBrDate(dateISO: string): string {
+  const d = parseISODate(dateISO);
+  if (!d) return 'Selecionar data';
+  return new Intl.DateTimeFormat('pt-BR', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  }).format(d);
+}
 
 function SegmentedField({
   value,
@@ -97,9 +131,7 @@ function SegmentedField({
           accessibilityRole="radio"
           accessibilityState={{ selected: value === opt.value }}
         >
-          <Text style={[seg.btnText, value === opt.value && seg.btnTextActive]}>
-            {opt.label}
-          </Text>
+          <Text style={[seg.btnText, value === opt.value && seg.btnTextActive]}>{opt.label}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -134,8 +166,6 @@ const seg = StyleSheet.create({
   },
 });
 
-// ── Option list (used for activity_level) ─────────────────────────────────────
-
 type OptionItem = { value: string; label: string; description?: string };
 
 function OptionList({
@@ -161,9 +191,7 @@ function OptionList({
           <View style={ol.row}>
             <View style={{ flex: 1 }}>
               <Text style={[ol.label, value === opt.value && ol.labelActive]}>{opt.label}</Text>
-              {opt.description != null && (
-                <Text style={ol.desc}>{opt.description}</Text>
-              )}
+              {opt.description != null && <Text style={ol.desc}>{opt.description}</Text>}
             </View>
             {value === opt.value && <Feather name="check" size={15} color={T.accent} />}
           </View>
@@ -213,12 +241,16 @@ const ol = StyleSheet.create({
   },
 });
 
-// ── Screen ────────────────────────────────────────────────────────────────────
+const MIN_DOB = new Date('1900-01-01T00:00:00');
+const DEFAULT_DOB = new Date('1990-01-01T00:00:00');
 
 export default function ProfileScreen({ session, profile, onClose, refetchProfile }: Props) {
+  const { themePreference, setThemePreference } = useTheme();
   const [form, setForm] = useState<FormState>(profileToForm(profile));
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [iosPickerDate, setIosPickerDate] = useState<Date>(parseISODate(profile?.date_of_birth ?? '') ?? DEFAULT_DOB);
   const [avatarSrc, setAvatarSrc] = useState<string | undefined>(
     profile?.avatar_url ??
     (session.user.user_metadata?.avatar_url as string | undefined) ??
@@ -234,23 +266,106 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
       (session.user.user_metadata?.picture as string | undefined) ??
       undefined,
     );
-  }, [profile]);
+    setIosPickerDate(parseISODate(profile?.date_of_birth ?? '') ?? DEFAULT_DOB);
+  }, [profile, session.user.user_metadata]);
 
-  function setField(key: keyof FormState, value: string) {
-    setForm(prev => ({ ...prev, [key]: value }));
-  }
+  const displayName = useMemo(
+    () => form.display_name || (session.user.user_metadata?.name as string | undefined) || session.user.email || 'User',
+    [form.display_name, session.user.user_metadata, session.user.email],
+  );
 
-  const displayName =
-    form.display_name ||
-    (session.user.user_metadata?.name as string | undefined) ||
-    (session.user.user_metadata?.full_name as string | undefined) ||
-    session.user.email ||
-    'User';
+  const setField = (key: keyof FormState, value: string) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
 
-  // ── Save ──────────────────────────────────────────────────────────────────
+  const today = new Date();
+  const selectedDobDate = parseISODate(form.date_of_birth) ?? DEFAULT_DOB;
+
+  const openDatePicker = () => {
+    const initial = parseISODate(form.date_of_birth) ?? DEFAULT_DOB;
+    if (Platform.OS === 'ios') setIosPickerDate(initial);
+    setShowDatePicker(true);
+  };
+
+  const handleDateChange = (event: DateTimePickerEvent, date?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowDatePicker(false);
+      if (event.type === 'set' && date) {
+        setField('date_of_birth', toISODateOnly(date));
+      }
+      return;
+    }
+
+    if (date) {
+      setIosPickerDate(date);
+    }
+  };
+
+  const confirmIOSDate = () => {
+    setField('date_of_birth', toISODateOnly(iosPickerDate));
+    setShowDatePicker(false);
+  };
+
+  const clearDob = () => {
+    setField('date_of_birth', '');
+  };
+
+  const handleCalculateSuggestion = () => {
+    const missing: string[] = [];
+    if (!form.gender) missing.push('gênero');
+    if (!form.height_cm) missing.push('altura');
+    if (!form.weight_kg) missing.push('peso');
+    if (!form.date_of_birth) missing.push('data de nascimento');
+    if (!form.activity_level) missing.push('nível de atividade');
+    if (!form.goal) missing.push('objetivo');
+
+    if (missing.length > 0) {
+      Alert.alert('Dados incompletos', `Preenche ${missing.join(', ')} primeiro.`);
+      return;
+    }
+
+    try {
+      const age = calculateAge(form.date_of_birth);
+      if (age < 0) {
+        Alert.alert('Data inválida', 'A data de nascimento não pode estar no futuro.');
+        return;
+      }
+
+      if (age < 13 || age > 100) {
+        Alert.alert('Aviso', `Idade calculada: ${age} anos. Revise os dados se necessário.`);
+      }
+
+      const bmr = calculateBMR({
+        sex: form.gender as Sex,
+        weight_kg: Number(form.weight_kg),
+        height_cm: Number(form.height_cm),
+        age,
+      });
+
+      const tdee = calculateTDEE(bmr, form.activity_level as ActivityLevel);
+      const target = calculateCalorieTarget(tdee, form.goal as Goal);
+      const macros = calculateMacroGrams(target, form.goal as Goal);
+
+      setForm((prev) => ({
+        ...prev,
+        daily_calorie_target: String(target),
+        daily_protein_g: String(macros.protein_g),
+        daily_carbs_g: String(macros.carbs_g),
+        daily_fat_g: String(macros.fat_g),
+      }));
+
+      Alert.alert(
+        'Sugestão calculada',
+        `TMB: ${Math.round(bmr)} kcal · TDEE: ${Math.round(tdee)} kcal · Meta: ${target} kcal\nMacros: ${macros.protein_g}g P / ${macros.carbs_g}g C / ${macros.fat_g}g G`,
+      );
+    } catch (error: any) {
+      Alert.alert('Não foi possível calcular', error?.message ?? 'Verifique os dados preenchidos.');
+    }
+  };
 
   async function handleSave() {
     setSaving(true);
+
     const { error } = await supabase
       .from('profiles')
       .update({
@@ -268,16 +383,17 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
         updated_at: new Date().toISOString(),
       })
       .eq('id', session.user.id);
+
     setSaving(false);
+
     if (error) {
       Alert.alert('Erro', error.message);
-    } else {
-      await refetchProfile();
-      Alert.alert('Salvo', 'Perfil atualizado com sucesso.');
+      return;
     }
-  }
 
-  // ── Photo upload ──────────────────────────────────────────────────────────
+    await refetchProfile();
+    Alert.alert('Salvo', 'Perfil atualizado com sucesso.');
+  }
 
   async function handlePickPhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -336,49 +452,42 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
 
   async function handleRemovePhoto() {
     if (!profile?.avatar_url) return;
-    Alert.alert(
-      'Remover foto',
-      'Tem certeza que deseja remover a foto de perfil?',
-      [
-        { text: 'Cancelar', style: 'cancel' },
-        {
-          text: 'Remover',
-          style: 'destructive',
-          onPress: async () => {
-            setUploadingPhoto(true);
-            try {
-              const storagePath = getStoragePath(profile.avatar_url!);
-              if (storagePath) {
-                await supabase.storage.from('avatars').remove([storagePath]);
-              }
-              const { error } = await supabase
-                .from('profiles')
-                .update({ avatar_url: null, updated_at: new Date().toISOString() })
-                .eq('id', session.user.id);
-              if (error) throw error;
-
-              setAvatarSrc(
-                (session.user.user_metadata?.avatar_url as string | undefined) ??
-                (session.user.user_metadata?.picture as string | undefined) ??
-                undefined,
-              );
-              await refetchProfile();
-            } catch (err: any) {
-              Alert.alert('Erro', err?.message ?? 'Falha ao remover foto.');
-            } finally {
-              setUploadingPhoto(false);
+    Alert.alert('Remover foto', 'Tem certeza que deseja remover a foto de perfil?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Remover',
+        style: 'destructive',
+        onPress: async () => {
+          setUploadingPhoto(true);
+          try {
+            const storagePath = getStoragePath(profile.avatar_url!);
+            if (storagePath) {
+              await supabase.storage.from('avatars').remove([storagePath]);
             }
-          },
-        },
-      ],
-    );
-  }
+            const { error } = await supabase
+              .from('profiles')
+              .update({ avatar_url: null, updated_at: new Date().toISOString() })
+              .eq('id', session.user.id);
+            if (error) throw error;
 
-  // ── Render ────────────────────────────────────────────────────────────────
+            setAvatarSrc(
+              (session.user.user_metadata?.avatar_url as string | undefined) ??
+              (session.user.user_metadata?.picture as string | undefined) ??
+              undefined,
+            );
+            await refetchProfile();
+          } catch (err: any) {
+            Alert.alert('Erro', err?.message ?? 'Falha ao remover foto.');
+          } finally {
+            setUploadingPhoto(false);
+          }
+        },
+      },
+    ]);
+  }
 
   return (
     <SafeAreaView style={ps.root}>
-      {/* Header */}
       <View style={ps.header}>
         <TouchableOpacity onPress={onClose} hitSlop={12} style={ps.backBtn}>
           <Feather name="arrow-left" size={22} color={T.textPrimary} />
@@ -387,17 +496,13 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
         <View style={{ width: 34 }} />
       </View>
 
-      <KeyboardAvoidingView
-        style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <ScrollView
           style={ps.scroll}
           contentContainerStyle={ps.content}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
-          {/* ── Foto de perfil ─────────────────────────────────────────── */}
           <View style={ps.card}>
             <Text style={ps.sectionLabel}>FOTO DE PERFIL</Text>
             <View style={ps.photoRow}>
@@ -433,7 +538,6 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             </View>
           </View>
 
-          {/* ── Identidade ─────────────────────────────────────────────── */}
           <View style={ps.card}>
             <Text style={ps.sectionLabel}>IDENTIDADE</Text>
 
@@ -441,7 +545,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             <TextInput
               style={ps.input}
               value={form.display_name}
-              onChangeText={v => setField('display_name', v)}
+              onChangeText={(v) => setField('display_name', v)}
               placeholder="Seu nome"
               placeholderTextColor={T.textFaint}
               accessibilityLabel="Nome"
@@ -450,25 +554,35 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             <View style={ps.divider} />
 
             <Text style={ps.fieldLabel}>Data de nascimento</Text>
-            <TextInput
-              style={ps.input}
-              value={form.date_of_birth}
-              onChangeText={v => setField('date_of_birth', v)}
-              placeholder="AAAA-MM-DD"
-              placeholderTextColor={T.textFaint}
-              keyboardType="numbers-and-punctuation"
-              accessibilityLabel="Data de nascimento"
-            />
+            <Pressable
+              style={ps.inputPressable}
+              onPress={openDatePicker}
+              accessibilityRole="button"
+              accessibilityLabel="Data de nascimento, toque para selecionar"
+            >
+              <Text style={[ps.inputPressableText, !form.date_of_birth && ps.inputPlaceholder]}>
+                {formatPtBrDate(form.date_of_birth)}
+              </Text>
+              <Feather name="calendar" size={16} color={T.textTertiary} />
+            </Pressable>
+            <TouchableOpacity
+              style={ps.btnGhostSmall}
+              onPress={clearDob}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Limpar data de nascimento"
+            >
+              <Text style={ps.btnGhostSmallText}>Limpar data</Text>
+            </TouchableOpacity>
           </View>
 
-          {/* ── Físico ─────────────────────────────────────────────────── */}
           <View style={ps.card}>
             <Text style={ps.sectionLabel}>FÍSICO</Text>
 
             <Text style={ps.fieldLabel}>Gênero</Text>
             <OptionList
               value={form.gender}
-              onChange={v => setField('gender', v)}
+              onChange={(v) => setField('gender', v)}
               options={[
                 { value: 'male', label: 'Masculino' },
                 { value: 'female', label: 'Feminino' },
@@ -485,7 +599,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                 <TextInput
                   style={ps.input}
                   value={form.height_cm}
-                  onChangeText={v => setField('height_cm', v)}
+                  onChangeText={(v) => setField('height_cm', v)}
                   placeholder="170"
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
@@ -497,7 +611,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                 <TextInput
                   style={ps.input}
                   value={form.weight_kg}
-                  onChangeText={v => setField('weight_kg', v)}
+                  onChangeText={(v) => setField('weight_kg', v)}
                   placeholder="70"
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
@@ -511,7 +625,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             <Text style={ps.fieldLabel}>Nível de atividade</Text>
             <OptionList
               value={form.activity_level}
-              onChange={v => setField('activity_level', v)}
+              onChange={(v) => setField('activity_level', v)}
               options={[
                 { value: 'sedentary', label: 'Sedentário', description: 'Pouco ou nenhum exercício' },
                 { value: 'light', label: 'Leve', description: '1–3 dias por semana' },
@@ -526,7 +640,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             <Text style={ps.fieldLabel}>Objetivo</Text>
             <SegmentedField
               value={form.goal}
-              onChange={v => setField('goal', v)}
+              onChange={(v) => setField('goal', v)}
               options={[
                 { value: 'lose', label: 'Perder' },
                 { value: 'maintain', label: 'Manter' },
@@ -535,15 +649,28 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             />
           </View>
 
-          {/* ── Metas calóricas ────────────────────────────────────────── */}
           <View style={ps.card}>
             <Text style={ps.sectionLabel}>METAS CALÓRICAS</Text>
+
+            <TouchableOpacity
+              style={ps.btnGhost}
+              onPress={handleCalculateSuggestion}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel="Calcular sugestão de metas calóricas e macronutrientes"
+            >
+              <Feather name="zap" size={14} color={T.accent} />
+              <Text style={ps.btnGhostText}>Calcular sugestão</Text>
+            </TouchableOpacity>
+            <Text style={ps.microcopy}>
+              Calculado por Mifflin-St Jeor. Você pode ajustar manualmente abaixo.
+            </Text>
 
             <Text style={ps.fieldLabel}>Calorias diárias (kcal)</Text>
             <TextInput
               style={ps.input}
               value={form.daily_calorie_target}
-              onChangeText={v => setField('daily_calorie_target', v)}
+              onChangeText={(v) => setField('daily_calorie_target', v)}
               placeholder="2000"
               placeholderTextColor={T.textFaint}
               keyboardType="numeric"
@@ -558,7 +685,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                 <TextInput
                   style={ps.input}
                   value={form.daily_protein_g}
-                  onChangeText={v => setField('daily_protein_g', v)}
+                  onChangeText={(v) => setField('daily_protein_g', v)}
                   placeholder="150"
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
@@ -570,7 +697,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                 <TextInput
                   style={ps.input}
                   value={form.daily_carbs_g}
-                  onChangeText={v => setField('daily_carbs_g', v)}
+                  onChangeText={(v) => setField('daily_carbs_g', v)}
                   placeholder="200"
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
@@ -582,7 +709,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                 <TextInput
                   style={ps.input}
                   value={form.daily_fat_g}
-                  onChangeText={v => setField('daily_fat_g', v)}
+                  onChangeText={(v) => setField('daily_fat_g', v)}
                   placeholder="65"
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
@@ -592,26 +719,67 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             </View>
           </View>
 
-          {/* ── Salvar ─────────────────────────────────────────────────── */}
+          <View style={ps.card}>
+            <Text style={ps.sectionLabel}>APARÊNCIA</Text>
+            <SegmentedField
+              value={themePreference}
+              onChange={(v) => setThemePreference(v as ThemePreference)}
+              options={[
+                { value: 'system', label: 'Sistema' },
+                { value: 'light', label: 'Claro' },
+                { value: 'dark', label: 'Escuro' },
+              ]}
+            />
+          </View>
+
           <TouchableOpacity
             style={[ps.btnSave, saving && ps.btnSaveDisabled]}
             onPress={handleSave}
             disabled={saving}
             activeOpacity={0.85}
           >
-            {saving ? (
-              <ActivityIndicator color={T.bgBase} size="small" />
-            ) : (
-              <Text style={ps.btnSaveText}>SALVAR ALTERAÇÕES</Text>
-            )}
+            {saving ? <ActivityIndicator color={T.bgBase} size="small" /> : <Text style={ps.btnSaveText}>SALVAR ALTERAÇÕES</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      {showDatePicker && Platform.OS === 'android' && (
+        <DateTimePicker
+          value={selectedDobDate}
+          mode="date"
+          display="calendar"
+          maximumDate={today}
+          minimumDate={MIN_DOB}
+          onChange={handleDateChange}
+        />
+      )}
+
+      <Modal visible={showDatePicker && Platform.OS === 'ios'} transparent animationType="slide">
+        <View style={ps.modalBackdrop}>
+          <View style={ps.modalCard}>
+            <View style={ps.modalHeader}>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)} accessibilityLabel="Cancelar seleção de data">
+                <Text style={ps.modalHeaderBtn}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={confirmIOSDate} accessibilityLabel="Confirmar seleção de data">
+                <Text style={ps.modalHeaderBtn}>Confirmar</Text>
+              </TouchableOpacity>
+            </View>
+            <DateTimePicker
+              value={iosPickerDate}
+              mode="date"
+              display="spinner"
+              maximumDate={today}
+              minimumDate={MIN_DOB}
+              onChange={handleDateChange}
+              locale="pt-BR"
+            />
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
-
-// ── Styles ────────────────────────────────────────────────────────────────────
 
 const ps = StyleSheet.create({
   root: {
@@ -672,6 +840,25 @@ const ps = StyleSheet.create({
     fontFamily: T.fontBody,
     fontSize: T.textBase,
     color: T.textPrimary,
+  },
+  inputPressable: {
+    backgroundColor: T.surface2,
+    borderWidth: 1,
+    borderColor: T.borderSoft,
+    borderRadius: T.rMd,
+    paddingHorizontal: T.sp3,
+    paddingVertical: T.sp2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  inputPressableText: {
+    fontFamily: T.fontBody,
+    fontSize: T.textBase,
+    color: T.textPrimary,
+  },
+  inputPlaceholder: {
+    color: T.textFaint,
   },
   divider: {
     height: 1,
@@ -737,6 +924,64 @@ const ps = StyleSheet.create({
     fontFamily: T.fontBodyMedium,
     fontSize: T.textSm,
     color: T.danger,
+  },
+  btnGhost: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: T.sp2,
+    paddingHorizontal: T.sp3,
+    paddingVertical: T.sp2,
+    borderWidth: 1,
+    borderColor: T.borderSoft,
+    borderRadius: T.rMd,
+    backgroundColor: T.surface2,
+    alignSelf: 'flex-start',
+  },
+  btnGhostText: {
+    fontFamily: T.fontBodyMedium,
+    fontSize: T.textSm,
+    color: T.accent,
+  },
+  btnGhostSmall: {
+    alignSelf: 'flex-start',
+    paddingVertical: T.sp1,
+  },
+  btnGhostSmallText: {
+    fontFamily: T.fontBodyMedium,
+    fontSize: T.textSm,
+    color: T.textTertiary,
+  },
+  microcopy: {
+    fontFamily: T.fontBody,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+  },
+  modalBackdrop: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(0, 0, 0, 0.35)',
+  },
+  modalCard: {
+    backgroundColor: T.surface1,
+    borderTopLeftRadius: T.rLg,
+    borderTopRightRadius: T.rLg,
+    borderWidth: 1,
+    borderColor: T.borderSoft,
+    borderBottomWidth: 0,
+    paddingBottom: T.sp4,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp3,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderFaint,
+  },
+  modalHeaderBtn: {
+    fontFamily: T.fontBodyMedium,
+    fontSize: T.textBase,
+    color: T.accent,
   },
   btnSave: {
     backgroundColor: T.accent,

@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { type TokenSet } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
 import MealDetailScreen from './MealDetailScreen';
 import WeightScreen from '../weight/WeightScreen';
 import ChatScreen from '../chat/ChatScreen';
@@ -131,6 +132,9 @@ function getHeadline(
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen({ session }: Props) {
+  const { T } = useTheme();
+  const ss = useMemo(() => makeStyles(T), [T]);
+
   const todayISO = useMemo(() => isoToday(), []);
   const [selectedDateISO, setSelectedDateISO] = useState(todayISO);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
@@ -399,7 +403,7 @@ export default function HomeScreen({ session }: Props) {
   // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: T.bgBase }}>
       <ScrollView
         ref={scrollViewRef}
         style={ss.scroll}
@@ -508,9 +512,9 @@ export default function HomeScreen({ session }: Props) {
             <Text style={ss.macrosTitle}>Macros</Text>
             <Text style={ss.macrosRatio}>{proteinPct}P · {carbsPct}C · {fatPct}G</Text>
           </View>
-          <MacroRow label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} />
-          <MacroRow label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor="#C9A878" />
-          <MacroRow label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} fillColor="#6E5B43" />
+          <MacroRow label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} ss={ss} />
+          <MacroRow label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor="#C9A878" ss={ss} />
+          <MacroRow label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} fillColor="#6E5B43" ss={ss} />
         </View>
 
         {/* ── Refeições ──────────────────────────────────────────────── */}
@@ -529,6 +533,7 @@ export default function HomeScreen({ session }: Props) {
               label={meal.label}
               kcal={totals.byMeal[meal.type]}
               onPress={() => setSelectedMeal(meal)}
+              ss={ss}
             />
           ))}
         </View>
@@ -539,7 +544,7 @@ export default function HomeScreen({ session }: Props) {
           {weekAvgKcal > 0 && (
             <Text style={ss.sectionMeta}>
               média{' '}
-              <Text style={{ color: T.accent }}>{formatKcal(weekAvgKcal)}</Text>
+              <Text style={ss.accentText}>{formatKcal(weekAvgKcal)}</Text>
               {' '}kcal
             </Text>
           )}
@@ -669,9 +674,9 @@ export default function HomeScreen({ session }: Props) {
 
 // ── MacroRow ──────────────────────────────────────────────────────────────────
 
-type MacroRowProps = { label: string; consumed: number; target: number; fillColor: string };
+type MacroRowProps = { label: string; consumed: number; target: number; fillColor: string; ss: Styles };
 
-function MacroRow({ label, consumed, target, fillColor }: MacroRowProps) {
+function MacroRow({ label, consumed, target, fillColor, ss }: MacroRowProps) {
   const pct = target > 0 ? Math.min((consumed / target) * 100, 100) : 0;
   return (
     <View style={ss.macroRow}>
@@ -689,9 +694,9 @@ function MacroRow({ label, consumed, target, fillColor }: MacroRowProps) {
 
 // ── MealCard ──────────────────────────────────────────────────────────────────
 
-type MealCardProps = { label: string; kcal: number; onPress: () => void };
+type MealCardProps = { label: string; kcal: number; onPress: () => void; ss: Styles };
 
-function MealCard({ label, kcal, onPress }: MealCardProps) {
+function MealCard({ label, kcal, onPress, ss }: MealCardProps) {
   return (
     <TouchableOpacity style={ss.mealCard} onPress={onPress} activeOpacity={0.75}>
       <View style={ss.mealCardInner}>
@@ -700,7 +705,7 @@ function MealCard({ label, kcal, onPress }: MealCardProps) {
           <Text style={ss.mealCardKcal}>
             {kcal > 0 ? (
               <>
-                <Text style={{ color: T.accent }}>{formatKcal(kcal)}</Text>
+                <Text style={ss.accentText}>{formatKcal(kcal)}</Text>
                 <Text> kcal</Text>
               </>
             ) : (
@@ -718,445 +723,454 @@ function MealCard({ label, kcal, onPress }: MealCardProps) {
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
-const ss = StyleSheet.create({
-  scroll: {
-    flex: 1,
-    backgroundColor: T.bgBase,
-  },
-  container: {
-    paddingHorizontal: T.sp5,
-    paddingTop: 56,
-    paddingBottom: 80,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: T.bgBase,
-  },
-  bodyText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textBase,
-    color: T.textSecondary,
-  },
+function makeStyles(tokens: TokenSet) {
+  return StyleSheet.create({
+    scroll: {
+      flex: 1,
+      backgroundColor: tokens.bgBase,
+    },
+    container: {
+      paddingHorizontal: tokens.sp5,
+      paddingTop: 56,
+      paddingBottom: 80,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: tokens.bgBase,
+    },
+    bodyText: {
+      fontFamily: tokens.fontBody,
+      fontSize: tokens.textBase,
+      color: tokens.textSecondary,
+    },
 
-  // ── Top row ────────────────────────────────
-  topRow: {
-    marginBottom: T.sp5,
-    gap: T.sp3,
-  },
-  topRowMain: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: T.sp3,
-  },
-  dateNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp3,
-    flex: 1,
-  },
-  eyebrow: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    letterSpacing: 2.4,
-    color: T.textTertiary,
-    flex: 1,
-    textAlign: 'center',
-  },
-  navArrow: {
-    fontFamily: T.fontBody,
-    fontSize: T.textMd,
-    color: T.textSecondary,
-  },
-  navArrowDisabled: {
-    color: T.textFaint,
-  },
-  streakPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp2,
-    paddingHorizontal: T.sp3,
-    paddingVertical: 5,
-    borderWidth: 1,
-    borderColor: T.accentLine,
-    borderRadius: T.rPill,
-    backgroundColor: T.accentBg,
-  },
-  pulseDot: {
-    width: 5,
-    height: 5,
-    borderRadius: T.rPill,
-    backgroundColor: T.accent,
-  },
-  streakText: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textSecondary,
-    letterSpacing: 1.2,
-  },
+    // ── Top row ────────────────────────────────
+    topRow: {
+      marginBottom: tokens.sp5,
+      gap: tokens.sp3,
+    },
+    topRowMain: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: tokens.sp3,
+    },
+    dateNav: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: tokens.sp3,
+      flex: 1,
+    },
+    eyebrow: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      letterSpacing: 2.4,
+      color: tokens.textTertiary,
+      flex: 1,
+      textAlign: 'center',
+    },
+    navArrow: {
+      fontFamily: tokens.fontBody,
+      fontSize: tokens.textMd,
+      color: tokens.textSecondary,
+    },
+    navArrowDisabled: {
+      color: tokens.textFaint,
+    },
+    streakPill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: tokens.sp2,
+      paddingHorizontal: tokens.sp3,
+      paddingVertical: 5,
+      borderWidth: 1,
+      borderColor: tokens.accentLine,
+      borderRadius: tokens.rPill,
+      backgroundColor: tokens.accentBg,
+    },
+    pulseDot: {
+      width: 5,
+      height: 5,
+      borderRadius: tokens.rPill,
+      backgroundColor: tokens.accent,
+    },
+    streakText: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      color: tokens.textSecondary,
+      letterSpacing: 1.2,
+    },
 
-  // ── Hero ───────────────────────────────────
-  hero: {
-    marginBottom: T.sp6,
-  },
-  heroHeadline: {
-    fontFamily: T.fontDisplay,
-    fontSize: T.textLg,
-    lineHeight: T.textLg * 1.32,
-    color: T.textSecondary,
-    letterSpacing: -0.2,
-    marginBottom: T.sp6,
-  },
-  heroHeadlineItalic: {
-    fontFamily: T.fontDisplayItalic,
-    fontSize: T.textLg,
-    color: T.textPrimary,
-  },
-  calorieRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: T.sp3,
-    marginBottom: T.sp5,
-  },
-  calorieNum: {
-    fontFamily: T.fontDisplay,
-    fontSize: 92,
-    lineHeight: 92,
-    height: 100,
-    color: T.textPrimary,
-    letterSpacing: -2.2,
-    flexShrink: 1,
-    minWidth: 210,
-  },
-  calorieTarget: {
-    flexDirection: 'column',
-    gap: 3,
-    paddingBottom: 6,
-  },
-  calorieTargetLabel: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    letterSpacing: 1.6,
-    color: T.textTertiary,
-  },
-  calorieTargetNum: {
-    fontFamily: T.fontMono,
-    fontSize: T.textSm,
-    color: T.accent,
-    letterSpacing: 0.4,
-    fontWeight: '500',
-  },
-  progressTrack: {
-    height: 1,
-    backgroundColor: T.borderSoft,
-    marginBottom: T.sp2,
-  },
-  progressFill: {
-    height: 1,
-    backgroundColor: T.accent,
-  },
-  progressMeta: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: T.sp5,
-  },
-  progressMetaText: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    letterSpacing: 1.6,
-  },
-  progressMetaBold: {
-    color: T.textSecondary,
-    fontFamily: T.fontMonoMedium,
-  },
-  actions: {
-    flexDirection: 'row',
-    gap: T.sp3,
-    flexWrap: 'wrap',
-  },
-  btnPrimary: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: T.sp5,
-    backgroundColor: T.accent,
-    borderWidth: 1,
-    borderColor: T.accent,
-  },
-  btnPrimaryText: {
-    fontFamily: T.fontMonoMedium,
-    fontSize: T.textXs,
-    letterSpacing: 2,
-    color: T.bgBase,
-  },
-  btnGhost: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 13,
-    paddingHorizontal: T.sp5,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-  },
-  btnGhostText: {
-    fontFamily: T.fontMonoMedium,
-    fontSize: T.textXs,
-    letterSpacing: 2,
-    color: T.textPrimary,
-  },
-  mealPicker: {
-    marginTop: T.sp4,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    backgroundColor: T.surface1,
-  },
-  mealPickerBtn: {
-    paddingVertical: T.sp3,
-    paddingHorizontal: T.sp4,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderFaint,
-  },
-  mealPickerBtnText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textBase,
-    color: T.textPrimary,
-  },
+    // ── Hero ───────────────────────────────────
+    hero: {
+      marginBottom: tokens.sp6,
+    },
+    heroHeadline: {
+      fontFamily: tokens.fontDisplay,
+      fontSize: tokens.textLg,
+      lineHeight: tokens.textLg * 1.32,
+      color: tokens.textSecondary,
+      letterSpacing: -0.2,
+      marginBottom: tokens.sp6,
+    },
+    heroHeadlineItalic: {
+      fontFamily: tokens.fontDisplayItalic,
+      fontSize: tokens.textLg,
+      color: tokens.textPrimary,
+    },
+    calorieRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: tokens.sp3,
+      marginBottom: tokens.sp5,
+    },
+    calorieNum: {
+      fontFamily: tokens.fontDisplay,
+      fontSize: 92,
+      lineHeight: 92,
+      height: 100,
+      color: tokens.textPrimary,
+      letterSpacing: -2.2,
+      flexShrink: 1,
+      minWidth: 210,
+    },
+    calorieTarget: {
+      flexDirection: 'column',
+      gap: 3,
+      paddingBottom: 6,
+    },
+    calorieTargetLabel: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      letterSpacing: 1.6,
+      color: tokens.textTertiary,
+    },
+    calorieTargetNum: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textSm,
+      color: tokens.accentText,
+      letterSpacing: 0.4,
+      fontWeight: '500',
+    },
+    progressTrack: {
+      height: 1,
+      backgroundColor: tokens.borderSoft,
+      marginBottom: tokens.sp2,
+    },
+    progressFill: {
+      height: 1,
+      backgroundColor: tokens.accent,
+    },
+    progressMeta: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: tokens.sp5,
+    },
+    progressMetaText: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      color: tokens.textTertiary,
+      letterSpacing: 1.6,
+    },
+    progressMetaBold: {
+      color: tokens.textSecondary,
+      fontFamily: tokens.fontMonoMedium,
+    },
+    actions: {
+      flexDirection: 'row',
+      gap: tokens.sp3,
+      flexWrap: 'wrap',
+    },
+    btnPrimary: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 13,
+      paddingHorizontal: tokens.sp5,
+      backgroundColor: tokens.accent,
+      borderWidth: 1,
+      borderColor: tokens.accent,
+    },
+    btnPrimaryText: {
+      fontFamily: tokens.fontMonoMedium,
+      fontSize: tokens.textXs,
+      letterSpacing: 2,
+      color: tokens.bgBase,
+    },
+    btnGhost: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 13,
+      paddingHorizontal: tokens.sp5,
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: tokens.borderStrong,
+    },
+    btnGhostText: {
+      fontFamily: tokens.fontMonoMedium,
+      fontSize: tokens.textXs,
+      letterSpacing: 2,
+      color: tokens.textPrimary,
+    },
+    mealPicker: {
+      marginTop: tokens.sp4,
+      borderWidth: 1,
+      borderColor: tokens.borderSoft,
+      backgroundColor: tokens.surface1,
+    },
+    mealPickerBtn: {
+      paddingVertical: tokens.sp3,
+      paddingHorizontal: tokens.sp4,
+      borderBottomWidth: 1,
+      borderBottomColor: tokens.borderFaint,
+    },
+    mealPickerBtnText: {
+      fontFamily: tokens.fontBody,
+      fontSize: tokens.textBase,
+      color: tokens.textPrimary,
+    },
 
-  // ── Macros ─────────────────────────────────
-  macrosCard: {
-    borderTopWidth: 1,
-    borderTopColor: T.borderSoft,
-    paddingTop: T.sp5,
-    marginBottom: T.sp9,
-  },
-  macrosHeader: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: T.sp3,
-    marginBottom: T.sp5,
-  },
-  macrosTitle: {
-    fontFamily: T.fontDisplay,
-    fontSize: T.textMd,
-    color: T.textPrimary,
-    letterSpacing: -0.1,
-  },
-  macrosRatio: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    letterSpacing: 1.6,
-  },
-  macroRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp3,
-    paddingVertical: T.sp3,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderFaint,
-  },
-  macroLabel: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textSecondary,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-    width: 70,
-  },
-  macroBarTrack: {
-    flex: 1,
-    height: 4,
-    backgroundColor: T.surface1,
-    overflow: 'hidden',
-  },
-  macroBarFill: {
-    height: '100%',
-  },
-  macroValue: {
-    fontFamily: T.fontMono,
-    fontSize: T.textSm,
-    color: T.textPrimary,
-    textAlign: 'right',
-    minWidth: 80,
-  },
-  macroOf: {
-    color: T.textTertiary,
-  },
+    // ── Macros ─────────────────────────────────
+    macrosCard: {
+      borderTopWidth: 1,
+      borderTopColor: tokens.borderSoft,
+      paddingTop: tokens.sp5,
+      marginBottom: tokens.sp9,
+    },
+    macrosHeader: {
+      flexDirection: 'row',
+      alignItems: 'baseline',
+      gap: tokens.sp3,
+      marginBottom: tokens.sp5,
+    },
+    macrosTitle: {
+      fontFamily: tokens.fontDisplay,
+      fontSize: tokens.textMd,
+      color: tokens.textPrimary,
+      letterSpacing: -0.1,
+    },
+    macrosRatio: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      color: tokens.textTertiary,
+      letterSpacing: 1.6,
+    },
+    macroRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: tokens.sp3,
+      paddingVertical: tokens.sp3,
+      borderBottomWidth: 1,
+      borderBottomColor: tokens.borderFaint,
+    },
+    macroLabel: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      color: tokens.textSecondary,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+      width: 70,
+    },
+    macroBarTrack: {
+      flex: 1,
+      height: 4,
+      backgroundColor: tokens.surface1,
+      overflow: 'hidden',
+    },
+    macroBarFill: {
+      height: '100%',
+    },
+    macroValue: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textSm,
+      color: tokens.textPrimary,
+      textAlign: 'right',
+      minWidth: 80,
+    },
+    macroOf: {
+      color: tokens.textTertiary,
+    },
 
-  // ── Section header ──────────────────────────
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    paddingBottom: T.sp4,
-    marginBottom: 0,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderSoft,
-  },
-  sectionTitle: {
-    fontFamily: T.fontDisplayItalic,
-    fontSize: T.textXl,
-    color: T.textPrimary,
-    letterSpacing: -0.5,
-    fontWeight: '400',
-  },
-  sectionMeta: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    letterSpacing: 1.6,
-  },
+    // ── Section header ──────────────────────────
+    sectionHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      paddingBottom: tokens.sp4,
+      marginBottom: 0,
+      borderBottomWidth: 1,
+      borderBottomColor: tokens.borderSoft,
+    },
+    sectionTitle: {
+      fontFamily: tokens.fontDisplayItalic,
+      fontSize: tokens.textXl,
+      color: tokens.textPrimary,
+      letterSpacing: -0.5,
+      fontWeight: '400',
+    },
+    sectionMeta: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      color: tokens.textTertiary,
+      letterSpacing: 1.6,
+    },
 
-  // ── Meals grid ─────────────────────────────
-  mealsGrid: {
-    borderLeftWidth: 1,
-    borderLeftColor: T.borderSoft,
-    marginBottom: T.sp9,
-  },
-  mealCard: {
-    borderRightWidth: 1,
-    borderRightColor: T.borderSoft,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderSoft,
-  },
-  mealCardInner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: T.sp5,
-    paddingVertical: T.sp5,
-  },
-  mealCardName: {
-    fontFamily: T.fontDisplay,
-    fontSize: T.textLg,
-    color: T.textPrimary,
-    letterSpacing: -0.3,
-    marginBottom: T.sp1,
-  },
-  mealCardKcal: {
-    fontFamily: T.fontMono,
-    fontSize: T.textSm,
-    color: T.textSecondary,
-  },
-  addBtn: {
-    width: 34,
-    height: 34,
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  addBtnText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textMd,
-    color: T.textPrimary,
-    lineHeight: T.textMd,
-  },
+    // ── Meals grid ─────────────────────────────
+    mealsGrid: {
+      borderLeftWidth: 1,
+      borderLeftColor: tokens.borderSoft,
+      marginBottom: tokens.sp9,
+    },
+    mealCard: {
+      borderRightWidth: 1,
+      borderRightColor: tokens.borderSoft,
+      borderBottomWidth: 1,
+      borderBottomColor: tokens.borderSoft,
+    },
+    mealCardInner: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: tokens.sp5,
+      paddingVertical: tokens.sp5,
+    },
+    mealCardName: {
+      fontFamily: tokens.fontDisplay,
+      fontSize: tokens.textLg,
+      color: tokens.textPrimary,
+      letterSpacing: -0.3,
+      marginBottom: tokens.sp1,
+    },
+    mealCardKcal: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textSm,
+      color: tokens.textSecondary,
+    },
+    addBtn: {
+      width: 34,
+      height: 34,
+      borderWidth: 1,
+      borderColor: tokens.borderStrong,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    addBtnText: {
+      fontFamily: tokens.fontBody,
+      fontSize: tokens.textMd,
+      color: tokens.textPrimary,
+      lineHeight: tokens.textMd,
+    },
 
-  // ── Week chart ─────────────────────────────
-  weekChart: {
-    flexDirection: 'row',
-    gap: T.sp2,
-    marginTop: T.sp5,
-    marginBottom: T.sp9,
-    alignItems: 'flex-end',
-  },
-  weekDay: {
-    flex: 1,
-    alignItems: 'center',
-    gap: T.sp2,
-  },
-  weekBarTrack: {
-    width: '100%',
-    height: BAR_MAX_H,
-    justifyContent: 'flex-end',
-  },
-  weekBar: {
-    width: '100%',
-  },
-  weekBarDefault: {
-    backgroundColor: T.surface2,
-  },
-  weekBarToday: {
-    backgroundColor: T.accentBg,
-    borderBottomWidth: 2,
-    borderBottomColor: T.accent,
-  },
-  weekDayLabel: {
-    fontFamily: T.fontMono,
-    fontSize: 10,
-    color: T.textTertiary,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  weekDayLabelToday: {
-    color: T.accent,
-  },
-  weekDayNum: {
-    fontFamily: T.fontMono,
-    fontSize: 9,
-    color: T.textTertiary,
-    letterSpacing: 0.4,
-  },
-  weekDayNumToday: {
-    color: T.textSecondary,
-  },
+    // ── Week chart ─────────────────────────────
+    weekChart: {
+      flexDirection: 'row',
+      gap: tokens.sp2,
+      marginTop: tokens.sp5,
+      marginBottom: tokens.sp9,
+      alignItems: 'flex-end',
+    },
+    weekDay: {
+      flex: 1,
+      alignItems: 'center',
+      gap: tokens.sp2,
+    },
+    weekBarTrack: {
+      width: '100%',
+      height: BAR_MAX_H,
+      justifyContent: 'flex-end',
+    },
+    weekBar: {
+      width: '100%',
+    },
+    weekBarDefault: {
+      backgroundColor: tokens.surface2,
+    },
+    weekBarToday: {
+      backgroundColor: tokens.accentBg,
+      borderBottomWidth: 2,
+      borderBottomColor: tokens.accent,
+    },
+    weekDayLabel: {
+      fontFamily: tokens.fontMono,
+      fontSize: 10,
+      color: tokens.textTertiary,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    weekDayLabelToday: {
+      color: tokens.accent,
+    },
+    weekDayNum: {
+      fontFamily: tokens.fontMono,
+      fontSize: 9,
+      color: tokens.textTertiary,
+      letterSpacing: 0.4,
+    },
+    weekDayNumToday: {
+      color: tokens.textSecondary,
+    },
 
-  // ── Aux cards (peso / chat) ─────────────────
-  auxCard: {
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    backgroundColor: T.surface1,
-    padding: T.sp4,
-    marginBottom: T.sp3,
-  },
-  auxCardLabel: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textSecondary,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-    marginBottom: T.sp1,
-  },
-  auxCardValue: {
-    fontFamily: T.fontDisplay,
-    fontSize: T.textXl,
-    color: T.textPrimary,
-    letterSpacing: -0.5,
-  },
-  auxCardValueEmpty: {
-    fontFamily: T.fontDisplay,
-    fontSize: T.textXl,
-    color: T.textFaint,
-  },
-  auxCardUnit: {
-    fontFamily: T.fontBody,
-    fontSize: T.textMd,
-    color: T.textSecondary,
-  },
-  auxCardSub: {
-    fontFamily: T.fontBody,
-    fontSize: T.textSm,
-    color: T.textTertiary,
-    marginTop: T.sp1,
-  },
+    // ── Aux cards ──────────────────────────────
+    auxCard: {
+      borderWidth: 1,
+      borderColor: tokens.borderSoft,
+      backgroundColor: tokens.surface1,
+      padding: tokens.sp4,
+      marginBottom: tokens.sp3,
+    },
+    auxCardLabel: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      color: tokens.textSecondary,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+      marginBottom: tokens.sp1,
+    },
+    auxCardValue: {
+      fontFamily: tokens.fontDisplay,
+      fontSize: tokens.textXl,
+      color: tokens.textPrimary,
+      letterSpacing: -0.5,
+    },
+    auxCardValueEmpty: {
+      fontFamily: tokens.fontDisplay,
+      fontSize: tokens.textXl,
+      color: tokens.textFaint,
+    },
+    auxCardUnit: {
+      fontFamily: tokens.fontBody,
+      fontSize: tokens.textMd,
+      color: tokens.textSecondary,
+    },
+    auxCardSub: {
+      fontFamily: tokens.fontBody,
+      fontSize: tokens.textSm,
+      color: tokens.textTertiary,
+      marginTop: tokens.sp1,
+    },
 
-  // ── Sign out ───────────────────────────────
-  signOutBtn: {
-    borderWidth: 1,
-    borderColor: T.borderFaint,
-    paddingVertical: T.sp3,
-    alignItems: 'center',
-    marginTop: T.sp5,
-  },
-  signOutText: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-});
+    // ── Sign out ───────────────────────────────
+    signOutBtn: {
+      borderWidth: 1,
+      borderColor: tokens.borderFaint,
+      paddingVertical: tokens.sp3,
+      alignItems: 'center',
+      marginTop: tokens.sp5,
+    },
+    signOutText: {
+      fontFamily: tokens.fontMono,
+      fontSize: tokens.textXs,
+      color: tokens.textTertiary,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+
+    // ── Utility ────────────────────────────────
+    accentText: {
+      color: tokens.accentText,
+    },
+  });
+}
+
+type Styles = ReturnType<typeof makeStyles>;
