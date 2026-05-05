@@ -1,13 +1,17 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = {
     onResolved: () => void;
 };
 
 export default function AuthCallbackScreen({ onResolved }: Props) {
+    const { T } = useTheme();
+    const styles = useMemo(() => makeStyles(T), [T]);
+
     useEffect(() => {
         let mounted = true;
 
@@ -40,17 +44,19 @@ export default function AuthCallbackScreen({ onResolved }: Props) {
     );
 }
 
-const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: T.bgBase,
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: T.sp3,
-    },
-    text: {
-        color: T.textPrimary,
-        fontFamily: T.fontBody,
-        fontSize: T.textBase,
-    },
-});
+function makeStyles(T: TokenSet) {
+    return StyleSheet.create({
+        container: {
+            flex: 1,
+            backgroundColor: T.bgBase,
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: T.sp3,
+        },
+        text: {
+            color: T.textPrimary,
+            fontFamily: T.fontBody,
+            fontSize: T.textBase,
+        },
+    });
+}

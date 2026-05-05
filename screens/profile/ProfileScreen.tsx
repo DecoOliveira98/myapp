@@ -20,8 +20,8 @@ import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
 import { useTheme, type ThemePreference } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 import { type Profile } from '../../hooks/useProfile';
 import Avatar from '../../components/avatar/Avatar';
 import {
@@ -120,6 +120,9 @@ function SegmentedField({
   onChange: (v: string) => void;
   options: { value: string; label: string }[];
 }) {
+  const { T } = useTheme();
+  const seg = useMemo(() => makeSegmentedStyles(T), [T]);
+
   return (
     <View style={seg.row}>
       {options.map((opt) => (
@@ -138,33 +141,35 @@ function SegmentedField({
   );
 }
 
-const seg = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: T.sp1,
-  },
-  btn: {
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    borderRadius: T.rMd,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    backgroundColor: T.surface2,
-  },
-  btnActive: {
-    backgroundColor: T.accentBg,
-    borderColor: T.accentLine,
-  },
-  btnText: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textSm,
-    color: T.textTertiary,
-  },
-  btnTextActive: {
-    color: T.accent,
-  },
-});
+function makeSegmentedStyles(T: TokenSet) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: T.sp1,
+    },
+    btn: {
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      borderRadius: T.rMd,
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      backgroundColor: T.surface2,
+    },
+    btnActive: {
+      backgroundColor: T.accentBg,
+      borderColor: T.accentLine,
+    },
+    btnText: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textSm,
+      color: T.textTertiary,
+    },
+    btnTextActive: {
+      color: T.accent,
+    },
+  });
+}
 
 type OptionItem = { value: string; label: string; description?: string };
 
@@ -177,6 +182,9 @@ function OptionList({
   onChange: (v: string) => void;
   options: OptionItem[];
 }) {
+  const { T } = useTheme();
+  const ol = useMemo(() => makeOptionListStyles(T), [T]);
+
   return (
     <View style={ol.container}>
       {options.map((opt, i) => (
@@ -201,51 +209,54 @@ function OptionList({
   );
 }
 
-const ol = StyleSheet.create({
-  container: {
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    borderRadius: T.rLg,
-    overflow: 'hidden',
-  },
-  item: {
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp3,
-    backgroundColor: T.surface2,
-  },
-  itemBorder: {
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderFaint,
-  },
-  itemActive: {
-    backgroundColor: T.accentBg,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp2,
-  },
-  label: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textBase,
-    color: T.textSecondary,
-  },
-  labelActive: {
-    color: T.accent,
-  },
-  desc: {
-    fontFamily: T.fontBody,
-    fontSize: T.textSm,
-    color: T.textTertiary,
-    marginTop: 2,
-  },
-});
+function makeOptionListStyles(T: TokenSet) {
+  return StyleSheet.create({
+    container: {
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      borderRadius: T.rLg,
+      overflow: 'hidden',
+    },
+    item: {
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+      backgroundColor: T.surface2,
+    },
+    itemBorder: {
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderFaint,
+    },
+    itemActive: {
+      backgroundColor: T.accentBg,
+    },
+    row: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp2,
+    },
+    label: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textBase,
+      color: T.textSecondary,
+    },
+    labelActive: {
+      color: T.accent,
+    },
+    desc: {
+      fontFamily: T.fontBody,
+      fontSize: T.textSm,
+      color: T.textTertiary,
+      marginTop: 2,
+    },
+  });
+}
 
 const MIN_DOB = new Date('1900-01-01T00:00:00');
 const DEFAULT_DOB = new Date('1990-01-01T00:00:00');
 
 export default function ProfileScreen({ session, profile, onClose, refetchProfile }: Props) {
-  const { themePreference, setThemePreference } = useTheme();
+  const { T, themePreference, setThemePreference } = useTheme();
+  const ps = useMemo(() => makeStyles(T), [T]);
   const [form, setForm] = useState<FormState>(profileToForm(profile));
   const [saving, setSaving] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
@@ -738,7 +749,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             disabled={saving}
             activeOpacity={0.85}
           >
-            {saving ? <ActivityIndicator color={T.bgBase} size="small" /> : <Text style={ps.btnSaveText}>SALVAR ALTERAÇÕES</Text>}
+            {saving ? <ActivityIndicator color={T.onAccent} size="small" /> : <Text style={ps.btnSaveText}>SALVAR ALTERAÇÕES</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -781,221 +792,223 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
   );
 }
 
-const ps = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: T.bgBase,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: T.sp5,
-    paddingVertical: T.sp3,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderFaint,
-  },
-  backBtn: {
-    padding: T.sp1,
-  },
-  headerTitle: {
-    fontFamily: T.fontBodySemiBold,
-    fontSize: T.textMd,
-    color: T.textPrimary,
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: T.sp5,
-    gap: T.sp4,
-    paddingBottom: 48,
-  },
-  card: {
-    backgroundColor: T.surface1,
-    borderRadius: T.rLg,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    padding: T.sp4,
-    gap: T.sp3,
-  },
-  sectionLabel: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    letterSpacing: 2,
-    color: T.textTertiary,
-  },
-  fieldLabel: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textSm,
-    color: T.textSecondary,
-  },
-  input: {
-    backgroundColor: T.surface2,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    borderRadius: T.rMd,
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    fontFamily: T.fontBody,
-    fontSize: T.textBase,
-    color: T.textPrimary,
-  },
-  inputPressable: {
-    backgroundColor: T.surface2,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    borderRadius: T.rMd,
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  inputPressableText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textBase,
-    color: T.textPrimary,
-  },
-  inputPlaceholder: {
-    color: T.textFaint,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: T.borderFaint,
-  },
-  twoCol: {
-    flexDirection: 'row',
-    gap: T.sp3,
-  },
-  threeCol: {
-    flexDirection: 'row',
-    gap: T.sp2,
-  },
-  colItem: {
-    flex: 1,
-    gap: T.sp2,
-  },
-  photoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp4,
-  },
-  avatarWrap: {
-    width: 40,
-    height: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  photoActions: {
-    flex: 1,
-    gap: T.sp2,
-  },
-  btnOutline: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp2,
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    borderWidth: 1,
-    borderColor: T.accentLine,
-    borderRadius: T.rMd,
-    backgroundColor: T.accentBg,
-    alignSelf: 'flex-start',
-  },
-  btnOutlineText: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textSm,
-    color: T.accent,
-  },
-  btnDanger: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp2,
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    borderWidth: 1,
-    borderColor: 'rgba(232, 131, 111, 0.25)',
-    borderRadius: T.rMd,
-    backgroundColor: 'rgba(232, 131, 111, 0.08)',
-    alignSelf: 'flex-start',
-  },
-  btnDangerText: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textSm,
-    color: T.danger,
-  },
-  btnGhost: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp2,
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    borderRadius: T.rMd,
-    backgroundColor: T.surface2,
-    alignSelf: 'flex-start',
-  },
-  btnGhostText: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textSm,
-    color: T.accent,
-  },
-  btnGhostSmall: {
-    alignSelf: 'flex-start',
-    paddingVertical: T.sp1,
-  },
-  btnGhostSmallText: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textSm,
-    color: T.textTertiary,
-  },
-  microcopy: {
-    fontFamily: T.fontBody,
-    fontSize: T.textXs,
-    color: T.textTertiary,
-  },
-  modalBackdrop: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.35)',
-  },
-  modalCard: {
-    backgroundColor: T.surface1,
-    borderTopLeftRadius: T.rLg,
-    borderTopRightRadius: T.rLg,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    borderBottomWidth: 0,
-    paddingBottom: T.sp4,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp3,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderFaint,
-  },
-  modalHeaderBtn: {
-    fontFamily: T.fontBodyMedium,
-    fontSize: T.textBase,
-    color: T.accent,
-  },
-  btnSave: {
-    backgroundColor: T.accent,
-    borderRadius: T.rMd,
-    paddingVertical: T.sp3,
-    alignItems: 'center',
-  },
-  btnSaveDisabled: {
-    opacity: 0.6,
-  },
-  btnSaveText: {
-    fontFamily: T.fontBodySemiBold,
-    fontSize: T.textBase,
-    color: T.bgBase,
-    letterSpacing: 1.5,
-  },
-});
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: T.bgBase,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: T.sp5,
+      paddingVertical: T.sp3,
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderFaint,
+    },
+    backBtn: {
+      padding: T.sp1,
+    },
+    headerTitle: {
+      fontFamily: T.fontBodySemiBold,
+      fontSize: T.textMd,
+      color: T.textPrimary,
+    },
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      padding: T.sp5,
+      gap: T.sp4,
+      paddingBottom: 48,
+    },
+    card: {
+      backgroundColor: T.surface1,
+      borderRadius: T.rLg,
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      padding: T.sp4,
+      gap: T.sp3,
+    },
+    sectionLabel: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      letterSpacing: 2,
+      color: T.textTertiary,
+    },
+    fieldLabel: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textSm,
+      color: T.textSecondary,
+    },
+    input: {
+      backgroundColor: T.surface2,
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      borderRadius: T.rMd,
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      fontFamily: T.fontBody,
+      fontSize: T.textBase,
+      color: T.textPrimary,
+    },
+    inputPressable: {
+      backgroundColor: T.surface2,
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      borderRadius: T.rMd,
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
+    inputPressableText: {
+      fontFamily: T.fontBody,
+      fontSize: T.textBase,
+      color: T.textPrimary,
+    },
+    inputPlaceholder: {
+      color: T.textFaint,
+    },
+    divider: {
+      height: 1,
+      backgroundColor: T.borderFaint,
+    },
+    twoCol: {
+      flexDirection: 'row',
+      gap: T.sp3,
+    },
+    threeCol: {
+      flexDirection: 'row',
+      gap: T.sp2,
+    },
+    colItem: {
+      flex: 1,
+      gap: T.sp2,
+    },
+    photoRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp4,
+    },
+    avatarWrap: {
+      width: 40,
+      height: 40,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    photoActions: {
+      flex: 1,
+      gap: T.sp2,
+    },
+    btnOutline: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp2,
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      borderWidth: 1,
+      borderColor: T.accentLine,
+      borderRadius: T.rMd,
+      backgroundColor: T.accentBg,
+      alignSelf: 'flex-start',
+    },
+    btnOutlineText: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textSm,
+      color: T.accent,
+    },
+    btnDanger: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp2,
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      borderWidth: 1,
+      borderColor: 'rgba(232, 131, 111, 0.25)',
+      borderRadius: T.rMd,
+      backgroundColor: 'rgba(232, 131, 111, 0.08)',
+      alignSelf: 'flex-start',
+    },
+    btnDangerText: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textSm,
+      color: T.danger,
+    },
+    btnGhost: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp2,
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      borderRadius: T.rMd,
+      backgroundColor: T.surface2,
+      alignSelf: 'flex-start',
+    },
+    btnGhostText: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textSm,
+      color: T.accent,
+    },
+    btnGhostSmall: {
+      alignSelf: 'flex-start',
+      paddingVertical: T.sp1,
+    },
+    btnGhostSmallText: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textSm,
+      color: T.textTertiary,
+    },
+    microcopy: {
+      fontFamily: T.fontBody,
+      fontSize: T.textXs,
+      color: T.textTertiary,
+    },
+    modalBackdrop: {
+      flex: 1,
+      justifyContent: 'flex-end',
+      backgroundColor: 'rgba(0, 0, 0, 0.35)',
+    },
+    modalCard: {
+      backgroundColor: T.surface1,
+      borderTopLeftRadius: T.rLg,
+      borderTopRightRadius: T.rLg,
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      borderBottomWidth: 0,
+      paddingBottom: T.sp4,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderFaint,
+    },
+    modalHeaderBtn: {
+      fontFamily: T.fontBodyMedium,
+      fontSize: T.textBase,
+      color: T.accent,
+    },
+    btnSave: {
+      backgroundColor: T.accent,
+      borderRadius: T.rMd,
+      paddingVertical: T.sp3,
+      alignItems: 'center',
+    },
+    btnSaveDisabled: {
+      opacity: 0.6,
+    },
+    btnSaveText: {
+      fontFamily: T.fontBodySemiBold,
+      fontSize: T.textBase,
+      color: T.onAccent,
+      letterSpacing: 1.5,
+    },
+  });
+}

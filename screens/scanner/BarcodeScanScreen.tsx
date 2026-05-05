@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,7 +8,8 @@ import {
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 export type PrefillData = {
   name: string;
@@ -25,6 +26,8 @@ type Props = {
 };
 
 export default function BarcodeScanScreen({ onCancel, onProductFound, onProductNotFound }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [permission, requestPermission] = useCameraPermissions();
   const [status, setStatus] = useState<'scanning' | 'fetching'>('scanning');
   const scannedRef = useRef<boolean>(false);
@@ -125,96 +128,98 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
   );
 }
 
-const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: T.bgBase,
-    padding: T.sp6,
-    gap: T.sp3,
-  },
-  permissionText: {
-    fontSize: T.textBase,
-    color: T.textPrimary,
-    textAlign: 'center',
-    marginBottom: T.sp2,
-    fontFamily: T.fontBody,
-  },
-  primaryButton: {
-    backgroundColor: T.accent,
-    borderWidth: 1,
-    borderColor: T.accent,
-    paddingVertical: 12,
-    paddingHorizontal: T.sp6,
-    width: '100%',
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: T.bgBase,
-    fontSize: T.textXs,
-    fontFamily: T.fontMonoMedium,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-    paddingVertical: 12,
-    paddingHorizontal: T.sp6,
-    width: '100%',
-    alignItems: 'center',
-    backgroundColor: 'transparent',
-  },
-  secondaryButtonText: {
-    color: T.textSecondary,
-    fontSize: T.textXs,
-    fontFamily: T.fontMono,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-  },
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: T.bgBase,
+      padding: T.sp6,
+      gap: T.sp3,
+    },
+    permissionText: {
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      textAlign: 'center',
+      marginBottom: T.sp2,
+      fontFamily: T.fontBody,
+    },
+    primaryButton: {
+      backgroundColor: T.accent,
+      borderWidth: 1,
+      borderColor: T.accent,
+      paddingVertical: 12,
+      paddingHorizontal: T.sp6,
+      width: '100%',
+      alignItems: 'center',
+    },
+    primaryButtonText: {
+      color: T.onAccent,
+      fontSize: T.textXs,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
+    secondaryButton: {
+      borderWidth: 1,
+      borderColor: T.borderStrong,
+      paddingVertical: 12,
+      paddingHorizontal: T.sp6,
+      width: '100%',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+    },
+    secondaryButtonText: {
+      color: T.textSecondary,
+      fontSize: T.textXs,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
 
-  // Camera overlay
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'space-between',
-    paddingBottom: 80,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: T.sp5,
-    paddingTop: 56,
-    paddingBottom: T.sp3,
-  },
-  cancelText: {
-    color: T.textPrimary,
-    fontSize: T.textSm,
-    fontFamily: T.fontMono,
-    letterSpacing: 1.2,
-    width: 70,
-    textTransform: 'uppercase',
-  },
-  headerTitle: {
-    color: T.textPrimary,
-    fontSize: T.textSm,
-    fontFamily: T.fontMonoMedium,
-    letterSpacing: 1.6,
-    textTransform: 'uppercase',
-  },
-  infoBox: {
-    marginHorizontal: 40,
-    backgroundColor: 'rgba(14,14,16,0.92)',
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    padding: T.sp4,
-    alignItems: 'center',
-  },
-  infoText: {
-    fontSize: T.textSm,
-    color: T.textPrimary,
-    textAlign: 'center',
-    fontFamily: T.fontBody,
-  },
-});
+    // Camera overlay
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'space-between',
+      paddingBottom: 80,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: T.sp5,
+      paddingTop: 56,
+      paddingBottom: T.sp3,
+    },
+    cancelText: {
+      color: T.textPrimary,
+      fontSize: T.textSm,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.2,
+      width: 70,
+      textTransform: 'uppercase',
+    },
+    headerTitle: {
+      color: T.textPrimary,
+      fontSize: T.textSm,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
+    infoBox: {
+      marginHorizontal: 40,
+      backgroundColor: 'rgba(14,14,16,0.92)',
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      padding: T.sp4,
+      alignItems: 'center',
+    },
+    infoText: {
+      fontSize: T.textSm,
+      color: T.textPrimary,
+      textAlign: 'center',
+      fontFamily: T.fontBody,
+    },
+  });
+}

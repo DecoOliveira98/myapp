@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,7 +13,8 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = { session: Session; recipeId: string | null; onClose: () => void };
 
@@ -37,6 +38,8 @@ function round1(n: number): number {
 }
 
 export default function RecipeEditScreen({ session, recipeId, onClose }: Props) {
+  const { T } = useTheme();
+  const ss = useMemo(() => makeStyles(T), [T]);
   const [name, setName] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
   const [items, setItems] = useState<RecipeItem[]>([]);
@@ -440,7 +443,8 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
   );
 }
 
-const ss = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -602,10 +606,9 @@ const ss = StyleSheet.create({
     marginRight: T.sp3,
   },
   itemName: {
-    fontFamily: T.fontBody,
+    fontFamily: T.fontBodyMedium,
     fontSize: T.textBase,
     color: T.textPrimary,
-    fontWeight: '500',
     marginBottom: 2,
   },
   itemMeta: {
@@ -656,7 +659,7 @@ const ss = StyleSheet.create({
   saveBtnText: {
     fontFamily: T.fontMonoMedium,
     fontSize: T.textXs,
-    color: T.bgBase,
+    color: T.onAccent,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -669,7 +672,7 @@ const ss = StyleSheet.create({
   deleteBtnText: {
     fontFamily: T.fontMonoMedium,
     fontSize: T.textXs,
-    color: '#fff',
+    color: T.textPrimary,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
@@ -725,8 +728,9 @@ const ss = StyleSheet.create({
   modalSaveText: {
     fontFamily: T.fontMonoMedium,
     fontSize: T.textXs,
-    color: T.bgBase,
+    color: T.onAccent,
     letterSpacing: 1.6,
     textTransform: 'uppercase',
   },
-});
+  });
+}

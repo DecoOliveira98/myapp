@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Image, ImageStyle, StyleSheet, Text, View, ViewStyle } from 'react-native';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type AvatarSize = 'sm' | 'md' | 'lg';
 
@@ -29,6 +30,8 @@ function getInitials(name: string): string {
 }
 
 export default function Avatar({ src, name, size = 'md' }: Props) {
+    const { T } = useTheme();
+    const styles = useMemo(() => makeStyles(T), [T]);
     const [hasImageError, setHasImageError] = useState(false);
     const dimension = SIZE_MAP[size];
     const initials = useMemo(() => getInitials(name), [name]);
@@ -68,19 +71,21 @@ export default function Avatar({ src, name, size = 'md' }: Props) {
     );
 }
 
-const styles = StyleSheet.create({
-    image: {
-        backgroundColor: T.surface1,
-    },
-    fallback: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: T.accent,
-    },
-    initials: {
-        fontFamily: T.fontBodyMedium,
-        color: T.bgBase,
-        letterSpacing: 0.2,
-        textTransform: 'uppercase',
-    },
-});
+function makeStyles(T: TokenSet) {
+    return StyleSheet.create({
+        image: {
+            backgroundColor: T.surface1,
+        },
+        fallback: {
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: T.accent,
+        },
+        initials: {
+            fontFamily: T.fontBodyMedium,
+            color: T.onAccent,
+            letterSpacing: 0.2,
+            textTransform: 'uppercase',
+        },
+    });
+}

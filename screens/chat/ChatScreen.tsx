@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = {
   session: Session;
@@ -33,6 +34,8 @@ const SUGGESTIONS = [
 ];
 
 export default function ChatScreen({ session, onClose }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
@@ -200,7 +203,8 @@ export default function ChatScreen({ session, onClose }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -289,7 +293,7 @@ const styles = StyleSheet.create({
     fontFamily: T.fontBody,
   },
   bubbleTextUser: {
-    color: T.bgBase,
+    color: T.onAccent,
   },
   bubbleTextAssistant: {
     color: T.textPrimary,
@@ -345,7 +349,8 @@ const styles = StyleSheet.create({
   },
   sendBtnText: {
     fontSize: T.textMd,
-    color: T.bgBase,
+    color: T.onAccent,
     fontFamily: T.fontMonoMedium,
   },
-});
+  });
+}

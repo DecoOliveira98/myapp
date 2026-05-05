@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,7 +16,8 @@ import DescribeMealScreen from './DescribeMealScreen';
 import PhotoMealScreen from './PhotoMealScreen';
 import VoiceMealScreen from './VoiceMealScreen';
 import ApplyRecipeScreen from '../recipes/ApplyRecipeScreen';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -51,6 +52,8 @@ type FormMode =
 type ScreenState = 'loading' | 'error' | 'ready';
 
 export default function MealDetailScreen({ session, mealType, mealLabel, date, onClose }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [state, setState] = useState<ScreenState>('loading');
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [formMode, setFormMode] = useState<FormMode>(null);
@@ -308,7 +311,8 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -449,4 +453,5 @@ const styles = StyleSheet.create({
     letterSpacing: 1.6,
     textTransform: 'uppercase',
   },
-});
+  });
+}

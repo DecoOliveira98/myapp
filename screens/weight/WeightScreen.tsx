@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -14,7 +14,8 @@ import {
 import Svg, { Circle, Line, Polyline, Text as SvgText } from 'react-native-svg';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -33,6 +34,8 @@ function formatShortDate(iso: string): string {
 }
 
 export default function WeightScreen({ session, onClose }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [weight, setWeight] = useState('');
   const [editing, setEditing] = useState<{ id: string; date: string } | null>(null);
   const [list, setList] = useState<WeightEntry[]>([]);
@@ -243,6 +246,7 @@ export default function WeightScreen({ session, onClose }: Props) {
 }
 
 function WeightChart({ data }: { data: Array<{ date: string; weight: number }> }) {
+  const { T } = useTheme();
   if (data.length < 2) return null;
 
   const screenWidth = Dimensions.get('window').width;
@@ -283,7 +287,8 @@ function WeightChart({ data }: { data: Array<{ date: string; weight: number }> }
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -423,4 +428,5 @@ const styles = StyleSheet.create({
     marginTop: T.sp5,
     fontFamily: T.fontBody,
   },
-});
+  });
+}

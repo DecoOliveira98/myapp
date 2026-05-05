@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 import RecipeEditScreen from './RecipeEditScreen';
 
 type Props = { session: Session; onClose: () => void };
@@ -23,6 +24,8 @@ type RecipeRow = {
 };
 
 export default function RecipesListScreen({ session, onClose }: Props) {
+  const { T } = useTheme();
+  const ss = useMemo(() => makeStyles(T), [T]);
   const [recipes, setRecipes] = useState<RecipeRow[]>([]);
   const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
   const [editing, setEditing] = useState<{ recipeId: string | null } | null>(null);
@@ -164,7 +167,8 @@ export default function RecipesListScreen({ session, onClose }: Props) {
   );
 }
 
-const ss = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -253,9 +257,8 @@ const ss = StyleSheet.create({
     marginBottom: T.sp1,
   },
   cardName: {
-    fontFamily: T.fontBody,
+    fontFamily: T.fontBodySemiBold,
     fontSize: T.textMd,
-    fontWeight: '600',
     color: T.textPrimary,
     flex: 1,
     marginRight: T.sp3,
@@ -283,8 +286,9 @@ const ss = StyleSheet.create({
   newBtnText: {
     fontFamily: T.fontMonoMedium,
     fontSize: T.textXs,
-    color: T.bgBase,
+    color: T.onAccent,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
-});
+  });
+}

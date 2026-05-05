@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -36,6 +37,8 @@ function round1(n: number): number {
 }
 
 export default function DescribeMealScreen({ session, mealType, date, onCancel, onSaved }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [text, setText] = useState('');
   const [parsing, setParsing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -184,7 +187,7 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
           multiline
           numberOfLines={6}
           placeholder="Descreva aqui..."
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           autoFocus
           textAlignVertical="top"
         />
@@ -203,7 +206,8 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -309,4 +313,5 @@ const styles = StyleSheet.create({
     marginTop: T.sp2,
     fontFamily: T.fontBody,
   },
-});
+  });
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
@@ -13,11 +13,14 @@ import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import Svg, { Circle, Path } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 // AuthScreen não recebe props: o App.tsx escuta onAuthStateChange e
 // troca de tela automaticamente quando o login/cadastro tem sucesso.
 export default function AuthScreen() {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Bloqueia os botões durante chamadas assíncronas para evitar duplo-clique
@@ -172,109 +175,111 @@ export default function AuthScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: T.bgBase,
-  },
-  inner: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: T.sp5,
-  },
-  eyebrow: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    letterSpacing: 2,
-    color: T.textTertiary,
-    marginBottom: T.sp3,
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontFamily: T.fontDisplay,
-    fontSize: T.textXl,
-    color: T.textPrimary,
-    marginBottom: T.sp6,
-    lineHeight: 36,
-  },
-  titleAccent: {
-    color: T.accent,
-    fontFamily: T.fontDisplayItalic,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    backgroundColor: T.surface1,
-    paddingHorizontal: T.sp4,
-    paddingVertical: 13,
-    fontSize: T.textBase,
-    marginBottom: T.sp3,
-    color: T.textPrimary,
-    fontFamily: T.fontBody,
-  },
-  button: {
-    backgroundColor: T.accent,
-    borderWidth: 1,
-    borderColor: T.accent,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: T.sp2,
-  },
-  buttonSecondary: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-  },
-  googleButton: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-    minHeight: 48,
-    justifyContent: 'center',
-    marginTop: 0,
-    marginBottom: T.sp3,
-  },
-  googleContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: T.sp2,
-  },
-  googleButtonText: {
-    color: T.textPrimary,
-    fontSize: T.textXs,
-    fontFamily: T.fontMonoMedium,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: T.sp3,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: T.borderSoft,
-  },
-  dividerText: {
-    color: T.textTertiary,
-    fontFamily: T.fontBody,
-    fontSize: T.textSm,
-    marginHorizontal: T.sp3,
-    textTransform: 'lowercase',
-  },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
-  buttonText: {
-    color: T.bgBase,
-    fontSize: T.textXs,
-    fontFamily: T.fontMonoMedium,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  buttonTextSecondary: {
-    color: T.textPrimary,
-  },
-});
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: T.bgBase,
+    },
+    inner: {
+      flex: 1,
+      justifyContent: 'center',
+      paddingHorizontal: T.sp5,
+    },
+    eyebrow: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      letterSpacing: 2,
+      color: T.textTertiary,
+      marginBottom: T.sp3,
+      textTransform: 'uppercase',
+    },
+    title: {
+      fontFamily: T.fontDisplay,
+      fontSize: T.textXl,
+      color: T.textPrimary,
+      marginBottom: T.sp6,
+      lineHeight: 36,
+    },
+    titleAccent: {
+      color: T.accent,
+      fontFamily: T.fontDisplayItalic,
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      backgroundColor: T.surface1,
+      paddingHorizontal: T.sp4,
+      paddingVertical: 13,
+      fontSize: T.textBase,
+      marginBottom: T.sp3,
+      color: T.textPrimary,
+      fontFamily: T.fontBody,
+    },
+    button: {
+      backgroundColor: T.accent,
+      borderWidth: 1,
+      borderColor: T.accent,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: T.sp2,
+    },
+    buttonSecondary: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: T.borderStrong,
+    },
+    googleButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: T.borderStrong,
+      minHeight: 48,
+      justifyContent: 'center',
+      marginTop: 0,
+      marginBottom: T.sp3,
+    },
+    googleContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: T.sp2,
+    },
+    googleButtonText: {
+      color: T.textPrimary,
+      fontSize: T.textXs,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    dividerRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: T.sp3,
+    },
+    dividerLine: {
+      flex: 1,
+      height: 1,
+      backgroundColor: T.borderSoft,
+    },
+    dividerText: {
+      color: T.textTertiary,
+      fontFamily: T.fontBody,
+      fontSize: T.textSm,
+      marginHorizontal: T.sp3,
+      textTransform: 'lowercase',
+    },
+    buttonDisabled: {
+      opacity: 0.5,
+    },
+    buttonText: {
+      color: T.onAccent,
+      fontSize: T.textXs,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+    buttonTextSecondary: {
+      color: T.textPrimary,
+    },
+  });
+}

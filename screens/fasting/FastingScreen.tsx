@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -23,7 +24,7 @@ type HistorySession = {
   duration_h: number;
 };
 
-const MONTHS_SHORT = ['jan','fev','mar','abr','mai','jun','jul','ago','set','out','nov','dez'];
+const MONTHS_SHORT = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
 
 function formatDuration(ms: number): string {
   const totalSec = Math.max(0, Math.floor(ms / 1000));
@@ -40,6 +41,8 @@ function formatDurationShort(hours: number): string {
 }
 
 export default function FastingScreen({ session, onClose }: Props) {
+  const { T } = useTheme();
+  const ss = useMemo(() => makeStyles(T), [T]);
   const [active, setActive] = useState<ActiveSession | null>(null);
   const [history, setHistory] = useState<HistorySession[]>([]);
   const [screenState, setScreenState] = useState<'loading' | 'error' | 'ready'>('loading');
@@ -287,6 +290,8 @@ export default function FastingScreen({ session, onClose }: Props) {
 }
 
 function GoalBadge({ durationH, goalH }: { durationH: number; goalH: number }) {
+  const { T } = useTheme();
+  const ss = useMemo(() => makeStyles(T), [T]);
   const pct = durationH / goalH;
   let color: string;
   let label: string;
@@ -300,236 +305,237 @@ function GoalBadge({ durationH, goalH }: { durationH: number; goalH: number }) {
   );
 }
 
-const ss = StyleSheet.create({
-  root: {
-    flex: 1,
-    backgroundColor: T.bgBase,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: T.bgBase,
-  },
-  secondaryText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textBase,
-    color: T.textSecondary,
-  },
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
+    root: {
+      flex: 1,
+      backgroundColor: T.bgBase,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: T.bgBase,
+    },
+    secondaryText: {
+      fontFamily: T.fontBody,
+      fontSize: T.textBase,
+      color: T.textSecondary,
+    },
 
-  // ── Header ─────────────────────────────────
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp4,
-    paddingHorizontal: T.sp5,
-    paddingTop: 56,
-    paddingBottom: T.sp4,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderSoft,
-  },
-  backText: {
-    fontFamily: T.fontMono,
-    fontSize: T.textSm,
-    color: T.textSecondary,
-    letterSpacing: 0.4,
-  },
-  headerTitle: {
-    fontFamily: T.fontDisplay,
-    fontSize: T.textXl,
-    color: T.textPrimary,
-    letterSpacing: -0.5,
-  },
+    // ── Header ─────────────────────────────────
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp4,
+      paddingHorizontal: T.sp5,
+      paddingTop: 56,
+      paddingBottom: T.sp4,
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderSoft,
+    },
+    backText: {
+      fontFamily: T.fontMono,
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      letterSpacing: 0.4,
+    },
+    headerTitle: {
+      fontFamily: T.fontDisplay,
+      fontSize: T.textXl,
+      color: T.textPrimary,
+      letterSpacing: -0.5,
+    },
 
-  // ── Scroll ─────────────────────────────────
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    paddingHorizontal: T.sp5,
-    paddingTop: T.sp5,
-    paddingBottom: 80,
-  },
+    // ── Scroll ─────────────────────────────────
+    scroll: {
+      flex: 1,
+    },
+    content: {
+      paddingHorizontal: T.sp5,
+      paddingTop: T.sp5,
+      paddingBottom: 80,
+    },
 
-  // ── Session card ───────────────────────────
-  sessionCard: {
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    backgroundColor: T.surface1,
-    padding: T.sp5,
-    marginBottom: T.sp4,
-    alignItems: 'center',
-  },
-  sessionLabel: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-    marginBottom: T.sp2,
-  },
-  timerText: {
-    fontFamily: T.fontDisplay,
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: T.textPrimary,
-    letterSpacing: -1,
-    marginBottom: T.sp2,
-    textAlign: 'center',
-  },
-  sessionSub: {
-    fontFamily: T.fontBody,
-    fontSize: T.textSm,
-    color: T.textTertiary,
-    marginBottom: T.sp3,
-  },
-  goalLine: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textSecondary,
-    letterSpacing: 1.2,
-    marginBottom: T.sp2,
-  },
-  progressTrack: {
-    width: '100%',
-    height: 3,
-    backgroundColor: T.surface3,
-    marginBottom: T.sp4,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: T.accent,
-  },
-  idleText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textBase,
-    color: T.textTertiary,
-    marginBottom: T.sp5,
-    textAlign: 'center',
-  },
+    // ── Session card ───────────────────────────
+    sessionCard: {
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      backgroundColor: T.surface1,
+      padding: T.sp5,
+      marginBottom: T.sp4,
+      alignItems: 'center',
+    },
+    sessionLabel: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      color: T.textTertiary,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+      marginBottom: T.sp2,
+    },
+    timerText: {
+      fontFamily: T.fontDisplay,
+      fontSize: 32,
+      color: T.textPrimary,
+      letterSpacing: -1,
+      marginBottom: T.sp2,
+      textAlign: 'center',
+    },
+    sessionSub: {
+      fontFamily: T.fontBody,
+      fontSize: T.textSm,
+      color: T.textTertiary,
+      marginBottom: T.sp3,
+    },
+    goalLine: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      color: T.textSecondary,
+      letterSpacing: 1.2,
+      marginBottom: T.sp2,
+    },
+    progressTrack: {
+      width: '100%',
+      height: 3,
+      backgroundColor: T.trackBg,
+      marginBottom: T.sp4,
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: T.accent,
+    },
+    idleText: {
+      fontFamily: T.fontBody,
+      fontSize: T.textBase,
+      color: T.textTertiary,
+      marginBottom: T.sp5,
+      textAlign: 'center',
+    },
 
-  // ── Input ──────────────────────────────────
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp3,
-    marginBottom: T.sp2,
-  },
-  goalInput: {
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-    backgroundColor: T.surface2,
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    fontFamily: T.fontMono,
-    fontSize: T.textBase,
-    color: T.textPrimary,
-    width: 80,
-    textAlign: 'center',
-  },
-  inputRowLabel: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textSecondary,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  inputHint: {
-    fontFamily: T.fontBody,
-    fontSize: T.textSm,
-    color: T.textTertiary,
-    marginBottom: T.sp4,
-    textAlign: 'center',
-  },
+    // ── Input ──────────────────────────────────
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp3,
+      marginBottom: T.sp2,
+    },
+    goalInput: {
+      borderWidth: 1,
+      borderColor: T.borderStrong,
+      backgroundColor: T.surface2,
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      fontFamily: T.fontMono,
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      width: 80,
+      textAlign: 'center',
+    },
+    inputRowLabel: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      color: T.textSecondary,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    inputHint: {
+      fontFamily: T.fontBody,
+      fontSize: T.textSm,
+      color: T.textTertiary,
+      marginBottom: T.sp4,
+      textAlign: 'center',
+    },
 
-  // ── Buttons ────────────────────────────────
-  actionBtn: {
-    width: '100%',
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  startBtn: {
-    backgroundColor: '#222222',
-  },
-  endBtn: {
-    backgroundColor: '#c0392b',
-  },
-  btnDisabled: {
-    opacity: 0.5,
-  },
-  actionBtnText: {
-    fontFamily: T.fontMonoMedium,
-    fontSize: T.textXs,
-    letterSpacing: 2,
-    color: T.textPrimary,
-    textTransform: 'uppercase',
-  },
+    // ── Buttons ────────────────────────────────
+    actionBtn: {
+      width: '100%',
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    startBtn: {
+      backgroundColor: T.surface3,
+    },
+    endBtn: {
+      backgroundColor: T.danger,
+    },
+    btnDisabled: {
+      opacity: 0.5,
+    },
+    actionBtnText: {
+      fontFamily: T.fontMonoMedium,
+      fontSize: T.textXs,
+      letterSpacing: 2,
+      color: T.textPrimary,
+      textTransform: 'uppercase',
+    },
 
-  // ── Error ──────────────────────────────────
-  errorText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textSm,
-    color: T.danger,
-    textAlign: 'center',
-    marginBottom: T.sp3,
-  },
+    // ── Error ──────────────────────────────────
+    errorText: {
+      fontFamily: T.fontBody,
+      fontSize: T.textSm,
+      color: T.danger,
+      textAlign: 'center',
+      marginBottom: T.sp3,
+    },
 
-  // ── Divider ────────────────────────────────
-  divider: {
-    height: 1,
-    backgroundColor: T.borderSoft,
-    marginVertical: T.sp5,
-  },
+    // ── Divider ────────────────────────────────
+    divider: {
+      height: 1,
+      backgroundColor: T.borderSoft,
+      marginVertical: T.sp5,
+    },
 
-  // ── History ────────────────────────────────
-  historyHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'baseline',
-    marginBottom: T.sp4,
-  },
-  historyTitle: {
-    fontFamily: T.fontDisplayItalic,
-    fontSize: T.textXl,
-    color: T.textPrimary,
-    letterSpacing: -0.5,
-    fontWeight: '400',
-  },
-  historyMeta: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    letterSpacing: 1.2,
-  },
-  historyRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: T.sp3,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderFaint,
-  },
-  historyRowText: {
-    fontFamily: T.fontMono,
-    fontSize: T.textSm,
-    color: T.textSecondary,
-    letterSpacing: 0.4,
-  },
-  goalBadge: {
-    borderWidth: 1,
-    paddingHorizontal: T.sp2,
-    paddingVertical: 2,
-  },
-  goalBadgeText: {
-    fontFamily: T.fontMono,
-    fontSize: 10,
-    letterSpacing: 0.8,
-  },
-  emptyText: {
-    fontFamily: T.fontBody,
-    fontSize: T.textBase,
-    color: T.textTertiary,
-    paddingVertical: T.sp4,
-  },
-});
+    // ── History ────────────────────────────────
+    historyHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+      marginBottom: T.sp4,
+    },
+    historyTitle: {
+      fontFamily: T.fontDisplayItalic,
+      fontSize: T.textXl,
+      color: T.textPrimary,
+      letterSpacing: -0.5,
+      fontWeight: '400',
+    },
+    historyMeta: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      color: T.textTertiary,
+      letterSpacing: 1.2,
+    },
+    historyRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: T.sp3,
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderFaint,
+    },
+    historyRowText: {
+      fontFamily: T.fontMono,
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      letterSpacing: 0.4,
+    },
+    goalBadge: {
+      borderWidth: 1,
+      paddingHorizontal: T.sp2,
+      paddingVertical: 2,
+    },
+    goalBadgeText: {
+      fontFamily: T.fontMono,
+      fontSize: 10,
+      letterSpacing: 0.8,
+    },
+    emptyText: {
+      fontFamily: T.fontBody,
+      fontSize: T.textBase,
+      color: T.textTertiary,
+      paddingVertical: T.sp4,
+    },
+  });
+}

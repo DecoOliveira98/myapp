@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -10,7 +10,8 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = {
   session: Session;
@@ -42,6 +43,8 @@ function round1(n: number): number {
 }
 
 export default function ApplyRecipeScreen({ session, mealType, date, onCancel, onApplied }: Props) {
+  const { T } = useTheme();
+  const ss = useMemo(() => makeStyles(T), [T]);
   const [recipes, setRecipes] = useState<RecipeRow[]>([]);
   const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
   const [selected, setSelected] = useState<{ recipe: RecipeRow; items: RecipeItem[] } | null>(null);
@@ -276,7 +279,8 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
   );
 }
 
-const ss = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -363,9 +367,8 @@ const ss = StyleSheet.create({
     marginBottom: T.sp1,
   },
   cardName: {
-    fontFamily: T.fontBody,
+    fontFamily: T.fontBodySemiBold,
     fontSize: T.textMd,
-    fontWeight: '600',
     color: T.textPrimary,
     flex: 1,
   },
@@ -402,7 +405,7 @@ const ss = StyleSheet.create({
     marginBottom: T.sp5,
   },
   totalAccent: {
-    color: T.accent,
+    color: T.accentText,
     fontFamily: T.fontMonoMedium,
   },
   previewCard: {
@@ -413,10 +416,9 @@ const ss = StyleSheet.create({
     marginBottom: T.sp2,
   },
   previewName: {
-    fontFamily: T.fontBody,
+    fontFamily: T.fontBodyMedium,
     fontSize: T.textBase,
     color: T.textPrimary,
-    fontWeight: '500',
     marginBottom: 3,
   },
   previewMeta: {
@@ -451,8 +453,9 @@ const ss = StyleSheet.create({
   applyBtnText: {
     fontFamily: T.fontMonoMedium,
     fontSize: T.textXs,
-    color: T.bgBase,
+    color: T.onAccent,
     letterSpacing: 2,
     textTransform: 'uppercase',
   },
-});
+  });
+}

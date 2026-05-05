@@ -1,5 +1,7 @@
-import { TextInput, StyleSheet, View } from 'react-native';
-import { Colors } from '../../theme/colors';
+import { useMemo } from 'react';
+import { TextInput, StyleSheet } from 'react-native';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 interface Props {
     placeholder: string;
@@ -8,20 +10,27 @@ interface Props {
     secureTextEntry?: boolean;
 }
 
-export const CustomInput = ({ ...props }: Props) => (
-    <TextInput
-        {...props}
-        style={styles.input}
-        placeholderTextColor="#666"
-    />
-);
+export const CustomInput = ({ ...props }: Props) => {
+    const { T } = useTheme();
+    const styles = useMemo(() => makeStyles(T), [T]);
 
-const styles = StyleSheet.create({
-    input: {
-        backgroundColor: Colors.background,
-        color: Colors.text,
-        padding: 15,
-        borderRadius: 4,
-        marginBottom: 15,
-    },
-});
+    return (
+        <TextInput
+            {...props}
+            style={styles.input}
+            placeholderTextColor={T.textTertiary}
+        />
+    );
+};
+
+function makeStyles(T: TokenSet) {
+    return StyleSheet.create({
+        input: {
+            backgroundColor: T.bgBase,
+            color: T.textPrimary,
+            padding: 15,
+            borderRadius: 4,
+            marginBottom: 15,
+        },
+    });
+}

@@ -513,8 +513,8 @@ export default function HomeScreen({ session }: Props) {
             <Text style={ss.macrosRatio}>{proteinPct}P · {carbsPct}C · {fatPct}G</Text>
           </View>
           <MacroRow label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} ss={ss} />
-          <MacroRow label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor="#C9A878" ss={ss} />
-          <MacroRow label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} fillColor="#6E5B43" ss={ss} />
+          <MacroRow label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor={T.macroCarbs} ss={ss} />
+          <MacroRow label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} fillColor={T.macroFat} ss={ss} />
         </View>
 
         {/* ── Refeições ──────────────────────────────────────────────── */}
@@ -975,7 +975,7 @@ function makeStyles(tokens: TokenSet) {
     macroBarTrack: {
       flex: 1,
       height: 4,
-      backgroundColor: tokens.surface1,
+      backgroundColor: tokens.trackBg,
       overflow: 'hidden',
     },
     macroBarFill: {

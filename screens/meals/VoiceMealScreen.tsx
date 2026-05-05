@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   ScrollView,
@@ -12,7 +12,8 @@ import { Session } from '@supabase/supabase-js';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -39,6 +40,8 @@ function round1(n: number): number {
 }
 
 export default function VoiceMealScreen({ session, mealType, date, onCancel, onSaved }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
   const [recording, setRecording] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
@@ -302,7 +305,8 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -466,4 +470,5 @@ const styles = StyleSheet.create({
     marginTop: T.sp2,
     fontFamily: T.fontBody,
   },
-});
+  });
+}

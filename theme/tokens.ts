@@ -5,6 +5,7 @@ export type TokenSet = {
   surface1: string;
   surface2: string;
   surface3: string;
+  trackBg: string;
   // Borders
   borderFaint: string;
   borderSoft: string;
@@ -21,6 +22,10 @@ export type TokenSet = {
   accentText: string;
   accentBg: string;
   accentLine: string;
+  onAccent: string;
+  // Macro fills
+  macroCarbs: string;
+  macroFat: string;
   // Semantic
   danger: string;
   success: string;
@@ -81,6 +86,7 @@ export const tokensDark: TokenSet = {
   surface1: '#17151A',
   surface2: '#1E1B20',
   surface3: '#26222B',
+  trackBg:  '#17151A',
 
   borderFaint:  'rgba(245, 240, 232, 0.05)',
   borderSoft:   'rgba(245, 240, 232, 0.09)',
@@ -97,6 +103,10 @@ export const tokensDark: TokenSet = {
   accentText: '#F5B544',
   accentBg:   'rgba(245, 181, 68, 0.10)',
   accentLine: 'rgba(245, 181, 68, 0.25)',
+  onAccent:   '#0E0E10',
+
+  macroCarbs: '#C9A878',
+  macroFat:   '#6E5B43',
 
   danger:  '#E8836F',
   success: '#88C49C',
@@ -110,6 +120,7 @@ export const tokensLight: TokenSet = {
   surface1: '#FBF8F2',
   surface2: '#EFEAE0',
   surface3: '#E5DED2',
+  trackBg:  '#D9CFC0',
 
   borderFaint:  'rgba(31, 27, 22, 0.05)',
   borderSoft:   'rgba(31, 27, 22, 0.08)',
@@ -126,6 +137,10 @@ export const tokensLight: TokenSet = {
   accentText: '#A8761A',
   accentBg:   'rgba(245, 181, 68, 0.12)',
   accentLine: 'rgba(168, 118, 26, 0.30)',
+  onAccent:   '#1F1B16',
+
+  macroCarbs: '#9E7438',
+  macroFat:   '#6E5B43',
 
   danger:  '#D94F35',
   success: '#3A8055',

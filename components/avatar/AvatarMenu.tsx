@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     Modal,
     Pressable,
@@ -9,7 +9,8 @@ import {
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import Avatar from './Avatar';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = {
     src?: string;
@@ -20,6 +21,8 @@ type Props = {
 };
 
 export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProfile }: Props) {
+    const { T } = useTheme();
+    const styles = useMemo(() => makeStyles(T), [T]);
     const [isOpen, setIsOpen] = useState(false);
     const profileItemRef = useRef<any>(null);
 
@@ -115,76 +118,78 @@ export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProf
     );
 }
 
-const styles = StyleSheet.create({
-    anchor: {
-        position: 'relative',
-    },
-    backdrop: {
-        flex: 1,
-        backgroundColor: 'transparent',
-    },
-    dropdownWrap: {
-        position: 'absolute',
-        top: 56,
-        right: 24,
-        left: 24,
-        alignItems: 'flex-end',
-    },
-    menu: {
-        minWidth: 220,
-        maxWidth: 320,
-        borderRadius: T.rLg,
-        backgroundColor: T.surface1,
-        borderWidth: 1,
-        borderColor: T.borderSoft,
-        paddingVertical: T.sp2,
-        shadowColor: T.bgBase,
-        shadowOpacity: 0.35,
-        shadowRadius: 10,
-        shadowOffset: { width: 0, height: 8 },
-        elevation: 8,
-    },
-    sectionHeader: {
-        paddingHorizontal: T.sp4,
-        paddingTop: T.sp2,
-        paddingBottom: T.sp3,
-        gap: 2,
-    },
-    nameText: {
-        fontFamily: T.fontBodyMedium,
-        fontSize: T.textBase,
-        color: T.textPrimary,
-    },
-    emailText: {
-        fontFamily: T.fontBody,
-        fontSize: T.textSm,
-        color: T.textTertiary,
-    },
-    divider: {
-        height: 1,
-        backgroundColor: T.borderFaint,
-        marginVertical: T.sp1,
-    },
-    menuItem: {
-        minHeight: 40,
-        paddingHorizontal: T.sp4,
-        paddingVertical: T.sp2,
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: T.sp2,
-    },
-    menuIcon: {
-        width: 18,
-        textAlign: 'center',
-    },
-    menuItemText: {
-        fontFamily: T.fontBody,
-        fontSize: T.textBase,
-        color: T.textPrimary,
-    },
-    signOutText: {
-        fontFamily: T.fontBody,
-        fontSize: T.textBase,
-        color: T.danger,
-    },
-});
+function makeStyles(T: TokenSet) {
+    return StyleSheet.create({
+        anchor: {
+            position: 'relative',
+        },
+        backdrop: {
+            flex: 1,
+            backgroundColor: 'transparent',
+        },
+        dropdownWrap: {
+            position: 'absolute',
+            top: 56,
+            right: 24,
+            left: 24,
+            alignItems: 'flex-end',
+        },
+        menu: {
+            minWidth: 220,
+            maxWidth: 320,
+            borderRadius: T.rLg,
+            backgroundColor: T.surface1,
+            borderWidth: 1,
+            borderColor: T.borderSoft,
+            paddingVertical: T.sp2,
+            shadowColor: T.bgBase,
+            shadowOpacity: 0.35,
+            shadowRadius: 10,
+            shadowOffset: { width: 0, height: 8 },
+            elevation: 8,
+        },
+        sectionHeader: {
+            paddingHorizontal: T.sp4,
+            paddingTop: T.sp2,
+            paddingBottom: T.sp3,
+            gap: 2,
+        },
+        nameText: {
+            fontFamily: T.fontBodyMedium,
+            fontSize: T.textBase,
+            color: T.textPrimary,
+        },
+        emailText: {
+            fontFamily: T.fontBody,
+            fontSize: T.textSm,
+            color: T.textTertiary,
+        },
+        divider: {
+            height: 1,
+            backgroundColor: T.borderFaint,
+            marginVertical: T.sp1,
+        },
+        menuItem: {
+            minHeight: 40,
+            paddingHorizontal: T.sp4,
+            paddingVertical: T.sp2,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: T.sp2,
+        },
+        menuIcon: {
+            width: 18,
+            textAlign: 'center',
+        },
+        menuItemText: {
+            fontFamily: T.fontBody,
+            fontSize: T.textBase,
+            color: T.textPrimary,
+        },
+        signOutText: {
+            fontFamily: T.fontBody,
+            fontSize: T.textBase,
+            color: T.danger,
+        },
+    });
+}

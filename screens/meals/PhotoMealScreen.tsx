@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     Image,
     ScrollView,
@@ -12,7 +12,8 @@ import { Session } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -39,6 +40,8 @@ function round1(n: number): number {
 }
 
 export default function PhotoMealScreen({ session, mealType, date, onCancel, onSaved }: Props) {
+    const { T } = useTheme();
+    const styles = useMemo(() => makeStyles(T), [T]);
     const [photo, setPhoto] = useState<{ base64: string; mediaType: string; uri: string } | null>(null);
     const [hint, setHint] = useState('');
     const [pickingImage, setPickingImage] = useState(false);
@@ -245,7 +248,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                         value={hint}
                         onChangeText={setHint}
                         placeholder="Ex: prato de almoço com arroz e feijão"
-                        placeholderTextColor="#aaa"
+                        placeholderTextColor={T.textTertiary}
                     />
 
                     {error !== null && <Text style={styles.errorText}>{error}</Text>}
@@ -301,7 +304,8 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
     );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
     screen: {
         flex: 1,
         backgroundColor: T.bgBase,
@@ -434,4 +438,5 @@ const styles = StyleSheet.create({
         marginTop: T.sp2,
         fontFamily: T.fontBody,
     },
-});
+  });
+}

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -11,7 +11,8 @@ import {
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { PrefillData } from '../scanner/BarcodeScanScreen';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -59,6 +60,8 @@ export default function AddFoodScreen({
   prefill,
   infoMessage,
 }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const isEditing = editingFood !== undefined;
 
   const [mode, setMode] = useState<Mode>(() => {
@@ -284,7 +287,7 @@ export default function AddFoodScreen({
           value={name}
           onChangeText={setName}
           placeholder="Ex: Arroz branco"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           returnKeyType="next"
         />
 
@@ -294,7 +297,7 @@ export default function AddFoodScreen({
           value={quantity}
           onChangeText={setQuantity}
           placeholder="Ex: 150"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
@@ -306,7 +309,7 @@ export default function AddFoodScreen({
           value={cal}
           onChangeText={setCal}
           placeholder="Ex: 130"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
@@ -318,7 +321,7 @@ export default function AddFoodScreen({
           value={protein}
           onChangeText={setProtein}
           placeholder="Ex: 2,7"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
@@ -330,7 +333,7 @@ export default function AddFoodScreen({
           value={carbs}
           onChangeText={setCarbs}
           placeholder="Ex: 28"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
@@ -342,7 +345,7 @@ export default function AddFoodScreen({
           value={fat}
           onChangeText={setFat}
           placeholder="Ex: 0,3"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
@@ -376,7 +379,8 @@ export default function AddFoodScreen({
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: T.bgBase,
@@ -523,4 +527,5 @@ const styles = StyleSheet.create({
     color: T.textSecondary,
     fontFamily: T.fontBody,
   },
-});
+  });
+}

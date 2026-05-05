@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -9,7 +9,8 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 // Tipos auxiliares para deixar as opções de chip fortemente tipadas
 type Gender = 'male' | 'female';
@@ -38,6 +39,8 @@ const GOAL_ADJUSTMENT: Record<Goal, number> = {
 };
 
 export default function Onboarding({ onComplete }: Props) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
   const [heightCm, setHeightCm] = useState('');
@@ -245,6 +248,8 @@ type ChipProps = {
 };
 
 function Chip({ label, selected, onPress }: ChipProps) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   return (
     <TouchableOpacity
       style={[styles.chip, selected && styles.chipSelected]}
@@ -257,93 +262,95 @@ function Chip({ label, selected, onPress }: ChipProps) {
 }
 
 // ── Estilos ───────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  container: {
-    padding: T.sp5,
-    paddingTop: 60,
-    backgroundColor: T.bgBase,
-  },
-  eyebrow: {
-    fontFamily: T.fontMono,
-    fontSize: T.textXs,
-    letterSpacing: 2,
-    color: T.textTertiary,
-    marginBottom: T.sp2,
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontSize: T.textXl,
-    color: T.textPrimary,
-    marginBottom: T.sp1,
-    fontFamily: T.fontDisplay,
-  },
-  subtitle: {
-    fontSize: T.textSm,
-    color: T.textSecondary,
-    marginBottom: T.sp6,
-    fontFamily: T.fontBody,
-  },
-  label: {
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    marginBottom: T.sp2,
-    marginTop: T.sp4,
-    fontFamily: T.fontMono,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp3,
-    fontSize: T.textBase,
-    color: T.textPrimary,
-    backgroundColor: T.surface1,
-    fontFamily: T.fontBody,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: T.sp2,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: T.borderStrong,
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp2,
-    backgroundColor: 'transparent',
-  },
-  chipSelected: {
-    backgroundColor: T.accentBg,
-    borderColor: T.accent,
-  },
-  chipText: {
-    fontSize: T.textSm,
-    color: T.textSecondary,
-    fontFamily: T.fontBody,
-  },
-  chipTextSelected: {
-    color: T.accent,
-    fontFamily: T.fontBodySemiBold,
-  },
-  saveButton: {
-    backgroundColor: T.accent,
-    borderWidth: 1,
-    borderColor: T.accent,
-    paddingVertical: 14,
-    alignItems: 'center',
-    marginTop: T.sp7,
-    marginBottom: T.sp5,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    color: T.bgBase,
-    fontSize: T.textXs,
-    fontFamily: T.fontMonoMedium,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-});
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
+    container: {
+      padding: T.sp5,
+      paddingTop: 60,
+      backgroundColor: T.bgBase,
+    },
+    eyebrow: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      letterSpacing: 2,
+      color: T.textTertiary,
+      marginBottom: T.sp2,
+      textTransform: 'uppercase',
+    },
+    title: {
+      fontSize: T.textXl,
+      color: T.textPrimary,
+      marginBottom: T.sp1,
+      fontFamily: T.fontDisplay,
+    },
+    subtitle: {
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      marginBottom: T.sp6,
+      fontFamily: T.fontBody,
+    },
+    label: {
+      fontSize: T.textXs,
+      color: T.textTertiary,
+      marginBottom: T.sp2,
+      marginTop: T.sp4,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      backgroundColor: T.surface1,
+      fontFamily: T.fontBody,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: T.sp2,
+    },
+    chip: {
+      borderWidth: 1,
+      borderColor: T.borderStrong,
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp2,
+      backgroundColor: 'transparent',
+    },
+    chipSelected: {
+      backgroundColor: T.accentBg,
+      borderColor: T.accent,
+    },
+    chipText: {
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      fontFamily: T.fontBody,
+    },
+    chipTextSelected: {
+      color: T.accent,
+      fontFamily: T.fontBodySemiBold,
+    },
+    saveButton: {
+      backgroundColor: T.accent,
+      borderWidth: 1,
+      borderColor: T.accent,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: T.sp7,
+      marginBottom: T.sp5,
+    },
+    saveButtonDisabled: {
+      opacity: 0.5,
+    },
+    saveButtonText: {
+      color: T.onAccent,
+      fontSize: T.textXs,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+  });
+}

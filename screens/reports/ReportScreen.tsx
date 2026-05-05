@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     ScrollView,
@@ -11,7 +11,8 @@ import { Session } from '@supabase/supabase-js';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { supabase } from '../../lib/supabase';
-import { T } from '../../theme/tokens';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -150,6 +151,8 @@ function svgBarChart(
 }
 
 export default function ReportScreen({ session, onClose }: Props) {
+    const { T } = useTheme();
+    const ss = useMemo(() => makeStyles(T), [T]);
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
@@ -464,70 +467,72 @@ export default function ReportScreen({ session, onClose }: Props) {
     );
 }
 
-const ss = StyleSheet.create({
-    screen: {
-        flex: 1,
-        backgroundColor: T.bgBase,
-    },
-    header: {
-        paddingTop: 56,
-        paddingHorizontal: T.sp5,
-        paddingBottom: T.sp4,
-        borderBottomWidth: 1,
-        borderBottomColor: T.borderSoft,
-        gap: T.sp2,
-    },
-    back: {
-        fontFamily: T.fontMono,
-        fontSize: T.textSm,
-        color: T.textSecondary,
-        letterSpacing: 0.8,
-    },
-    title: {
-        fontFamily: T.fontDisplay,
-        fontSize: T.textXl,
-        color: T.textPrimary,
-    },
-    content: {
-        padding: T.sp5,
-        gap: T.sp3,
-    },
-    subtitle: {
-        fontFamily: T.fontBody,
-        fontSize: T.textSm,
-        color: T.textTertiary,
-        marginBottom: T.sp2,
-    },
-    btn: {
-        borderWidth: 1,
-        borderColor: T.borderSoft,
-        backgroundColor: T.surface1,
-        paddingVertical: T.sp4,
-        paddingHorizontal: T.sp4,
-    },
-    btnDisabled: {
-        opacity: 0.5,
-    },
-    btnText: {
-        fontFamily: T.fontMonoMedium,
-        fontSize: T.textSm,
-        color: T.textPrimary,
-    },
-    loadingRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: T.sp2,
-        marginTop: T.sp2,
-    },
-    loadingText: {
-        fontFamily: T.fontBody,
-        fontSize: T.textSm,
-        color: T.textTertiary,
-    },
-    error: {
-        marginTop: T.sp2,
-        color: '#cc2b2b',
-        fontFamily: T.fontBody,
-        fontSize: T.textSm,
-    },
-});
+function makeStyles(T: TokenSet) {
+    return StyleSheet.create({
+        screen: {
+            flex: 1,
+            backgroundColor: T.bgBase,
+        },
+        header: {
+            paddingTop: 56,
+            paddingHorizontal: T.sp5,
+            paddingBottom: T.sp4,
+            borderBottomWidth: 1,
+            borderBottomColor: T.borderSoft,
+            gap: T.sp2,
+        },
+        back: {
+            fontFamily: T.fontMono,
+            fontSize: T.textSm,
+            color: T.textSecondary,
+            letterSpacing: 0.8,
+        },
+        title: {
+            fontFamily: T.fontDisplay,
+            fontSize: T.textXl,
+            color: T.textPrimary,
+        },
+        content: {
+            padding: T.sp5,
+            gap: T.sp3,
+        },
+        subtitle: {
+            fontFamily: T.fontBody,
+            fontSize: T.textSm,
+            color: T.textTertiary,
+            marginBottom: T.sp2,
+        },
+        btn: {
+            borderWidth: 1,
+            borderColor: T.borderSoft,
+            backgroundColor: T.surface1,
+            paddingVertical: T.sp4,
+            paddingHorizontal: T.sp4,
+        },
+        btnDisabled: {
+            opacity: 0.5,
+        },
+        btnText: {
+            fontFamily: T.fontMonoMedium,
+            fontSize: T.textSm,
+            color: T.textPrimary,
+        },
+        loadingRow: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: T.sp2,
+            marginTop: T.sp2,
+        },
+        loadingText: {
+            fontFamily: T.fontBody,
+            fontSize: T.textSm,
+            color: T.textTertiary,
+        },
+        error: {
+            marginTop: T.sp2,
+            color: T.danger,
+            fontFamily: T.fontBody,
+            fontSize: T.textSm,
+        },
+    });
+}
