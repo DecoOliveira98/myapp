@@ -8,6 +8,7 @@ import {
   View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
@@ -25,6 +26,7 @@ type RecipeRow = {
 
 export default function RecipesListScreen({ session, onClose }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const ss = useMemo(() => makeStyles(T), [T]);
   const [recipes, setRecipes] = useState<RecipeRow[]>([]);
   const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
@@ -96,9 +98,9 @@ export default function RecipesListScreen({ session, onClose }: Props) {
       {/* ── Header ── */}
       <View style={ss.header}>
         <TouchableOpacity onPress={onClose} hitSlop={12} style={ss.backBtn}>
-          <Text style={ss.backText}>← Voltar</Text>
+          <Text style={ss.backText}>{t('recipes.common.back')}</Text>
         </TouchableOpacity>
-        <Text style={ss.headerTitle}>Receitas</Text>
+        <Text style={ss.headerTitle}>{t('recipes.list.title')}</Text>
         <View style={ss.headerRight} />
       </View>
 
@@ -111,9 +113,9 @@ export default function RecipesListScreen({ session, onClose }: Props) {
 
       {state === 'error' && (
         <View style={ss.centered}>
-          <Text style={ss.errorText}>Erro ao carregar receitas.</Text>
+          <Text style={ss.errorText}>{t('recipes.common.error')}</Text>
           <TouchableOpacity onPress={loadRecipes} style={ss.retryBtn}>
-            <Text style={ss.retryText}>Tentar novamente</Text>
+            <Text style={ss.retryText}>{t('recipes.common.retry')}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -126,8 +128,8 @@ export default function RecipesListScreen({ session, onClose }: Props) {
           contentContainerStyle={ss.listContent}
           ListEmptyComponent={
             <View style={ss.emptyState}>
-              <Text style={ss.emptyText}>Nenhuma receita ainda.</Text>
-              <Text style={ss.emptyText}>Crie a primeira.</Text>
+              <Text style={ss.emptyText}>{t('recipes.list.empty')}</Text>
+              <Text style={ss.emptyText}>{t('recipes.list.emptyCreate')}</Text>
             </View>
           }
           renderItem={({ item }) => (
@@ -147,7 +149,7 @@ export default function RecipesListScreen({ session, onClose }: Props) {
                 </TouchableOpacity>
               </View>
               <Text style={ss.cardMeta}>
-                {item.item_count} {item.item_count === 1 ? 'item' : 'itens'} · {Math.round(item.total_kcal)} kcal
+                {t('recipes.common.itemCount', { count: item.item_count })} · {Math.round(item.total_kcal)} kcal
               </Text>
             </TouchableOpacity>
           )}
@@ -160,7 +162,7 @@ export default function RecipesListScreen({ session, onClose }: Props) {
         onPress={() => setEditing({ recipeId: null })}
         activeOpacity={0.85}
       >
-        <Text style={ss.newBtnText}>+ Nova receita</Text>
+        <Text style={ss.newBtnText}>{t('recipes.list.newRecipe')}</Text>
       </TouchableOpacity>
 
     </View>

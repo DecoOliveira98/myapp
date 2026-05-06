@@ -12,6 +12,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -42,6 +43,7 @@ function formatDurationShort(hours: number): string {
 
 export default function FastingScreen({ session, onClose }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const ss = useMemo(() => makeStyles(T), [T]);
   const [active, setActive] = useState<ActiveSession | null>(null);
   const [history, setHistory] = useState<HistorySession[]>([]);
@@ -102,7 +104,7 @@ export default function FastingScreen({ session, onClose }: Props) {
     try {
       const goal = goalInput.trim() ? Number(goalInput.replace(',', '.')) : null;
       if (goalInput.trim() && (isNaN(goal!) || goal! <= 0)) {
-        setError('Meta inválida'); return;
+        setError(t('fasting.errors.invalidGoal')); return;
       }
       const { data, error: insErr } = await supabase
         .from('fasting_sessions')
@@ -113,7 +115,7 @@ export default function FastingScreen({ session, onClose }: Props) {
       setActive({ id: data.id, started_at: data.started_at, goal_hours: data.goal_hours });
       setGoalInput('');
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao iniciar jejum');
+      setError(e?.message ?? t('fasting.errors.start'));
     } finally { setBusy(false); }
   }
 
@@ -129,15 +131,15 @@ export default function FastingScreen({ session, onClose }: Props) {
       setActive(null);
       await loadAll();
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao encerrar jejum');
+      setError(e?.message ?? t('fasting.errors.end'));
     } finally { setBusy(false); }
   }
 
   async function deleteSession(id: string) {
-    Alert.alert('Apagar sessão', 'Tem certeza?', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('fasting.deleteTitle'), t('fasting.deleteMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Apagar',
+        text: t('fasting.delete'),
         style: 'destructive',
         onPress: async () => {
           await supabase.from('fasting_sessions').delete().eq('id', id);
@@ -155,7 +157,7 @@ export default function FastingScreen({ session, onClose }: Props) {
   if (screenState === 'loading') {
     return (
       <View style={ss.centered}>
-        <Text style={ss.secondaryText}>Carregando...</Text>
+        <Text style={ss.secondaryText}>{t('common.loading')}...</Text>
       </View>
     );
   }
@@ -163,9 +165,9 @@ export default function FastingScreen({ session, onClose }: Props) {
   if (screenState === 'error') {
     return (
       <View style={ss.centered}>
-        <Text style={ss.secondaryText}>Erro ao carregar dados</Text>
+        <Text style={ss.secondaryText}>{t('fasting.errors.loadData')}</Text>
         <TouchableOpacity onPress={loadAll} style={{ marginTop: 12 }}>
-          <Text style={[ss.secondaryText, { color: T.accent }]}>Tentar novamente</Text>
+          <Text style={[ss.secondaryText, { color: T.accent }]}>{t('fasting.tryAgain')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -188,9 +190,9 @@ export default function FastingScreen({ session, onClose }: Props) {
       {/* Header */}
       <View style={ss.header}>
         <TouchableOpacity onPress={onClose} hitSlop={12}>
-          <Text style={ss.backText}>← Voltar</Text>
+          <Text style={ss.backText}>{`← ${t('common.back')}`}</Text>
         </TouchableOpacity>
-        <Text style={ss.headerTitle}>Jejum</Text>
+        <Text style={ss.headerTitle}>{t('fasting.title')}</Text>
       </View>
 
       <ScrollView
@@ -201,13 +203,13 @@ export default function FastingScreen({ session, onClose }: Props) {
         {/* Active session */}
         {active !== null ? (
           <View style={ss.sessionCard}>
-            <Text style={ss.sessionLabel}>Jejuando há</Text>
+            <Text style={ss.sessionLabel}>{t('fasting.fastingFor')}</Text>
             <Text style={ss.timerText}>{formatDuration(elapsed)}</Text>
-            <Text style={ss.sessionSub}>Iniciado às {startedAtTime}</Text>
+            <Text style={ss.sessionSub}>{t('fasting.startedAt', { time: startedAtTime })}</Text>
 
             {active.goal_hours != null && (
               <>
-                <Text style={ss.goalLine}>Meta: {active.goal_hours}h</Text>
+                <Text style={ss.goalLine}>{t('fasting.goalHours', { value: active.goal_hours })}</Text>
                 <View style={ss.progressTrack}>
                   <View
                     style={[ss.progressFill, { width: `${Math.round(progressPct * 100)}%` as any }]}
@@ -222,12 +224,12 @@ export default function FastingScreen({ session, onClose }: Props) {
               disabled={busy}
               activeOpacity={0.8}
             >
-              <Text style={ss.actionBtnText}>{busy ? 'Encerrando...' : 'Encerrar jejum'}</Text>
+              <Text style={ss.actionBtnText}>{busy ? t('fasting.ending') : t('fasting.end')}</Text>
             </TouchableOpacity>
           </View>
         ) : (
           <View style={ss.sessionCard}>
-            <Text style={ss.idleText}>Nenhum jejum em andamento</Text>
+            <Text style={ss.idleText}>{t('fasting.noneActive')}</Text>
 
             <View style={ss.inputRow}>
               <TextInput
@@ -239,9 +241,9 @@ export default function FastingScreen({ session, onClose }: Props) {
                 keyboardType="decimal-pad"
                 maxLength={5}
               />
-              <Text style={ss.inputRowLabel}>Meta (h)</Text>
+              <Text style={ss.inputRowLabel}>{t('fasting.goalInput')}</Text>
             </View>
-            <Text style={ss.inputHint}>Opcional. Ex: 16 para 16:8.</Text>
+            <Text style={ss.inputHint}>{t('fasting.inputHint')}</Text>
 
             <TouchableOpacity
               style={[ss.actionBtn, ss.startBtn, busy && ss.btnDisabled]}
@@ -249,7 +251,7 @@ export default function FastingScreen({ session, onClose }: Props) {
               disabled={busy}
               activeOpacity={0.8}
             >
-              <Text style={ss.actionBtnText}>{busy ? 'Iniciando...' : 'Iniciar jejum'}</Text>
+              <Text style={ss.actionBtnText}>{busy ? t('fasting.starting') : t('fasting.start')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -260,17 +262,16 @@ export default function FastingScreen({ session, onClose }: Props) {
 
         {/* History */}
         <View style={ss.historyHeader}>
-          <Text style={ss.historyTitle}>Histórico</Text>
+          <Text style={ss.historyTitle}>{t('fasting.history')}</Text>
           {avgHours !== null && (
             <Text style={ss.historyMeta}>
-              Média: {formatDurationShort(avgHours)} em {history.length}{' '}
-              {history.length === 1 ? 'sessão' : 'sessões'}
+              {t('fasting.avgSessions', { duration: formatDurationShort(avgHours), count: history.length })}
             </Text>
           )}
         </View>
 
         {history.length === 0 ? (
-          <Text style={ss.emptyText}>Nenhuma sessão concluída ainda.</Text>
+          <Text style={ss.emptyText}>{t('fasting.empty')}</Text>
         ) : (
           history.map(s => (
             <TouchableOpacity
@@ -295,9 +296,10 @@ function GoalBadge({ durationH, goalH }: { durationH: number; goalH: number }) {
   const pct = durationH / goalH;
   let color: string;
   let label: string;
-  if (pct >= 1) { color = T.success; label = '✓ meta'; }
-  else if (pct >= 0.8) { color = T.accent; label = 'quase'; }
-  else { color = T.danger; label = 'não bateu'; }
+  const { t } = useTranslation();
+  if (pct >= 1) { color = T.success; label = t('fasting.goalBadge.hit'); }
+  else if (pct >= 0.8) { color = T.accent; label = t('fasting.goalBadge.almost'); }
+  else { color = T.danger; label = t('fasting.goalBadge.missed'); }
   return (
     <View style={[ss.goalBadge, { borderColor: color }]}>
       <Text style={[ss.goalBadgeText, { color }]}>{label}</Text>

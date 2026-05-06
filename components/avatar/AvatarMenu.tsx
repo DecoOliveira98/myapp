@@ -11,6 +11,7 @@ import { Feather } from '@expo/vector-icons';
 import Avatar from './Avatar';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
     src?: string;
@@ -22,6 +23,7 @@ type Props = {
 
 export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProfile }: Props) {
     const { T } = useTheme();
+    const { t } = useTranslation();
     const styles = useMemo(() => makeStyles(T), [T]);
     const [isOpen, setIsOpen] = useState(false);
     const profileItemRef = useRef<any>(null);
@@ -62,7 +64,7 @@ export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProf
                 onPress={toggleMenu}
                 activeOpacity={0.75}
                 accessibilityRole="button"
-                accessibilityLabel="Abrir menu do perfil"
+                accessibilityLabel={t('avatarMenu.openProfileMenu')}
                 accessibilityState={{ expanded: isOpen }}
             >
                 <Avatar src={src} name={name} size="md" />
@@ -82,7 +84,7 @@ export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProf
                                     {name}
                                 </Text>
                                 <Text style={styles.emailText} numberOfLines={1}>
-                                    {email ?? 'Sem email'}
+                                    {email ?? t('common.noEmail')}
                                 </Text>
                             </View>
 
@@ -96,7 +98,7 @@ export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProf
                                 accessibilityRole="menuitem"
                             >
                                 <Feather name="user" size={16} color={T.textSecondary} style={styles.menuIcon} />
-                                <Text style={styles.menuItemText}>Perfil</Text>
+                                <Text style={styles.menuItemText}>{t('common.profile')}</Text>
                             </TouchableOpacity>
 
                             <View style={styles.divider} />
@@ -108,7 +110,7 @@ export default function AvatarMenu({ src, name, email, onSignOut, onNavigateProf
                                 accessibilityRole="menuitem"
                             >
                                 <Feather name="log-out" size={16} color={T.danger} style={styles.menuIcon} />
-                                <Text style={styles.signOutText}>Sair</Text>
+                                <Text style={styles.signOutText}>{t('common.signOut')}</Text>
                             </TouchableOpacity>
                         </Pressable>
                     </View>

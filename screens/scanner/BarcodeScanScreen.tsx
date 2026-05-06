@@ -10,6 +10,7 @@ import {
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 export type PrefillData = {
   name: string;
@@ -27,6 +28,7 @@ type Props = {
 
 export default function BarcodeScanScreen({ onCancel, onProductFound, onProductNotFound }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [permission, requestPermission] = useCameraPermissions();
   const [status, setStatus] = useState<'scanning' | 'fetching'>('scanning');
@@ -50,7 +52,7 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
       }
 
       onProductFound({
-        name: product.product_name_pt || product.product_name || 'Produto sem nome',
+        name: product.product_name_pt || product.product_name || t('scanner.unnamedProduct'),
         cal_per_100g: nutriments['energy-kcal_100g'],
         protein_per_100g: nutriments.proteins_100g ?? 0,
         carbs_per_100g: nutriments.carbohydrates_100g ?? 0,
@@ -68,12 +70,12 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
   if (!permission.granted && permission.canAskAgain) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.permissionText}>Permitir acesso à câmera</Text>
+        <Text style={styles.permissionText}>{t('scanner.allowCameraAccess')}</Text>
         <TouchableOpacity style={styles.primaryButton} onPress={requestPermission}>
-          <Text style={styles.primaryButtonText}>Permitir</Text>
+          <Text style={styles.primaryButtonText}>{t('scanner.allow')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.secondaryButton} onPress={onCancel}>
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
+          <Text style={styles.secondaryButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -82,9 +84,9 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
   if (!permission.granted && !permission.canAskAgain) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.permissionText}>Permissão negada. Habilite em Configurações.</Text>
+        <Text style={styles.permissionText}>{t('scanner.permissionDenied')}</Text>
         <TouchableOpacity style={styles.primaryButton} onPress={onCancel}>
-          <Text style={styles.primaryButtonText}>Voltar</Text>
+          <Text style={styles.primaryButtonText}>{t('common.back')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -106,19 +108,19 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
             onPress={onCancel}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.cancelText}>Cancelar</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Escanear código</Text>
+          <Text style={styles.headerTitle}>{t('scanner.scanCode')}</Text>
           <View style={{ width: 60 }} />
         </View>
 
         {/* Centro */}
         <View style={styles.infoBox}>
           {status === 'scanning' ? (
-            <Text style={styles.infoText}>Aponte para o código de barras</Text>
+            <Text style={styles.infoText}>{t('scanner.pointToBarcode')}</Text>
           ) : (
             <>
-              <Text style={styles.infoText}>Buscando...</Text>
+              <Text style={styles.infoText}>{t('scanner.searching')}</Text>
               <ActivityIndicator style={{ marginTop: 8 }} color={T.accent} />
             </>
           )}

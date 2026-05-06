@@ -15,11 +15,13 @@ import Svg, { Circle, Path } from 'react-native-svg';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 // AuthScreen não recebe props: o App.tsx escuta onAuthStateChange e
 // troca de tela automaticamente quando o login/cadastro tem sucesso.
 export default function AuthScreen() {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,28 +30,28 @@ export default function AuthScreen() {
 
   async function handleSignIn() {
     if (!email || !password) {
-      Alert.alert('Atenção', 'Preencha e-mail e senha.');
+      Alert.alert(t('common.attention'), t('auth.fillEmailAndPassword'));
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) Alert.alert('Erro ao entrar', error.message);
+    if (error) Alert.alert(t('auth.signInErrorTitle'), error.message);
     setLoading(false);
     // Em caso de sucesso o listener em App.tsx detecta a nova sessão e navega
   }
 
   async function handleSignUp() {
     if (!email || !password) {
-      Alert.alert('Atenção', 'Preencha e-mail e senha.');
+      Alert.alert(t('common.attention'), t('auth.fillEmailAndPassword'));
       return;
     }
     setLoading(true);
     const { error } = await supabase.auth.signUp({ email, password });
     if (error) {
-      Alert.alert('Erro ao criar conta', error.message);
+      Alert.alert(t('auth.signUpErrorTitle'), error.message);
     } else {
       // Supabase envia e-mail de confirmação por padrão; avisamos o usuário
-      Alert.alert('Conta criada!', 'Verifique seu e-mail para confirmar o cadastro.');
+      Alert.alert(t('auth.accountCreatedTitle'), t('auth.accountCreatedMessage'));
     }
     setLoading(false);
   }
@@ -93,7 +95,7 @@ export default function AuthScreen() {
       }
     } catch (error) {
       console.error('Google sign-in error:', error);
-      Alert.alert('Erro ao entrar', 'Não foi possível entrar com o Google. Tente novamente.');
+      Alert.alert(t('auth.signInErrorTitle'), t('auth.googleSignInError'));
     } finally {
       setLoading(false);
     }
@@ -105,9 +107,9 @@ export default function AuthScreen() {
       style={styles.container}
     >
       <View style={styles.inner}>
-        <Text style={styles.eyebrow}>BEM-VINDO</Text>
+        <Text style={styles.eyebrow}>{t('auth.welcome')}</Text>
         <Text style={styles.title}>
-          Faça login para continuar no{' '}
+          {t('auth.loginTitlePrefix')}{' '}
           <Text style={styles.titleAccent}>Calorie Tracker</Text>
         </Text>
 
@@ -124,19 +126,19 @@ export default function AuthScreen() {
               <Path d="M9 3.57955C10.3195 3.57955 11.5041 4.03364 12.435 4.92545L15.0218 2.33864C13.4632 0.871364 11.4259 0 9 0C5.47773 0 2.43545 2.01727 0.954529 4.95818L3.96409 7.29C4.67182 5.16273 6.65591 3.57955 9 3.57955Z" fill="#EA4335" />
               <Circle cx="9" cy="9" r="8.5" stroke={T.borderStrong} />
             </Svg>
-            <Text style={styles.googleButtonText}>Continuar com Google</Text>
+            <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
           </View>
         </TouchableOpacity>
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>ou</Text>
+          <Text style={styles.dividerText}>{t('auth.or')}</Text>
           <View style={styles.dividerLine} />
         </View>
 
         <TextInput
           style={styles.input}
-          placeholder="E-mail"
+          placeholder={t('common.email')}
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -146,7 +148,7 @@ export default function AuthScreen() {
 
         <TextInput
           style={styles.input}
-          placeholder="Senha"
+          placeholder={t('common.password')}
           value={password}
           onChangeText={setPassword}
           secureTextEntry
@@ -158,7 +160,7 @@ export default function AuthScreen() {
           onPress={handleSignIn}
           disabled={loading}
         >
-          <Text style={styles.buttonText}>{loading ? 'Entrando...' : 'Entrar'}</Text>
+          <Text style={styles.buttonText}>{loading ? t('auth.signingIn') : t('auth.signIn')}</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -167,7 +169,7 @@ export default function AuthScreen() {
           disabled={loading}
         >
           <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
-            {loading ? 'Aguarde...' : 'Criar conta'}
+            {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
           </Text>
         </TouchableOpacity>
       </View>

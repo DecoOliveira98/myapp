@@ -11,6 +11,7 @@ import {
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 // Tipos auxiliares para deixar as opções de chip fortemente tipadas
 type Gender = 'male' | 'female';
@@ -40,6 +41,7 @@ const GOAL_ADJUSTMENT: Record<Goal, number> = {
 
 export default function Onboarding({ onComplete }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
@@ -80,19 +82,19 @@ export default function Onboarding({ onComplete }: Props) {
   async function handleSave() {
     // Validação básica antes de qualquer chamada de rede
     if (!age || !heightCm || !weightKg) {
-      Alert.alert('Campos obrigatórios', 'Preencha idade, altura e peso.');
+      Alert.alert(t('onboarding.validation.requiredFieldsTitle'), t('onboarding.validation.requiredFieldsMessage'));
       return;
     }
     if (!gender) {
-      Alert.alert('Selecione o sexo', 'Escolha masculino ou feminino.');
+      Alert.alert(t('onboarding.validation.selectGenderTitle'), t('onboarding.validation.selectGenderMessage'));
       return;
     }
     if (!activity) {
-      Alert.alert('Selecione a atividade', 'Escolha seu nível de atividade física.');
+      Alert.alert(t('onboarding.validation.selectActivityTitle'), t('onboarding.validation.selectActivityMessage'));
       return;
     }
     if (!goal) {
-      Alert.alert('Selecione a meta', 'Escolha perder, manter ou ganhar peso.');
+      Alert.alert(t('onboarding.validation.selectGoalTitle'), t('onboarding.validation.selectGoalMessage'));
       return;
     }
 
@@ -101,7 +103,7 @@ export default function Onboarding({ onComplete }: Props) {
     const cm = parseFloat(heightCm);
 
     if (isNaN(ageNum) || isNaN(kg) || isNaN(cm)) {
-      Alert.alert('Valores inválidos', 'Certifique-se de usar apenas números.');
+      Alert.alert(t('onboarding.validation.invalidValuesTitle'), t('onboarding.validation.invalidValuesMessage'));
       return;
     }
 
@@ -117,7 +119,7 @@ export default function Onboarding({ onComplete }: Props) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      Alert.alert('Erro', 'Não foi possível identificar o usuário. Faça login novamente.');
+      Alert.alert(t('common.error'), t('onboarding.validation.userFetchError'));
       setSaving(false);
       return;
     }
@@ -142,7 +144,7 @@ export default function Onboarding({ onComplete }: Props) {
     });
 
     if (upsertError) {
-      Alert.alert('Erro ao salvar', upsertError.message);
+      Alert.alert(t('onboarding.validation.saveErrorTitle'), upsertError.message);
       setSaving(false);
       return;
     }
@@ -156,15 +158,15 @@ export default function Onboarding({ onComplete }: Props) {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.eyebrow}>ONBOARDING</Text>
-      <Text style={styles.title}>Vamos te conhecer!</Text>
-      <Text style={styles.subtitle}>Essas informações calculam suas metas diárias.</Text>
+      <Text style={styles.eyebrow}>{t('onboarding.titleEyebrow')}</Text>
+      <Text style={styles.title}>{t('onboarding.title')}</Text>
+      <Text style={styles.subtitle}>{t('onboarding.subtitle')}</Text>
 
       {/* ── Idade ─────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Idade</Text>
+      <Text style={styles.label}>{t('onboarding.age')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: 25"
+        placeholder={t('onboarding.placeholders.age')}
         placeholderTextColor={T.textTertiary}
         value={age}
         onChangeText={setAge}
@@ -172,25 +174,25 @@ export default function Onboarding({ onComplete }: Props) {
       />
 
       {/* ── Sexo ──────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Sexo</Text>
+      <Text style={styles.label}>{t('onboarding.gender')}</Text>
       <View style={styles.chipRow}>
         <Chip
-          label="Masculino"
+          label={t('onboarding.male')}
           selected={gender === 'male'}
           onPress={() => setGender('male')}
         />
         <Chip
-          label="Feminino"
+          label={t('onboarding.female')}
           selected={gender === 'female'}
           onPress={() => setGender('female')}
         />
       </View>
 
       {/* ── Altura ────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Altura (cm)</Text>
+      <Text style={styles.label}>{t('onboarding.height')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: 170"
+        placeholder={t('onboarding.placeholders.height')}
         placeholderTextColor={T.textTertiary}
         value={heightCm}
         onChangeText={setHeightCm}
@@ -198,10 +200,10 @@ export default function Onboarding({ onComplete }: Props) {
       />
 
       {/* ── Peso ──────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Peso (kg)</Text>
+      <Text style={styles.label}>{t('onboarding.weight')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: 70"
+        placeholder={t('onboarding.placeholders.weight')}
         placeholderTextColor={T.textTertiary}
         value={weightKg}
         onChangeText={setWeightKg}
@@ -209,21 +211,21 @@ export default function Onboarding({ onComplete }: Props) {
       />
 
       {/* ── Nível de atividade ────────────────────────────────────── */}
-      <Text style={styles.label}>Nível de atividade</Text>
+      <Text style={styles.label}>{t('onboarding.activityLevel')}</Text>
       <View style={styles.chipRow}>
-        <Chip label="Sedentário" selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} />
-        <Chip label="Leve" selected={activity === 'light'} onPress={() => setActivity('light')} />
-        <Chip label="Moderado" selected={activity === 'moderate'} onPress={() => setActivity('moderate')} />
-        <Chip label="Ativo" selected={activity === 'active'} onPress={() => setActivity('active')} />
-        <Chip label="Muito ativo" selected={activity === 'very_active'} onPress={() => setActivity('very_active')} />
+        <Chip label={t('onboarding.sedentary')} selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} />
+        <Chip label={t('onboarding.light')} selected={activity === 'light'} onPress={() => setActivity('light')} />
+        <Chip label={t('onboarding.moderate')} selected={activity === 'moderate'} onPress={() => setActivity('moderate')} />
+        <Chip label={t('onboarding.active')} selected={activity === 'active'} onPress={() => setActivity('active')} />
+        <Chip label={t('onboarding.veryActive')} selected={activity === 'very_active'} onPress={() => setActivity('very_active')} />
       </View>
 
       {/* ── Meta ──────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Meta</Text>
+      <Text style={styles.label}>{t('onboarding.goal')}</Text>
       <View style={styles.chipRow}>
-        <Chip label="Perder peso" selected={goal === 'lose'} onPress={() => setGoal('lose')} />
-        <Chip label="Manter" selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
-        <Chip label="Ganhar peso" selected={goal === 'gain'} onPress={() => setGoal('gain')} />
+        <Chip label={t('onboarding.loseWeight')} selected={goal === 'lose'} onPress={() => setGoal('lose')} />
+        <Chip label={t('onboarding.maintain')} selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
+        <Chip label={t('onboarding.gainWeight')} selected={goal === 'gain'} onPress={() => setGoal('gain')} />
       </View>
 
       <TouchableOpacity
@@ -232,7 +234,7 @@ export default function Onboarding({ onComplete }: Props) {
         disabled={saving}
       >
         <Text style={styles.saveButtonText}>
-          {saving ? 'Salvando...' : 'Salvar e continuar'}
+          {saving ? t('onboarding.saving') : t('onboarding.saveAndContinue')}
         </Text>
       </TouchableOpacity>
     </ScrollView>

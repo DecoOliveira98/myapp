@@ -10,6 +10,7 @@ import {
 import { Session } from '@supabase/supabase-js';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
@@ -52,9 +53,9 @@ function addDaysLocal(date: Date, days: number): Date {
 function escapeHtml(input: string): string {
     return input
         .replaceAll('&', '&amp;')
-        .replaceAll('<', '<')
-        .replaceAll('>', '>')
-        .replaceAll('"', '"')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
         .replaceAll("'", '&#39;');
 }
 
@@ -152,9 +153,12 @@ function svgBarChart(
 
 export default function ReportScreen({ session, onClose }: Props) {
     const { T } = useTheme();
+    const { t, i18n } = useTranslation();
     const ss = useMemo(() => makeStyles(T), [T]);
     const [generating, setGenerating] = useState(false);
     const [error, setError] = useState<string | null>(null);
+
+    const locale = i18n.language?.startsWith('en') ? 'en-US' : 'pt-BR';
 
     async function generateReport(period: Period) {
         setGenerating(true);
@@ -260,20 +264,19 @@ export default function ReportScreen({ session, onClose }: Props) {
                 ? fastingTotalHours / fastingDurations.length
                 : 0;
 
-            const ptDate = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium' });
-            const ptDateTime = new Intl.DateTimeFormat('pt-BR', { dateStyle: 'medium', timeStyle: 'short' });
+            const fmtDate = new Intl.DateTimeFormat(locale, { dateStyle: 'medium' });
+            const fmtDateTime = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' });
+            const fmtShort = new Intl.DateTimeFormat(locale, { day: '2-digit', month: '2-digit' });
 
             const periodLabel =
                 period === 'all'
-                    ? `Todo histórico até ${ptDate.format(new Date(`${endDate}T12:00:00`))}`
-                    : `${ptDate.format(new Date(`${startDate}T12:00:00`))} → ${ptDate.format(
-                        new Date(`${endDate}T12:00:00`)
-                    )}`;
+                    ? t('report.pdf.allHistory', { date: fmtDate.format(new Date(`${endDate}T12:00:00`)) })
+                    : `${fmtDate.format(new Date(`${startDate}T12:00:00`))} → ${fmtDate.format(new Date(`${endDate}T12:00:00`))}`;
 
             const nutritionRowsHtml = dailyDates
                 .map((d) => {
                     const v = byDate[d];
-                    const dt = ptDate.format(new Date(`${d}T12:00:00`));
+                    const dt = fmtDate.format(new Date(`${d}T12:00:00`));
                     return `<tr><td>${dt}</td><td>${num(v.kcal, 0)}</td><td>${num(v.p)}</td><td>${num(v.c)}</td><td>${num(v.g)}</td></tr>`;
                 })
                 .join('');
@@ -281,7 +284,7 @@ export default function ReportScreen({ session, onClose }: Props) {
             const weightRowsHtml = weightRows
                 .map(
                     (w) =>
-                        `<tr><td>${ptDate.format(new Date(`${w.date}T12:00:00`))}</td><td>${num(w.weight_kg, 1)} kg</td></tr>`
+                        `<tr><td>${fmtDate.format(new Date(`${w.date}T12:00:00`))}</td><td>${num(w.weight_kg, 1)} kg</td></tr>`
                 )
                 .join('');
 
@@ -290,12 +293,12 @@ export default function ReportScreen({ session, onClose }: Props) {
                     const start = new Date(s.started_at);
                     const hours = fastingDurations[idx];
                     const goal = s.goal_hours == null ? '—' : `${num(s.goal_hours, 1)} h`;
-                    return `<tr><td>${ptDate.format(start)}</td><td>${num(hours, 1)} h</td><td>${goal}</td></tr>`;
+                    return `<tr><td>${fmtDate.format(start)}</td><td>${num(hours, 1)} h</td><td>${goal}</td></tr>`;
                 })
                 .join('');
 
             const kcalValues = dailyDates.map((d) => ({
-                label: new Date(`${d}T12:00:00`).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                label: fmtShort.format(new Date(`${d}T12:00:00`)),
                 value: byDate[d].kcal,
             }));
 
@@ -310,16 +313,18 @@ export default function ReportScreen({ session, onClose }: Props) {
             const weightChartSvg =
                 weightPoints.length >= 2
                     ? svgLineChart(weightPoints, 680, 220, 24)
-                    : `<div style="color:#666;font-size:12px;">Dados insuficientes para gráfico de peso.</div>`;
+                    : `<div style="color:#666;font-size:12px;">${escapeHtml(t('report.pdf.insufficientWeight'))}</div>`;
 
-            const displayName = escapeHtml(profile?.display_name?.trim() || session.user.email || 'Usuário');
+            const displayName = escapeHtml(
+                profile?.display_name?.trim() || session.user.email || t('report.pdf.defaultUser')
+            );
 
             const html = `
 <!doctype html>
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Relatório MyApp</title>
+<title>${escapeHtml(t('report.pdf.title'))}</title>
 <style>
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color: #111; padding: 32px; max-width: 720px; margin: 0 auto; }
   h1 { font-size: 24px; margin: 0 0 4px; }
@@ -335,62 +340,62 @@ export default function ReportScreen({ session, onClose }: Props) {
 </style>
 </head>
 <body>
-  <h1>Relatório MyApp</h1>
+  <h1>${escapeHtml(t('report.pdf.title'))}</h1>
   <div class="meta">
     <div><strong>${displayName}</strong></div>
-    <div>Período: ${escapeHtml(periodLabel)}</div>
+    <div>${escapeHtml(t('report.pdf.period'))} ${escapeHtml(periodLabel)}</div>
   </div>
 
-  <h2>Resumo nutricional</h2>
+  <h2>${escapeHtml(t('report.pdf.nutritionSummary'))}</h2>
   <div class="summary">
-    <p>Dias com registro: <strong>${daysWithMeals}</strong></p>
-    <p>Médias diárias: <strong>${num(avgKcal, 0)} kcal</strong> · P ${num(avgP)}g · C ${num(avgC)}g · G ${num(avgG)}g</p>
-    <p>Atingimento vs metas: kcal ${pct(avgKcal, kcalTarget)} · P ${pct(avgP, pTarget)} · C ${pct(avgC, cTarget)} · G ${pct(avgG, gTarget)}</p>
+    <p>${escapeHtml(t('report.pdf.daysWithLog'))} <strong>${daysWithMeals}</strong></p>
+    <p>${escapeHtml(t('report.pdf.dailyAverages'))} <strong>${num(avgKcal, 0)} kcal</strong> · P ${num(avgP)}g · C ${num(avgC)}g · G ${num(avgG)}g</p>
+    <p>${escapeHtml(t('report.pdf.targetComparison'))} kcal ${pct(avgKcal, kcalTarget)} · P ${pct(avgP, pTarget)} · C ${pct(avgC, cTarget)} · G ${pct(avgG, gTarget)}</p>
   </div>
 
-  <h2>Nutrição por dia</h2>
+  <h2>${escapeHtml(t('report.pdf.nutritionByDay'))}</h2>
   <table>
     <thead>
-      <tr><th>Data</th><th>kcal</th><th>P</th><th>C</th><th>G</th></tr>
+      <tr><th>${escapeHtml(t('report.pdf.dateCol'))}</th><th>kcal</th><th>P</th><th>C</th><th>G</th></tr>
     </thead>
     <tbody>
-      ${nutritionRowsHtml || '<tr><td colspan="5">Sem dados no período.</td></tr>'}
+      ${nutritionRowsHtml || `<tr><td colspan="5">${escapeHtml(t('report.pdf.noData'))}</td></tr>`}
     </tbody>
   </table>
   <div class="chart">${kcalChartSvg}</div>
 
-  <h2>Peso</h2>
+  <h2>${escapeHtml(t('report.pdf.weightSection'))}</h2>
   <div class="summary">
-    <p>Início: <strong>${weightStart == null ? '—' : `${num(weightStart, 1)} kg`}</strong></p>
-    <p>Fim: <strong>${weightEnd == null ? '—' : `${num(weightEnd, 1)} kg`}</strong></p>
-    <p>Delta: <strong>${weightDelta == null ? '—' : `${num(weightDelta, 1)} kg`}</strong></p>
+    <p>${escapeHtml(t('report.pdf.weightStart'))} <strong>${weightStart == null ? '—' : `${num(weightStart, 1)} kg`}</strong></p>
+    <p>${escapeHtml(t('report.pdf.weightEnd'))} <strong>${weightEnd == null ? '—' : `${num(weightEnd, 1)} kg`}</strong></p>
+    <p>${escapeHtml(t('report.pdf.weightDelta'))} <strong>${weightDelta == null ? '—' : `${num(weightDelta, 1)} kg`}</strong></p>
   </div>
   <table>
     <thead>
-      <tr><th>Data</th><th>Peso</th></tr>
+      <tr><th>${escapeHtml(t('report.pdf.dateCol'))}</th><th>${escapeHtml(t('report.pdf.weightSection'))}</th></tr>
     </thead>
     <tbody>
-      ${weightRowsHtml || '<tr><td colspan="2">Sem pesagens no período.</td></tr>'}
+      ${weightRowsHtml || `<tr><td colspan="2">${escapeHtml(t('report.pdf.noWeigh'))}</td></tr>`}
     </tbody>
   </table>
   <div class="chart">${weightChartSvg}</div>
 
-  <h2>Jejum</h2>
+  <h2>${escapeHtml(t('report.pdf.fastingSection'))}</h2>
   <div class="summary">
-    <p>Total de horas: <strong>${num(fastingTotalHours, 1)} h</strong></p>
-    <p>Média por sessão: <strong>${num(fastingAvgHours, 1)} h</strong></p>
-    <p>Sessões: <strong>${fastingRows.length}</strong></p>
+    <p>${escapeHtml(t('report.pdf.fastingTotalHours'))} <strong>${num(fastingTotalHours, 1)} h</strong></p>
+    <p>${escapeHtml(t('report.pdf.fastingAvgSession'))} <strong>${num(fastingAvgHours, 1)} h</strong></p>
+    <p>${escapeHtml(t('report.pdf.fastingSessions'))} <strong>${fastingRows.length}</strong></p>
   </div>
   <table>
     <thead>
-      <tr><th>Data início</th><th>Duração</th><th>Meta</th></tr>
+      <tr><th>${escapeHtml(t('report.pdf.startDateCol'))}</th><th>${escapeHtml(t('report.pdf.durationCol'))}</th><th>${escapeHtml(t('report.pdf.goalCol'))}</th></tr>
     </thead>
     <tbody>
-      ${fastingRowsHtml || '<tr><td colspan="3">Sem sessões no período.</td></tr>'}
+      ${fastingRowsHtml || `<tr><td colspan="3">${escapeHtml(t('report.pdf.noFasting'))}</td></tr>`}
     </tbody>
   </table>
 
-  <div class="footer">Gerado em ${ptDateTime.format(new Date())}</div>
+  <div class="footer">${escapeHtml(t('report.pdf.generatedAt', { datetime: fmtDateTime.format(new Date()) }))}</div>
 </body>
 </html>
       `.trim();
@@ -401,13 +406,13 @@ export default function ReportScreen({ session, onClose }: Props) {
             if (canShare) {
                 await Sharing.shareAsync(uri, {
                     mimeType: 'application/pdf',
-                    dialogTitle: 'Compartilhar relatório',
+                    dialogTitle: t('report.pdf.shareDialog'),
                 });
             } else {
-                setError('Compartilhamento não disponível neste dispositivo.');
+                setError(t('report.ui.shareUnavailable'));
             }
         } catch (e: any) {
-            setError(e?.message ?? 'Falha ao gerar relatório.');
+            setError(e?.message ?? t('report.ui.errorGenerate'));
         } finally {
             setGenerating(false);
         }
@@ -417,15 +422,13 @@ export default function ReportScreen({ session, onClose }: Props) {
         <View style={ss.screen}>
             <View style={ss.header}>
                 <TouchableOpacity onPress={onClose} disabled={generating} hitSlop={10}>
-                    <Text style={ss.back}>← Voltar</Text>
+                    <Text style={ss.back}>{t('report.ui.back')}</Text>
                 </TouchableOpacity>
-                <Text style={ss.title}>Relatório</Text>
+                <Text style={ss.title}>{t('report.ui.title')}</Text>
             </View>
 
             <ScrollView contentContainerStyle={ss.content} showsVerticalScrollIndicator={false}>
-                <Text style={ss.subtitle}>
-                    Gere um PDF com seu histórico nutricional, peso e jejum.
-                </Text>
+                <Text style={ss.subtitle}>{t('report.ui.subtitle')}</Text>
 
                 <TouchableOpacity
                     style={[ss.btn, generating && ss.btnDisabled]}
@@ -433,7 +436,7 @@ export default function ReportScreen({ session, onClose }: Props) {
                     onPress={() => generateReport(7)}
                     activeOpacity={0.8}
                 >
-                    <Text style={ss.btnText}>{generating ? 'Gerando...' : '📅 Últimos 7 dias'}</Text>
+                    <Text style={ss.btnText}>{generating ? t('report.ui.generating') : t('report.ui.last7')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -442,7 +445,7 @@ export default function ReportScreen({ session, onClose }: Props) {
                     onPress={() => generateReport(30)}
                     activeOpacity={0.8}
                 >
-                    <Text style={ss.btnText}>{generating ? 'Gerando...' : '📅 Últimos 30 dias'}</Text>
+                    <Text style={ss.btnText}>{generating ? t('report.ui.generating') : t('report.ui.last30')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
@@ -451,13 +454,13 @@ export default function ReportScreen({ session, onClose }: Props) {
                     onPress={() => generateReport('all')}
                     activeOpacity={0.8}
                 >
-                    <Text style={ss.btnText}>{generating ? 'Gerando...' : '📅 Tudo'}</Text>
+                    <Text style={ss.btnText}>{generating ? t('report.ui.generating') : t('report.ui.all')}</Text>
                 </TouchableOpacity>
 
                 {generating && (
                     <View style={ss.loadingRow}>
                         <ActivityIndicator />
-                        <Text style={ss.loadingText}>Preparando PDF...</Text>
+                        <Text style={ss.loadingText}>{t('report.ui.preparingPdf')}</Text>
                     </View>
                 )}
 

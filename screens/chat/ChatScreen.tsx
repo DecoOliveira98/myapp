@@ -14,6 +14,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   session: Session;
@@ -27,14 +28,21 @@ type Message = {
   created_at?: string;
 };
 
-const SUGGESTIONS = [
+const SUGGESTIONS_PT = [
   'Quanto de proteína comi hoje?',
   'Estou no caminho certo pra minha meta?',
   'Sugira um almoço com 600 kcal',
 ];
 
+const SUGGESTIONS_EN = [
+  'How much protein did I eat today?',
+  'Am I on track for my goal?',
+  'Suggest a 600 kcal lunch',
+];
+
 export default function ChatScreen({ session, onClose }: Props) {
   const { T } = useTheme();
+  const { t, i18n } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [conversationId, setConversationId] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -67,6 +75,8 @@ export default function ChatScreen({ session, onClose }: Props) {
     load();
   }, [session.user.id]);
 
+  const suggestions = i18n.language?.startsWith('en') ? SUGGESTIONS_EN : SUGGESTIONS_PT;
+
   async function send() {
     const text = input.trim();
     if (!text || sending) return;
@@ -97,7 +107,7 @@ export default function ChatScreen({ session, onClose }: Props) {
         { id: reply.id, role: 'assistant', content: reply.content, created_at: reply.created_at },
       ]);
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao enviar mensagem');
+      setError(e?.message ?? t('chat.errors.send'));
     } finally {
       setSending(false);
     }
@@ -105,7 +115,7 @@ export default function ChatScreen({ session, onClose }: Props) {
 
   // FlatList is inverted: index 0 = bottom. "Pensando..." must be index 0 when sending.
   const displayMessages: Message[] = sending
-    ? [{ id: '__thinking__', role: 'assistant', content: 'Pensando...' }, ...[...messages].reverse()]
+    ? [{ id: '__thinking__', role: 'assistant', content: t('chat.thinking') }, ...[...messages].reverse()]
     : [...messages].reverse();
 
   const isEmpty = !loadingHistory && messages.length === 0;
@@ -119,9 +129,9 @@ export default function ChatScreen({ session, onClose }: Props) {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} hitSlop={8}>
-          <Text style={styles.backText}>← Voltar</Text>
+          <Text style={styles.backText}>← {t('common.back')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Conversa</Text>
+        <Text style={styles.title}>{t('chat.title')}</Text>
       </View>
 
       {/* Body */}
@@ -132,9 +142,9 @@ export default function ChatScreen({ session, onClose }: Props) {
       ) : isEmpty ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            Pergunte qualquer coisa sobre suas refeições, peso ou metas.
+            {t('chat.empty')}
           </Text>
-          {SUGGESTIONS.map((s) => (
+          {suggestions.map((s) => (
             <TouchableOpacity
               key={s}
               style={styles.suggestion}
@@ -184,7 +194,7 @@ export default function ChatScreen({ session, onClose }: Props) {
             value={input}
             onChangeText={setInput}
             multiline
-            placeholder="Pergunte algo..."
+            placeholder={t('chat.placeholder')}
             placeholderTextColor={T.textTertiary}
             textAlignVertical="top"
             onSubmitEditing={send}
@@ -205,152 +215,152 @@ export default function ChatScreen({ session, onClose }: Props) {
 
 function makeStyles(T: TokenSet) {
   return StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: T.bgBase,
-  },
-  header: {
-    paddingTop: 56,
-    paddingHorizontal: T.sp5,
-    paddingBottom: T.sp4,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderSoft,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp3,
-  },
-  backText: {
-    fontSize: T.textSm,
-    color: T.textSecondary,
-    fontFamily: T.fontMono,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  title: {
-    fontSize: T.textMd,
-    color: T.textPrimary,
-    fontFamily: T.fontDisplay,
-    letterSpacing: -0.2,
-  },
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    padding: T.sp5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: T.textBase,
-    color: T.textSecondary,
-    textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: T.sp5,
-    fontFamily: T.fontBody,
-  },
-  suggestion: {
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    paddingVertical: T.sp3,
-    paddingHorizontal: T.sp4,
-    marginBottom: T.sp3,
-    alignSelf: 'stretch',
-    backgroundColor: T.surface1,
-  },
-  suggestionText: {
-    fontSize: T.textSm,
-    color: T.textPrimary,
-    textAlign: 'center',
-    fontFamily: T.fontBody,
-  },
-  listContent: {
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp3,
-  },
-  bubble: {
-    maxWidth: '84%',
-    paddingHorizontal: T.sp3,
-    paddingVertical: T.sp2,
-    marginBottom: T.sp2,
-    borderWidth: 1,
-  },
-  bubbleUser: {
-    backgroundColor: T.accent,
-    borderColor: T.accent,
-    alignSelf: 'flex-end',
-  },
-  bubbleAssistant: {
-    backgroundColor: T.surface1,
-    borderColor: T.borderSoft,
-    alignSelf: 'flex-start',
-  },
-  bubbleText: {
-    fontSize: T.textBase,
-    lineHeight: 21,
-    fontFamily: T.fontBody,
-  },
-  bubbleTextUser: {
-    color: T.onAccent,
-  },
-  bubbleTextAssistant: {
-    color: T.textPrimary,
-  },
-  thinkingText: {
-    color: T.textTertiary,
-    fontStyle: 'italic',
-  },
-  footer: {
-    borderTopWidth: 1,
-    borderTopColor: T.borderSoft,
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp3,
-    paddingBottom: Platform.OS === 'ios' ? 28 : 12,
-    backgroundColor: T.bgBase,
-  },
-  errorText: {
-    color: T.danger,
-    fontSize: T.textXs,
-    marginBottom: T.sp2,
-    textAlign: 'center',
-    fontFamily: T.fontBody,
-  },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    gap: T.sp2,
-  },
-  textInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp3,
-    backgroundColor: T.surface1,
-    fontSize: T.textBase,
-    color: T.textPrimary,
-    maxHeight: 80,
-    fontFamily: T.fontBody,
-  },
-  sendBtn: {
-    width: 44,
-    height: 44,
-    backgroundColor: T.accent,
-    borderWidth: 1,
-    borderColor: T.accent,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  sendBtnDisabled: {
-    backgroundColor: T.surface3,
-    borderColor: T.surface3,
-  },
-  sendBtnText: {
-    fontSize: T.textMd,
-    color: T.onAccent,
-    fontFamily: T.fontMonoMedium,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: T.bgBase,
+    },
+    header: {
+      paddingTop: 56,
+      paddingHorizontal: T.sp5,
+      paddingBottom: T.sp4,
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderSoft,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp3,
+    },
+    backText: {
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    title: {
+      fontSize: T.textMd,
+      color: T.textPrimary,
+      fontFamily: T.fontDisplay,
+      letterSpacing: -0.2,
+    },
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyContainer: {
+      flex: 1,
+      padding: T.sp5,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyText: {
+      fontSize: T.textBase,
+      color: T.textSecondary,
+      textAlign: 'center',
+      lineHeight: 22,
+      marginBottom: T.sp5,
+      fontFamily: T.fontBody,
+    },
+    suggestion: {
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      paddingVertical: T.sp3,
+      paddingHorizontal: T.sp4,
+      marginBottom: T.sp3,
+      alignSelf: 'stretch',
+      backgroundColor: T.surface1,
+    },
+    suggestionText: {
+      fontSize: T.textSm,
+      color: T.textPrimary,
+      textAlign: 'center',
+      fontFamily: T.fontBody,
+    },
+    listContent: {
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+    },
+    bubble: {
+      maxWidth: '84%',
+      paddingHorizontal: T.sp3,
+      paddingVertical: T.sp2,
+      marginBottom: T.sp2,
+      borderWidth: 1,
+    },
+    bubbleUser: {
+      backgroundColor: T.accent,
+      borderColor: T.accent,
+      alignSelf: 'flex-end',
+    },
+    bubbleAssistant: {
+      backgroundColor: T.surface1,
+      borderColor: T.borderSoft,
+      alignSelf: 'flex-start',
+    },
+    bubbleText: {
+      fontSize: T.textBase,
+      lineHeight: 21,
+      fontFamily: T.fontBody,
+    },
+    bubbleTextUser: {
+      color: T.onAccent,
+    },
+    bubbleTextAssistant: {
+      color: T.textPrimary,
+    },
+    thinkingText: {
+      color: T.textTertiary,
+      fontStyle: 'italic',
+    },
+    footer: {
+      borderTopWidth: 1,
+      borderTopColor: T.borderSoft,
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+      paddingBottom: Platform.OS === 'ios' ? 28 : 12,
+      backgroundColor: T.bgBase,
+    },
+    errorText: {
+      color: T.danger,
+      fontSize: T.textXs,
+      marginBottom: T.sp2,
+      textAlign: 'center',
+      fontFamily: T.fontBody,
+    },
+    inputRow: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      gap: T.sp2,
+    },
+    textInput: {
+      flex: 1,
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+      backgroundColor: T.surface1,
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      maxHeight: 80,
+      fontFamily: T.fontBody,
+    },
+    sendBtn: {
+      width: 44,
+      height: 44,
+      backgroundColor: T.accent,
+      borderWidth: 1,
+      borderColor: T.accent,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    sendBtnDisabled: {
+      backgroundColor: T.surface3,
+      borderColor: T.surface3,
+    },
+    sendBtnText: {
+      fontSize: T.textMd,
+      color: T.onAccent,
+      fontFamily: T.fontMonoMedium,
+    },
   });
 }

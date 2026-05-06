@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
     onResolved: () => void;
@@ -10,6 +11,7 @@ type Props = {
 
 export default function AuthCallbackScreen({ onResolved }: Props) {
     const { T } = useTheme();
+    const { t } = useTranslation();
     const styles = useMemo(() => makeStyles(T), [T]);
 
     useEffect(() => {
@@ -39,7 +41,7 @@ export default function AuthCallbackScreen({ onResolved }: Props) {
     return (
         <View style={styles.container}>
             <ActivityIndicator size="small" color={T.accent} />
-            <Text style={styles.text}>Entrando...</Text>
+            <Text style={styles.text}>{t('auth.callbackEntering')}</Text>
         </View>
     );
 }

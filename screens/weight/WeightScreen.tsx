@@ -16,6 +16,7 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -35,6 +36,7 @@ function formatShortDate(iso: string): string {
 
 export default function WeightScreen({ session, onClose }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [weight, setWeight] = useState('');
   const [editing, setEditing] = useState<{ id: string; date: string } | null>(null);
@@ -112,7 +114,7 @@ export default function WeightScreen({ session, onClose }: Props) {
       setSaving(false);
       void loadList();
     } catch (e: any) {
-      setSaveError(e?.message ?? 'Erro ao salvar.');
+      setSaveError(e?.message ?? t('weight.errors.save'));
       setSaving(false);
     }
   }
@@ -120,12 +122,12 @@ export default function WeightScreen({ session, onClose }: Props) {
   function handleDelete() {
     if (!editing) return;
     Alert.alert(
-      'Apagar pesagem',
-      'Tem certeza? Esta ação não pode ser desfeita.',
+      t('weight.deleteTitle'),
+      t('weight.deleteMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Apagar',
+          text: t('weight.delete'),
           style: 'destructive',
           onPress: async () => {
             setDeleting(true);
@@ -135,7 +137,7 @@ export default function WeightScreen({ session, onClose }: Props) {
               .delete()
               .eq('id', editing.id);
             if (error) {
-              setSaveError(error.message ?? 'Erro ao apagar.');
+              setSaveError(error.message ?? t('weight.errors.delete'));
               setDeleting(false);
             } else {
               setEditing(null);
@@ -164,24 +166,24 @@ export default function WeightScreen({ session, onClose }: Props) {
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} hitSlop={8}>
-          <Text style={styles.backText}>← Voltar</Text>
+          <Text style={styles.backText}>{`← ${t('common.back')}`}</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Peso</Text>
+        <Text style={styles.headerTitle}>{t('weight.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         {editing && (
           <Text style={styles.editingSubtitle}>
-            Editando pesagem de {formatShortDate(editing.date)}
+            {t('weight.editingEntry', { date: formatShortDate(editing.date) })}
           </Text>
         )}
 
-        <Text style={styles.label}>Peso (kg)</Text>
+        <Text style={styles.label}>{t('weight.inputLabel')}</Text>
         <TextInput
           style={styles.input}
           value={weight}
           onChangeText={setWeight}
-          placeholder="Ex: 75.4"
+          placeholder={t('weight.placeholder')}
           placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
@@ -196,7 +198,7 @@ export default function WeightScreen({ session, onClose }: Props) {
           disabled={!canSave}
         >
           <Text style={styles.saveBtnText}>
-            {saving ? 'Salvando...' : editing ? 'Atualizar' : 'Salvar'}
+            {saving ? t('weight.saving') : editing ? t('weight.update') : t('common.save')}
           </Text>
         </TouchableOpacity>
 
@@ -206,13 +208,13 @@ export default function WeightScreen({ session, onClose }: Props) {
             onPress={handleDelete}
             disabled={busy}
           >
-            <Text style={styles.deleteBtnText}>{deleting ? 'Apagando...' : 'Apagar'}</Text>
+            <Text style={styles.deleteBtnText}>{deleting ? t('weight.deleting') : t('weight.delete')}</Text>
           </TouchableOpacity>
         )}
 
         <View style={styles.separator} />
 
-        <Text style={styles.sectionTitle}>Histórico</Text>
+        <Text style={styles.sectionTitle}>{t('weight.history')}</Text>
 
         <WeightChart data={chartData} />
 
@@ -221,7 +223,7 @@ export default function WeightScreen({ session, onClose }: Props) {
         )}
 
         {state === 'error' && (
-          <Text style={styles.errorText}>Erro ao carregar histórico</Text>
+          <Text style={styles.errorText}>{t('weight.errors.loadHistory')}</Text>
         )}
 
         {state === 'ready' && (
@@ -236,7 +238,7 @@ export default function WeightScreen({ session, onClose }: Props) {
               </TouchableOpacity>
             )}
             ListEmptyComponent={
-              <Text style={styles.emptyText}>Nenhuma pesagem ainda</Text>
+              <Text style={styles.emptyText}>{t('weight.empty')}</Text>
             }
           />
         )}
@@ -247,6 +249,7 @@ export default function WeightScreen({ session, onClose }: Props) {
 
 function WeightChart({ data }: { data: Array<{ date: string; weight: number }> }) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   if (data.length < 2) return null;
 
   const screenWidth = Dimensions.get('window').width;
@@ -280,8 +283,8 @@ function WeightChart({ data }: { data: Array<{ date: string; weight: number }> }
         ))}
       </Svg>
       <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
-        <Text style={{ fontSize: 11, color: T.textTertiary, fontFamily: T.fontMono }}>30 dias atrás</Text>
-        <Text style={{ fontSize: 11, color: T.textTertiary, fontFamily: T.fontMono }}>hoje</Text>
+        <Text style={{ fontSize: 11, color: T.textTertiary, fontFamily: T.fontMono }}>{t('weight.chart.thirtyDaysAgo')}</Text>
+        <Text style={{ fontSize: 11, color: T.textTertiary, fontFamily: T.fontMono }}>{t('weight.chart.today')}</Text>
       </View>
     </View>
   );
@@ -289,144 +292,144 @@ function WeightChart({ data }: { data: Array<{ date: string; weight: number }> }
 
 function makeStyles(T: TokenSet) {
   return StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: T.bgBase,
-  },
-  header: {
-    paddingTop: 56,
-    paddingHorizontal: T.sp5,
-    paddingBottom: T.sp4,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderSoft,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: T.sp3,
-  },
-  backText: {
-    fontSize: T.textSm,
-    color: T.textSecondary,
-    fontFamily: T.fontMono,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-  },
-  headerTitle: {
-    fontSize: T.textMd,
-    color: T.textPrimary,
-    fontFamily: T.fontDisplay,
-    letterSpacing: -0.2,
-  },
-  body: {
-    padding: T.sp5,
-    paddingBottom: T.sp8,
-  },
-  editingSubtitle: {
-    fontSize: T.textXs,
-    color: T.textSecondary,
-    marginBottom: T.sp1,
-    fontFamily: T.fontBody,
-  },
-  label: {
-    fontSize: T.textXs,
-    color: T.textTertiary,
-    marginBottom: T.sp2,
-    marginTop: T.sp4,
-    fontFamily: T.fontMono,
-    letterSpacing: 1.4,
-    textTransform: 'uppercase',
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: T.borderSoft,
-    paddingHorizontal: T.sp4,
-    paddingVertical: T.sp3,
-    fontSize: T.textBase,
-    color: T.textPrimary,
-    backgroundColor: T.surface1,
-    fontFamily: T.fontBody,
-  },
-  errorText: {
-    color: T.danger,
-    fontSize: T.textXs,
-    marginTop: T.sp3,
-    textAlign: 'center',
-    fontFamily: T.fontBody,
-  },
-  saveBtn: {
-    marginTop: T.sp5,
-    backgroundColor: T.accent,
-    borderWidth: 1,
-    borderColor: T.accent,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  saveBtnDisabled: {
-    backgroundColor: T.surface3,
-    borderColor: T.surface3,
-  },
-  saveBtnText: {
-    fontSize: T.textXs,
-    color: T.bgBase,
-    fontFamily: T.fontMonoMedium,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  deleteBtn: {
-    marginTop: T.sp3,
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: T.danger,
-    paddingVertical: 14,
-    alignItems: 'center',
-  },
-  deleteBtnDisabled: {
-    opacity: 0.45,
-  },
-  deleteBtnText: {
-    fontSize: T.textXs,
-    color: T.danger,
-    fontFamily: T.fontMonoMedium,
-    letterSpacing: 2,
-    textTransform: 'uppercase',
-  },
-  separator: {
-    height: 1,
-    backgroundColor: T.borderSoft,
-    marginVertical: T.sp4,
-  },
-  sectionTitle: {
-    fontSize: T.textLg,
-    color: T.textPrimary,
-    marginBottom: T.sp3,
-    fontFamily: T.fontDisplayItalic,
-  },
-  loader: {
-    marginTop: T.sp4,
-  },
-  listItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: T.sp3,
-    borderBottomWidth: 1,
-    borderBottomColor: T.borderSoft,
-  },
-  listDate: {
-    fontSize: T.textBase,
-    color: T.textPrimary,
-    fontFamily: T.fontBody,
-  },
-  listWeight: {
-    fontSize: T.textBase,
-    color: T.textSecondary,
-    fontFamily: T.fontMono,
-  },
-  emptyText: {
-    fontSize: T.textSm,
-    color: T.textSecondary,
-    textAlign: 'center',
-    marginTop: T.sp5,
-    fontFamily: T.fontBody,
-  },
+    screen: {
+      flex: 1,
+      backgroundColor: T.bgBase,
+    },
+    header: {
+      paddingTop: 56,
+      paddingHorizontal: T.sp5,
+      paddingBottom: T.sp4,
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderSoft,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: T.sp3,
+    },
+    backText: {
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
+    },
+    headerTitle: {
+      fontSize: T.textMd,
+      color: T.textPrimary,
+      fontFamily: T.fontDisplay,
+      letterSpacing: -0.2,
+    },
+    body: {
+      padding: T.sp5,
+      paddingBottom: T.sp8,
+    },
+    editingSubtitle: {
+      fontSize: T.textXs,
+      color: T.textSecondary,
+      marginBottom: T.sp1,
+      fontFamily: T.fontBody,
+    },
+    label: {
+      fontSize: T.textXs,
+      color: T.textTertiary,
+      marginBottom: T.sp2,
+      marginTop: T.sp4,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      backgroundColor: T.surface1,
+      fontFamily: T.fontBody,
+    },
+    errorText: {
+      color: T.danger,
+      fontSize: T.textXs,
+      marginTop: T.sp3,
+      textAlign: 'center',
+      fontFamily: T.fontBody,
+    },
+    saveBtn: {
+      marginTop: T.sp5,
+      backgroundColor: T.accent,
+      borderWidth: 1,
+      borderColor: T.accent,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    saveBtnDisabled: {
+      backgroundColor: T.surface3,
+      borderColor: T.surface3,
+    },
+    saveBtnText: {
+      fontSize: T.textXs,
+      color: T.bgBase,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+    deleteBtn: {
+      marginTop: T.sp3,
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: T.danger,
+      paddingVertical: 14,
+      alignItems: 'center',
+    },
+    deleteBtnDisabled: {
+      opacity: 0.45,
+    },
+    deleteBtnText: {
+      fontSize: T.textXs,
+      color: T.danger,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+    separator: {
+      height: 1,
+      backgroundColor: T.borderSoft,
+      marginVertical: T.sp4,
+    },
+    sectionTitle: {
+      fontSize: T.textLg,
+      color: T.textPrimary,
+      marginBottom: T.sp3,
+      fontFamily: T.fontDisplayItalic,
+    },
+    loader: {
+      marginTop: T.sp4,
+    },
+    listItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: T.sp3,
+      borderBottomWidth: 1,
+      borderBottomColor: T.borderSoft,
+    },
+    listDate: {
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      fontFamily: T.fontBody,
+    },
+    listWeight: {
+      fontSize: T.textBase,
+      color: T.textSecondary,
+      fontFamily: T.fontMono,
+    },
+    emptyText: {
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      textAlign: 'center',
+      marginTop: T.sp5,
+      fontFamily: T.fontBody,
+    },
   });
 }

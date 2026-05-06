@@ -2,16 +2,18 @@ import { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useTheme } from '../../../theme/ThemeContext';
 import { type TokenSet } from '../../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 export default function LoadingPage() {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.eyebrow}>CARREGANDO</Text>
+      <Text style={styles.eyebrow}>{t('loadingPage.eyebrow')}</Text>
       <ActivityIndicator size="large" color={T.accent} />
-      <Text style={styles.text}>Preparando sua experiência…</Text>
+      <Text style={styles.text}>{t('loadingPage.text')}</Text>
     </View>
   );
 }

@@ -3,6 +3,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
 import { useFonts } from 'expo-font';
+import { initializeI18n } from './i18n';
 import {
   Fraunces_300Light,
   Fraunces_300Light_Italic,
@@ -25,6 +26,7 @@ export default function App() {
   const [initializing, setInitializing] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
   const [isHandlingAuthCallback, setIsHandlingAuthCallback] = useState(false);
+  const [i18nReady, setI18nReady] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
     Fraunces_300Light,
@@ -38,6 +40,8 @@ export default function App() {
   });
 
   useEffect(() => {
+    initializeI18n().finally(() => setI18nReady(true));
+
     const initializeAuth = async () => {
       if (typeof window !== 'undefined' && window.location?.pathname === '/auth/callback') {
         setIsHandlingAuthCallback(true);
@@ -102,7 +106,7 @@ export default function App() {
 
   return (
     <ThemeProvider>
-      {initializing || (!fontsLoaded && !fontError) ? (
+      {!i18nReady || initializing || (!fontsLoaded && !fontError) ? (
         <LoadingPage />
       ) : !session && isHandlingAuthCallback ? (
         <AuthCallbackScreen onResolved={() => setIsHandlingAuthCallback(false)} />

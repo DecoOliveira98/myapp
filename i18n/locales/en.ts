@@ -467,6 +467,7 @@ const en = {
             ingredients: 'Ingredients',
             instructions: 'Instructions',
             perServing: 'Per serving: {{kcal}} kcal · {{p}}g P · {{c}}g C · {{f}}g F',
+            gramsPerServingShort: '{{grams}}g per serving',
         },
         apply: {
             title: 'Apply recipe',

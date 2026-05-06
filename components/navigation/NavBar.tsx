@@ -3,15 +3,16 @@ import { StyleSheet, View, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
 
 const TAB_WIDTH = 70;
 
 const menuItems = [
-    { icon: 'grid-outline', activeIcon: 'grid', label: 'Home' },
-    { icon: 'person-outline', activeIcon: 'person', label: 'Profile' },
-    { icon: 'sparkles-outline', activeIcon: 'sparkles', label: 'AI', isAI: true },
-    { icon: 'barcode-outline', activeIcon: 'barcode', label: 'Scanner' },
-    { icon: 'trending-up-outline', activeIcon: 'trending-up', label: 'Weight' },
+    { icon: 'grid-outline', activeIcon: 'grid', labelKey: 'nav.home' },
+    { icon: 'person-outline', activeIcon: 'person', labelKey: 'nav.profile' },
+    { icon: 'sparkles-outline', activeIcon: 'sparkles', labelKey: 'nav.ai', isAI: true },
+    { icon: 'barcode-outline', activeIcon: 'barcode', labelKey: 'nav.scanner' },
+    { icon: 'trending-up-outline', activeIcon: 'trending-up', labelKey: 'nav.weight' },
 ];
 
 interface NavBarProps {
@@ -20,6 +21,7 @@ interface NavBarProps {
 
 export default function NavBar({ onTabChange }: NavBarProps) {
     const { T } = useTheme();
+    const { t } = useTranslation();
     const styles = useMemo(() => makeStyles(T), [T]);
 
     const [activeIndex, setActiveIndex] = useState(2);
@@ -69,6 +71,8 @@ export default function NavBar({ onTabChange }: NavBarProps) {
                             style={styles.tabItem}
                             onPress={() => handlePress(index)}
                             activeOpacity={0.7}
+                            accessibilityRole="button"
+                            accessibilityLabel={t(item.labelKey)}
                         >
                             <Animated.View style={[
                                 styles.iconBox,

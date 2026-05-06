@@ -12,6 +12,7 @@ import {
     View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
+import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
 
 type Props = { session: Session; onClose: () => void };
@@ -33,6 +34,7 @@ function safeNum(n: number | null | undefined): number {
 }
 
 export default function RecipeSearchScreen({ session, onClose }: Props) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState('');
     const [searching, setSearching] = useState(false);
     const [results, setResults] = useState<SearchResult[]>([]);
@@ -51,10 +53,10 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
             if (invokeErr) throw new Error(invokeErr.message);
             if ((data as any).error) throw new Error((data as any).error);
             const r = (data as any).results as SearchResult[];
-            if (!r || r.length === 0) { setError('Nenhuma receita encontrada. Tente outros termos.'); return; }
+            if (!r || r.length === 0) { setError(t('recipes.search.noResults')); return; }
             setResults(r);
         } catch (e: any) {
-            setError(e?.message ?? 'Erro na busca');
+            setError(e?.message ?? t('recipes.search.errorSearch'));
         } finally { setSearching(false); }
     }
 
@@ -79,11 +81,11 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
             });
             if (itemErr) throw itemErr;
 
-            Alert.alert('Receita adicionada', 'Você pode editá-la em "Receitas" no início.', [
+            Alert.alert(t('recipes.search.addedTitle'), t('recipes.search.addedMessage'), [
                 { text: 'OK', onPress: onClose }
             ]);
         } catch (e: any) {
-            setError(e?.message ?? 'Erro ao salvar');
+            setError(e?.message ?? t('recipes.search.errorSave'));
             setAdding(false);
         }
     }
@@ -93,9 +95,9 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
             <View style={ss.root}>
                 <View style={ss.header}>
                     <TouchableOpacity onPress={onClose} hitSlop={12} style={ss.backBtn}>
-                        <Text style={ss.backText}>← Voltar</Text>
+                        <Text style={ss.backText}>{t('recipes.common.back')}</Text>
                     </TouchableOpacity>
-                    <Text style={ss.headerTitle}>Explorar receitas</Text>
+                    <Text style={ss.headerTitle}>{t('recipes.search.title')}</Text>
                     <View style={ss.headerRight} />
                 </View>
 
@@ -112,7 +114,7 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                         autoCorrect={false}
                         autoCapitalize="none"
                     />
-                    <Text style={ss.subtle}>Receitas vêm em inglês (Spoonacular).</Text>
+                    <Text style={ss.subtle}>{t('recipes.search.hint')}</Text>
 
                     <TouchableOpacity
                         style={[ss.primaryBtn, !canSearch && ss.btnDisabled]}
@@ -120,7 +122,7 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                         disabled={!canSearch}
                         activeOpacity={0.85}
                     >
-                        <Text style={ss.primaryBtnText}>{searching ? 'Buscando...' : '🔎 Buscar'}</Text>
+                        <Text style={ss.primaryBtnText}>{searching ? t('recipes.search.searching') : t('recipes.search.searchBtn')}</Text>
                     </TouchableOpacity>
 
                     {error ? <Text style={ss.error}>{error}</Text> : null}
@@ -150,9 +152,9 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                                     />
                                     <View style={ss.resultInfo}>
                                         <Text style={ss.resultTitle} numberOfLines={2}>{item.title}</Text>
-                                        <Text style={ss.resultMeta}>{mins}min · {item.servings} porções</Text>
+                                        <Text style={ss.resultMeta}>{t('recipes.search.servings', { mins, count: item.servings })}</Text>
                                         <Text style={ss.resultMacro}>
-                                            {Math.round(safeNum(item.per_serving?.kcal))} kcal · {Math.round(safeNum(item.per_serving?.protein_g))}p · {Math.round(safeNum(item.per_serving?.carbs_g))}c · {Math.round(safeNum(item.per_serving?.fat_g))}g por porção
+                                            {Math.round(safeNum(item.per_serving?.kcal))} kcal · {Math.round(safeNum(item.per_serving?.protein_g))}p · {Math.round(safeNum(item.per_serving?.carbs_g))}c · {t('recipes.search.gramsPerServingShort', { grams: Math.round(safeNum(item.per_serving?.fat_g)) })}
                                         </Text>
                                     </View>
                                 </TouchableOpacity>
@@ -168,7 +170,7 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
         <View style={ss.root}>
             <View style={ss.header}>
                 <TouchableOpacity onPress={() => setSelected(null)} hitSlop={12} style={ss.backBtn}>
-                    <Text style={ss.backText}>← Voltar</Text>
+                    <Text style={ss.backText}>{t('recipes.common.back')}</Text>
                 </TouchableOpacity>
                 <Text style={ss.headerTitle} numberOfLines={1}>{selected.title}</Text>
                 <View style={ss.headerRight} />
@@ -178,16 +180,16 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                 <Image source={{ uri: selected.image }} style={ss.heroImage} resizeMode="cover" />
 
                 <Text style={ss.detailMeta}>
-                    {selected.ready_in_minutes == null ? '—' : selected.ready_in_minutes}min · {selected.servings} porções
+                    {t('recipes.search.servings', { mins: selected.ready_in_minutes == null ? '—' : selected.ready_in_minutes, count: selected.servings })}
                 </Text>
 
                 <View style={ss.summaryCard}>
                     <Text style={ss.summaryText}>
-                        Por porção: {Math.round(safeNum(selected.per_serving?.kcal))} kcal · {Math.round(safeNum(selected.per_serving?.protein_g))}g P · {Math.round(safeNum(selected.per_serving?.carbs_g))}g C · {Math.round(safeNum(selected.per_serving?.fat_g))}g G
+                        {t('recipes.search.perServing', { kcal: Math.round(safeNum(selected.per_serving?.kcal)), p: Math.round(safeNum(selected.per_serving?.protein_g)), c: Math.round(safeNum(selected.per_serving?.carbs_g)), f: Math.round(safeNum(selected.per_serving?.fat_g)) })}
                     </Text>
                 </View>
 
-                <Text style={ss.sectionTitle}>Ingredientes</Text>
+                <Text style={ss.sectionTitle}>{t('recipes.search.ingredients')}</Text>
                 <View style={ss.sectionCard}>
                     {selected.ingredients.map((ingredient, idx) => (
                         <Text key={`${ingredient.name}-${idx}`} style={ss.bulletLine}>
@@ -196,10 +198,10 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                     ))}
                 </View>
 
-                <Text style={ss.sectionTitle}>Modo de preparo</Text>
+                <Text style={ss.sectionTitle}>{t('recipes.search.instructions')}</Text>
                 <View style={ss.sectionCard}>
                     {selected.instructions.length === 0 ? (
-                        <Text style={ss.bulletLine}>Sem instruções detalhadas.</Text>
+                        <Text style={ss.bulletLine}>{t('recipes.search.noInstructions')}</Text>
                     ) : (
                         selected.instructions.map((step, i) => (
                             <Text key={`${i}-${step.slice(0, 12)}`} style={ss.bulletLine}>
@@ -218,7 +220,7 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                     activeOpacity={0.85}
                 >
                     <Text style={ss.primaryBtnText}>
-                        {adding ? 'Adicionando...' : '+ Adicionar como minha receita'}
+                        {adding ? t('recipes.search.adding') : t('recipes.search.addBtn')}
                     </Text>
                 </TouchableOpacity>
             </ScrollView>
