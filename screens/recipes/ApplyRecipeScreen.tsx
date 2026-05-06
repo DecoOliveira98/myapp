@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 
@@ -44,6 +45,7 @@ function round1(n: number): number {
 
 export default function ApplyRecipeScreen({ session, mealType, date, onCancel, onApplied }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const ss = useMemo(() => makeStyles(T), [T]);
   const [recipes, setRecipes] = useState<RecipeRow[]>([]);
   const [state, setState] = useState<'loading' | 'error' | 'ready'>('loading');
@@ -100,7 +102,7 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
       .select('name, quantity_g, calories, protein_g, carbs_g, fat_g')
       .eq('recipe_id', recipe.id)
       .order('position');
-    if (itemErr) { setError('Erro ao carregar itens da receita.'); return; }
+    if (itemErr) { setError(t('recipes.apply.errorItems')); return; }
     setSelected({
       recipe,
       items: (data ?? []).map((r: any) => ({
@@ -154,7 +156,7 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
       if (bulkErr) throw bulkErr;
       onApplied();
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao aplicar receita');
+      setError(e?.message ?? t('recipes.apply.errorApply'));
       setApplying(false);
     }
   }
@@ -168,7 +170,7 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
       <View style={ss.root}>
         <View style={ss.header}>
           <TouchableOpacity onPress={() => setSelected(null)} hitSlop={12} style={ss.headerSide}>
-            <Text style={ss.backText}>← Voltar</Text>
+            <Text style={ss.backText}>{t('recipes.common.back')}</Text>
           </TouchableOpacity>
           <Text style={ss.headerTitle} numberOfLines={1}>{selected.recipe.name}</Text>
           <View style={ss.headerSide} />
@@ -180,12 +182,11 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
           showsVerticalScrollIndicator={false}
         >
           <Text style={ss.confirmSubtitle}>
-            Vou adicionar {selected.items.length} {selected.items.length === 1 ? 'item' : 'itens'} à sua refeição.{'\n'}
-            Você pode editar individualmente depois.
+            {t('recipes.apply.confirmSubtitle', { count: selected.items.length })}
           </Text>
 
           <Text style={ss.totalLine}>
-            Total: <Text style={ss.totalAccent}>{Math.round(totalKcal)} kcal</Text>
+            {t('recipes.apply.total')} <Text style={ss.totalAccent}>{Math.round(totalKcal)} kcal</Text>
           </Text>
 
           {selected.items.map((item, idx) => (
@@ -209,7 +210,7 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
             activeOpacity={0.85}
           >
             <Text style={ss.applyBtnText}>
-              {applying ? 'Aplicando...' : 'Aplicar à refeição'}
+              {applying ? t('recipes.apply.applying') : t('recipes.apply.applyBtn')}
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -223,9 +224,9 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
     <View style={ss.root}>
       <View style={ss.header}>
         <TouchableOpacity onPress={onCancel} hitSlop={12} style={ss.headerSide}>
-          <Text style={ss.cancelText}>Cancelar</Text>
+          <Text style={ss.cancelText}>{t('recipes.common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={ss.headerTitle}>Aplicar receita</Text>
+        <Text style={ss.headerTitle}>{t('recipes.apply.title')}</Text>
         <View style={ss.headerSide} />
       </View>
 
@@ -237,19 +238,16 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
 
       {state === 'error' && (
         <View style={ss.centered}>
-          <Text style={ss.bodyText}>Erro ao carregar receitas.</Text>
+          <Text style={ss.bodyText}>{t('recipes.common.error')}</Text>
           <TouchableOpacity onPress={loadRecipes} style={ss.retryBtn}>
-            <Text style={ss.retryText}>Tentar novamente</Text>
+            <Text style={ss.retryText}>{t('recipes.common.retry')}</Text>
           </TouchableOpacity>
         </View>
       )}
 
       {state === 'ready' && recipes.length === 0 && (
         <View style={ss.centered}>
-          <Text style={ss.emptyText}>
-            Você ainda não criou nenhuma receita.{'\n'}
-            Crie pelo HomeScreen → 📖 Receitas.
-          </Text>
+          <Text style={ss.emptyText}>{t('recipes.apply.empty')}</Text>
         </View>
       )}
 
@@ -269,7 +267,7 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
                 {item.is_favorite && <Text style={ss.star}>⭐</Text>}
               </View>
               <Text style={ss.cardMeta}>
-                {item.item_count} {item.item_count === 1 ? 'item' : 'itens'} · {Math.round(item.total_kcal)} kcal
+                {t('recipes.common.itemCount', { count: item.item_count })} · {Math.round(item.total_kcal)} kcal
               </Text>
             </TouchableOpacity>
           )}

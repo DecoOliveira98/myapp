@@ -24,6 +24,12 @@ import { useTheme, type ThemePreference } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import { type Profile } from '../../hooks/useProfile';
 import Avatar from '../../components/avatar/Avatar';
+import { useTranslation } from 'react-i18next';
+import {
+  getStoredLanguagePreference,
+  setLanguagePreference,
+  type LanguagePreference,
+} from '../../i18n';
 import {
   ActivityLevel,
   calculateAge,
@@ -101,10 +107,10 @@ function toISODateOnly(d: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatPtBrDate(dateISO: string): string {
+function formatLocaleDate(dateISO: string, locale: string, fallback: string): string {
   const d = parseISODate(dateISO);
-  if (!d) return 'Selecionar data';
-  return new Intl.DateTimeFormat('pt-BR', {
+  if (!d) return fallback;
+  return new Intl.DateTimeFormat(locale, {
     day: 'numeric',
     month: 'long',
     year: 'numeric',
@@ -256,6 +262,8 @@ const DEFAULT_DOB = new Date('1990-01-01T00:00:00');
 
 export default function ProfileScreen({ session, profile, onClose, refetchProfile }: Props) {
   const { T, themePreference, setThemePreference } = useTheme();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language?.startsWith('en') ? 'en-US' : 'pt-BR';
   const ps = useMemo(() => makeStyles(T), [T]);
   const [form, setForm] = useState<FormState>(profileToForm(profile));
   const [saving, setSaving] = useState(false);
@@ -268,6 +276,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
     (session.user.user_metadata?.picture as string | undefined) ??
     undefined,
   );
+  const [languagePreference, setLanguagePreferenceState] = useState<LanguagePreference>('auto');
 
   useEffect(() => {
     setForm(profileToForm(profile));
@@ -279,6 +288,10 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
     );
     setIosPickerDate(parseISODate(profile?.date_of_birth ?? '') ?? DEFAULT_DOB);
   }, [profile, session.user.user_metadata]);
+
+  useEffect(() => {
+    getStoredLanguagePreference().then(setLanguagePreferenceState);
+  }, []);
 
   const displayName = useMemo(
     () => form.display_name || (session.user.user_metadata?.name as string | undefined) || session.user.email || 'User',
@@ -323,27 +336,27 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
 
   const handleCalculateSuggestion = () => {
     const missing: string[] = [];
-    if (!form.gender) missing.push('gênero');
-    if (!form.height_cm) missing.push('altura');
-    if (!form.weight_kg) missing.push('peso');
-    if (!form.date_of_birth) missing.push('data de nascimento');
-    if (!form.activity_level) missing.push('nível de atividade');
-    if (!form.goal) missing.push('objetivo');
+    if (!form.gender) missing.push(t('profile.calcFields.gender'));
+    if (!form.height_cm) missing.push(t('profile.calcFields.height'));
+    if (!form.weight_kg) missing.push(t('profile.calcFields.weight'));
+    if (!form.date_of_birth) missing.push(t('profile.calcFields.dob'));
+    if (!form.activity_level) missing.push(t('profile.calcFields.activity'));
+    if (!form.goal) missing.push(t('profile.calcFields.goal'));
 
     if (missing.length > 0) {
-      Alert.alert('Dados incompletos', `Preenche ${missing.join(', ')} primeiro.`);
+      Alert.alert(t('profile.errors.incompleteTitle'), t('profile.errors.incompleteMessage', { fields: missing.join(', ') }));
       return;
     }
 
     try {
       const age = calculateAge(form.date_of_birth);
       if (age < 0) {
-        Alert.alert('Data inválida', 'A data de nascimento não pode estar no futuro.');
+        Alert.alert(t('profile.errors.invalidDobTitle'), t('profile.errors.invalidDobMessage'));
         return;
       }
 
       if (age < 13 || age > 100) {
-        Alert.alert('Aviso', `Idade calculada: ${age} anos. Revise os dados se necessário.`);
+        Alert.alert(t('profile.errors.ageWarningTitle'), t('profile.errors.ageWarningMessage', { age }));
       }
 
       const bmr = calculateBMR({
@@ -366,11 +379,11 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
       }));
 
       Alert.alert(
-        'Sugestão calculada',
-        `TMB: ${Math.round(bmr)} kcal · TDEE: ${Math.round(tdee)} kcal · Meta: ${target} kcal\nMacros: ${macros.protein_g}g P / ${macros.carbs_g}g C / ${macros.fat_g}g G`,
+        t('profile.calcResultTitle'),
+        t('profile.calcResult', { bmr: Math.round(bmr), tdee: Math.round(tdee), target, protein: macros.protein_g, carbs: macros.carbs_g, fat: macros.fat_g }),
       );
     } catch (error: any) {
-      Alert.alert('Não foi possível calcular', error?.message ?? 'Verifique os dados preenchidos.');
+      Alert.alert(t('profile.errors.calcErrorTitle'), error?.message ?? t('profile.errors.calcErrorDefault'));
     }
   };
 
@@ -398,18 +411,18 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
     setSaving(false);
 
     if (error) {
-      Alert.alert('Erro', error.message);
+      Alert.alert(t('profile.errors.saveErrorTitle'), error.message);
       return;
     }
 
     await refetchProfile();
-    Alert.alert('Salvo', 'Perfil atualizado com sucesso.');
+    Alert.alert(t('profile.errors.saveSuccess'), t('profile.errors.saveSuccessMessage'));
   }
 
   async function handlePickPhoto() {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
-      Alert.alert('Permissão negada', 'Precisamos de acesso à galeria para trocar a foto.');
+      Alert.alert(t('profile.errors.photoPermissionTitle'), t('profile.errors.photoPermissionMessage'));
       return;
     }
 
@@ -450,11 +463,11 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
       setAvatarSrc(publicUrl);
       await refetchProfile();
     } catch (err: any) {
-      const msg: string = err?.message ?? 'Falha ao enviar foto.';
+      const msg: string = err?.message ?? t('profile.errors.photoErrorDefault');
       if (msg.includes('2097152') || msg.includes('size')) {
-        Alert.alert('Foto muito grande', 'O limite é 2 MB. Escolha uma foto menor.');
+        Alert.alert(t('profile.errors.photoTooLargeTitle'), t('profile.errors.photoTooLargeMessage'));
       } else {
-        Alert.alert('Erro', msg);
+        Alert.alert(t('profile.errors.photoErrorTitle'), msg);
       }
     } finally {
       setUploadingPhoto(false);
@@ -463,10 +476,10 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
 
   async function handleRemovePhoto() {
     if (!profile?.avatar_url) return;
-    Alert.alert('Remover foto', 'Tem certeza que deseja remover a foto de perfil?', [
-      { text: 'Cancelar', style: 'cancel' },
+    Alert.alert(t('profile.removePhotoTitle'), t('profile.removePhotoMessage'), [
+      { text: t('profile.datePickerCancel'), style: 'cancel' },
       {
-        text: 'Remover',
+        text: t('profile.removePhoto'),
         style: 'destructive',
         onPress: async () => {
           setUploadingPhoto(true);
@@ -488,7 +501,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             );
             await refetchProfile();
           } catch (err: any) {
-            Alert.alert('Erro', err?.message ?? 'Falha ao remover foto.');
+            Alert.alert(t('profile.errors.photoErrorTitle'), err?.message ?? t('profile.errors.removePhotoError'));
           } finally {
             setUploadingPhoto(false);
           }
@@ -503,7 +516,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
         <TouchableOpacity onPress={onClose} hitSlop={12} style={ps.backBtn}>
           <Feather name="arrow-left" size={22} color={T.textPrimary} />
         </TouchableOpacity>
-        <Text style={ps.headerTitle}>Perfil</Text>
+        <Text style={ps.headerTitle}>{t('profile.title')}</Text>
         <View style={{ width: 34 }} />
       </View>
 
@@ -515,7 +528,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
           keyboardShouldPersistTaps="handled"
         >
           <View style={ps.card}>
-            <Text style={ps.sectionLabel}>FOTO DE PERFIL</Text>
+            <Text style={ps.sectionLabel}>{t('profile.photoSection')}</Text>
             <View style={ps.photoRow}>
               <View style={ps.avatarWrap}>
                 {uploadingPhoto ? (
@@ -532,7 +545,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                   activeOpacity={0.75}
                 >
                   <Feather name="camera" size={14} color={T.accent} />
-                  <Text style={ps.btnOutlineText}>Trocar foto</Text>
+                  <Text style={ps.btnOutlineText}>{t('profile.changePhoto')}</Text>
                 </TouchableOpacity>
                 {profile?.avatar_url != null && (
                   <TouchableOpacity
@@ -542,7 +555,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                     activeOpacity={0.75}
                   >
                     <Feather name="trash-2" size={14} color={T.danger} />
-                    <Text style={ps.btnDangerText}>Remover</Text>
+                    <Text style={ps.btnDangerText}>{t('profile.removePhoto')}</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -550,29 +563,29 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
           </View>
 
           <View style={ps.card}>
-            <Text style={ps.sectionLabel}>IDENTIDADE</Text>
+            <Text style={ps.sectionLabel}>{t('profile.identitySection')}</Text>
 
-            <Text style={ps.fieldLabel}>Nome</Text>
+            <Text style={ps.fieldLabel}>{t('profile.nameLabel')}</Text>
             <TextInput
               style={ps.input}
               value={form.display_name}
               onChangeText={(v) => setField('display_name', v)}
-              placeholder="Seu nome"
+              placeholder={t('profile.namePlaceholder')}
               placeholderTextColor={T.textFaint}
-              accessibilityLabel="Nome"
+              accessibilityLabel={t('profile.nameLabel')}
             />
 
             <View style={ps.divider} />
 
-            <Text style={ps.fieldLabel}>Data de nascimento</Text>
+            <Text style={ps.fieldLabel}>{t('profile.dobLabel')}</Text>
             <Pressable
               style={ps.inputPressable}
               onPress={openDatePicker}
               accessibilityRole="button"
-              accessibilityLabel="Data de nascimento, toque para selecionar"
+              accessibilityLabel={t('profile.dobLabel')}
             >
               <Text style={[ps.inputPressableText, !form.date_of_birth && ps.inputPlaceholder]}>
-                {formatPtBrDate(form.date_of_birth)}
+                {formatLocaleDate(form.date_of_birth, locale, t('profile.dobPlaceholder'))}
               </Text>
               <Feather name="calendar" size={16} color={T.textTertiary} />
             </Pressable>
@@ -581,24 +594,24 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
               onPress={clearDob}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel="Limpar data de nascimento"
+              accessibilityLabel={t('profile.clearDob')}
             >
-              <Text style={ps.btnGhostSmallText}>Limpar data</Text>
+              <Text style={ps.btnGhostSmallText}>{t('profile.clearDob')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={ps.card}>
-            <Text style={ps.sectionLabel}>FÍSICO</Text>
+            <Text style={ps.sectionLabel}>{t('profile.physicalSection')}</Text>
 
-            <Text style={ps.fieldLabel}>Gênero</Text>
+            <Text style={ps.fieldLabel}>{t('profile.genderLabel')}</Text>
             <OptionList
               value={form.gender}
               onChange={(v) => setField('gender', v)}
               options={[
-                { value: 'male', label: 'Masculino' },
-                { value: 'female', label: 'Feminino' },
-                { value: 'other', label: 'Outro' },
-                { value: 'prefer_not', label: 'Prefiro não informar' },
+                { value: 'male', label: t('profile.genderMale') },
+                { value: 'female', label: t('profile.genderFemale') },
+                { value: 'other', label: t('profile.genderOther') },
+                { value: 'prefer_not', label: t('profile.genderPreferNot') },
               ]}
             />
 
@@ -606,139 +619,154 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
 
             <View style={ps.twoCol}>
               <View style={ps.colItem}>
-                <Text style={ps.fieldLabel}>Altura (cm)</Text>
+                <Text style={ps.fieldLabel}>{t('profile.heightLabel')}</Text>
                 <TextInput
                   style={ps.input}
                   value={form.height_cm}
                   onChangeText={(v) => setField('height_cm', v)}
-                  placeholder="170"
+                  placeholder={t('profile.heightPlaceholder')}
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
-                  accessibilityLabel="Altura em centímetros"
+                  accessibilityLabel={t('profile.heightLabel')}
                 />
               </View>
               <View style={ps.colItem}>
-                <Text style={ps.fieldLabel}>Peso (kg)</Text>
+                <Text style={ps.fieldLabel}>{t('profile.weightLabel')}</Text>
                 <TextInput
                   style={ps.input}
                   value={form.weight_kg}
                   onChangeText={(v) => setField('weight_kg', v)}
-                  placeholder="70"
+                  placeholder={t('profile.weightPlaceholder')}
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
-                  accessibilityLabel="Peso em quilogramas"
+                  accessibilityLabel={t('profile.weightLabel')}
                 />
               </View>
             </View>
 
             <View style={ps.divider} />
 
-            <Text style={ps.fieldLabel}>Nível de atividade</Text>
+            <Text style={ps.fieldLabel}>{t('profile.activityLabel')}</Text>
             <OptionList
               value={form.activity_level}
               onChange={(v) => setField('activity_level', v)}
               options={[
-                { value: 'sedentary', label: 'Sedentário', description: 'Pouco ou nenhum exercício' },
-                { value: 'light', label: 'Leve', description: '1–3 dias por semana' },
-                { value: 'moderate', label: 'Moderado', description: '3–5 dias por semana' },
-                { value: 'active', label: 'Ativo', description: '6–7 dias por semana' },
-                { value: 'very_active', label: 'Muito ativo', description: '2× por dia ou trabalho físico' },
+                { value: 'sedentary', label: t('profile.activitySedentary'), description: t('profile.activitySedentaryDesc') },
+                { value: 'light', label: t('profile.activityLight'), description: t('profile.activityLightDesc') },
+                { value: 'moderate', label: t('profile.activityModerate'), description: t('profile.activityModerateDesc') },
+                { value: 'active', label: t('profile.activityActive'), description: t('profile.activityActiveDesc') },
+                { value: 'very_active', label: t('profile.activityVeryActive'), description: t('profile.activityVeryActiveDesc') },
               ]}
             />
 
             <View style={ps.divider} />
 
-            <Text style={ps.fieldLabel}>Objetivo</Text>
+            <Text style={ps.fieldLabel}>{t('profile.goalLabel')}</Text>
             <SegmentedField
               value={form.goal}
               onChange={(v) => setField('goal', v)}
               options={[
-                { value: 'lose', label: 'Perder' },
-                { value: 'maintain', label: 'Manter' },
-                { value: 'gain', label: 'Ganhar' },
+                { value: 'lose', label: t('profile.goalLose') },
+                { value: 'maintain', label: t('profile.goalMaintain') },
+                { value: 'gain', label: t('profile.goalGain') },
               ]}
             />
           </View>
 
           <View style={ps.card}>
-            <Text style={ps.sectionLabel}>METAS CALÓRICAS</Text>
+            <Text style={ps.sectionLabel}>{t('profile.caloriesSection')}</Text>
 
             <TouchableOpacity
               style={ps.btnGhost}
               onPress={handleCalculateSuggestion}
               activeOpacity={0.75}
               accessibilityRole="button"
-              accessibilityLabel="Calcular sugestão de metas calóricas e macronutrientes"
+              accessibilityLabel={t('profile.calcSuggestion')}
             >
               <Feather name="zap" size={14} color={T.accent} />
-              <Text style={ps.btnGhostText}>Calcular sugestão</Text>
+              <Text style={ps.btnGhostText}>{t('profile.calcSuggestion')}</Text>
             </TouchableOpacity>
-            <Text style={ps.microcopy}>
-              Calculado por Mifflin-St Jeor. Você pode ajustar manualmente abaixo.
-            </Text>
+            <Text style={ps.microcopy}>{t('profile.calcNote')}</Text>
 
-            <Text style={ps.fieldLabel}>Calorias diárias (kcal)</Text>
+            <Text style={ps.fieldLabel}>{t('profile.caloriesLabel')}</Text>
             <TextInput
               style={ps.input}
               value={form.daily_calorie_target}
               onChangeText={(v) => setField('daily_calorie_target', v)}
-              placeholder="2000"
+              placeholder={t('profile.caloriesPlaceholder')}
               placeholderTextColor={T.textFaint}
               keyboardType="numeric"
-              accessibilityLabel="Meta de calorias diárias"
+              accessibilityLabel={t('profile.caloriesLabel')}
             />
 
             <View style={ps.divider} />
 
             <View style={ps.threeCol}>
               <View style={ps.colItem}>
-                <Text style={ps.fieldLabel}>Proteína (g)</Text>
+                <Text style={ps.fieldLabel}>{t('profile.proteinLabel')}</Text>
                 <TextInput
                   style={ps.input}
                   value={form.daily_protein_g}
                   onChangeText={(v) => setField('daily_protein_g', v)}
-                  placeholder="150"
+                  placeholder={t('profile.proteinPlaceholder')}
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
-                  accessibilityLabel="Meta de proteína em gramas"
+                  accessibilityLabel={t('profile.proteinLabel')}
                 />
               </View>
               <View style={ps.colItem}>
-                <Text style={ps.fieldLabel}>Carboidratos (g)</Text>
+                <Text style={ps.fieldLabel}>{t('profile.carbsLabel')}</Text>
                 <TextInput
                   style={ps.input}
                   value={form.daily_carbs_g}
                   onChangeText={(v) => setField('daily_carbs_g', v)}
-                  placeholder="200"
+                  placeholder={t('profile.carbsPlaceholder')}
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
-                  accessibilityLabel="Meta de carboidratos em gramas"
+                  accessibilityLabel={t('profile.carbsLabel')}
                 />
               </View>
               <View style={ps.colItem}>
-                <Text style={ps.fieldLabel}>Gordura (g)</Text>
+                <Text style={ps.fieldLabel}>{t('profile.fatLabel')}</Text>
                 <TextInput
                   style={ps.input}
                   value={form.daily_fat_g}
                   onChangeText={(v) => setField('daily_fat_g', v)}
-                  placeholder="65"
+                  placeholder={t('profile.fatPlaceholder')}
                   placeholderTextColor={T.textFaint}
                   keyboardType="numeric"
-                  accessibilityLabel="Meta de gordura em gramas"
+                  accessibilityLabel={t('profile.fatLabel')}
                 />
               </View>
             </View>
           </View>
 
           <View style={ps.card}>
-            <Text style={ps.sectionLabel}>APARÊNCIA</Text>
+            <Text style={ps.sectionLabel}>{t('profile.appearanceSection')}</Text>
             <SegmentedField
               value={themePreference}
               onChange={(v) => setThemePreference(v as ThemePreference)}
               options={[
-                { value: 'system', label: 'Sistema' },
-                { value: 'light', label: 'Claro' },
-                { value: 'dark', label: 'Escuro' },
+                { value: 'system', label: t('profile.themeSystem') },
+                { value: 'light', label: t('profile.themeLight') },
+                { value: 'dark', label: t('profile.themeDark') },
+              ]}
+            />
+          </View>
+
+          <View style={ps.card}>
+            <Text style={ps.sectionLabel}>{t('common.language')}</Text>
+            <SegmentedField
+              value={languagePreference}
+              onChange={async (v) => {
+                const next = v as LanguagePreference;
+                setLanguagePreferenceState(next);
+                await setLanguagePreference(next);
+              }}
+              options={[
+                { value: 'auto', label: t('common.auto') },
+                { value: 'pt', label: t('common.portuguese') },
+                { value: 'en', label: t('common.english') },
               ]}
             />
           </View>
@@ -749,7 +777,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             disabled={saving}
             activeOpacity={0.85}
           >
-            {saving ? <ActivityIndicator color={T.onAccent} size="small" /> : <Text style={ps.btnSaveText}>SALVAR ALTERAÇÕES</Text>}
+            {saving ? <ActivityIndicator color={T.onAccent} size="small" /> : <Text style={ps.btnSaveText}>{t('profile.saveBtn')}</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -769,11 +797,11 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
         <View style={ps.modalBackdrop}>
           <View style={ps.modalCard}>
             <View style={ps.modalHeader}>
-              <TouchableOpacity onPress={() => setShowDatePicker(false)} accessibilityLabel="Cancelar seleção de data">
-                <Text style={ps.modalHeaderBtn}>Cancelar</Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)} accessibilityLabel={t('profile.datePickerCancel')}>
+                <Text style={ps.modalHeaderBtn}>{t('profile.datePickerCancel')}</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={confirmIOSDate} accessibilityLabel="Confirmar seleção de data">
-                <Text style={ps.modalHeaderBtn}>Confirmar</Text>
+              <TouchableOpacity onPress={confirmIOSDate} accessibilityLabel={t('profile.datePickerConfirm')}>
+                <Text style={ps.modalHeaderBtn}>{t('profile.datePickerConfirm')}</Text>
               </TouchableOpacity>
             </View>
             <DateTimePicker
@@ -783,7 +811,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
               maximumDate={today}
               minimumDate={MIN_DOB}
               onChange={handleDateChange}
-              locale="pt-BR"
+              locale={locale}
             />
           </View>
         </View>

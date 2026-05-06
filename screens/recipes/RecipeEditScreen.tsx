@@ -13,6 +13,7 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 
@@ -39,6 +40,7 @@ function round1(n: number): number {
 
 export default function RecipeEditScreen({ session, recipeId, onClose }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const ss = useMemo(() => makeStyles(T), [T]);
   const [name, setName] = useState('');
   const [isFavorite, setIsFavorite] = useState(false);
@@ -175,7 +177,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
       if (bulkErr) throw bulkErr;
       onClose();
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao salvar');
+      setError(e?.message ?? t('recipes.common.errorSave'));
       setSaving(false);
     }
   }
@@ -183,12 +185,12 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
   function handleDelete() {
     if (!recipeId) return;
     Alert.alert(
-      'Apagar receita',
-      'Esta ação não pode ser desfeita.',
+      t('recipes.edit.deleteTitle'),
+      t('recipes.edit.deleteMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('recipes.common.cancel'), style: 'cancel' },
         {
-          text: 'Apagar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setDeleting(true);
@@ -208,7 +210,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
   if (loading) {
     return (
       <View style={ss.centered}>
-        <Text style={ss.bodyText}>Carregando...</Text>
+        <Text style={ss.bodyText}>{t('recipes.edit.loading')}</Text>
       </View>
     );
   }
@@ -221,10 +223,10 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
       {/* ── Header ── */}
       <View style={ss.header}>
         <TouchableOpacity onPress={onClose} hitSlop={12} style={ss.cancelBtn}>
-          <Text style={ss.cancelText}>Cancelar</Text>
+          <Text style={ss.cancelText}>{t('recipes.common.cancel')}</Text>
         </TouchableOpacity>
         <Text style={ss.headerTitle}>
-          {recipeId ? 'Editar receita' : 'Nova receita'}
+          {recipeId ? t('recipes.edit.titleEdit') : t('recipes.edit.titleNew')}
         </Text>
         <View style={ss.headerRight} />
       </View>
@@ -235,12 +237,12 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
         keyboardShouldPersistTaps="handled"
       >
         {/* ── Nome ── */}
-        <Text style={ss.fieldLabel}>NOME DA RECEITA</Text>
+        <Text style={ss.fieldLabel}>{t('recipes.edit.nameLabel')}</Text>
         <TextInput
           style={ss.nameInput}
           value={name}
           onChangeText={setName}
-          placeholder="Ex: Café da manhã padrão"
+          placeholder={t('recipes.edit.namePlaceholder')}
           placeholderTextColor={T.textFaint}
           autoCorrect={false}
         />
@@ -252,21 +254,21 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
           activeOpacity={0.7}
         >
           <Text style={ss.favoriteStar}>{isFavorite ? '⭐' : '☆'}</Text>
-          <Text style={ss.favoriteLabel}>Favorita</Text>
+          <Text style={ss.favoriteLabel}>{t('recipes.edit.favorite')}</Text>
         </TouchableOpacity>
 
         <View style={ss.divider} />
 
         {/* ── Itens ── */}
         <View style={ss.itemsHeader}>
-          <Text style={ss.sectionTitle}>Itens</Text>
+          <Text style={ss.sectionTitle}>{t('recipes.edit.itemsTitle')}</Text>
           <Text style={ss.itemsMeta}>
-            {items.length} {items.length === 1 ? 'item' : 'itens'} · {Math.round(totalKcal)} kcal
+            {t('recipes.common.itemCount', { count: items.length })} · {Math.round(totalKcal)} kcal
           </Text>
         </View>
 
         {items.length === 0 ? (
-          <Text style={ss.emptyText}>Nenhum item ainda. Adicione o primeiro abaixo.</Text>
+          <Text style={ss.emptyText}>{t('recipes.edit.empty')}</Text>
         ) : (
           items.map(item => (
             <TouchableOpacity
@@ -295,7 +297,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
         )}
 
         <TouchableOpacity style={ss.addItemBtn} onPress={openNewItem} activeOpacity={0.75}>
-          <Text style={ss.addItemBtnText}>+ Adicionar item</Text>
+          <Text style={ss.addItemBtnText}>{t('recipes.edit.addItem')}</Text>
         </TouchableOpacity>
 
         {error != null && <Text style={ss.errorText}>{error}</Text>}
@@ -308,7 +310,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
           activeOpacity={0.85}
         >
           <Text style={ss.saveBtnText}>
-            {saving ? 'Salvando...' : 'Salvar receita'}
+            {saving ? t('recipes.common.saving') : t('recipes.edit.save')}
           </Text>
         </TouchableOpacity>
 
@@ -321,7 +323,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
             activeOpacity={0.85}
           >
             <Text style={ss.deleteBtnText}>
-              {deleting ? 'Apagando...' : 'Apagar receita'}
+              {deleting ? t('recipes.common.deleting') : t('recipes.edit.delete')}
             </Text>
           </TouchableOpacity>
         )}
@@ -343,23 +345,23 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
             <View style={ss.modalPanel}>
               <Text style={ss.modalTitle}>
                 {editingItem && items.some(i => i.localId === editingItem.localId)
-                  ? 'Editar item'
-                  : 'Adicionar item'}
+                  ? t('recipes.edit.item.titleEdit')
+                  : t('recipes.edit.item.titleNew')}
               </Text>
 
-              <Text style={ss.fieldLabel}>NOME</Text>
+              <Text style={ss.fieldLabel}>{t('recipes.edit.item.nameLabel')}</Text>
               <TextInput
                 style={ss.input}
                 value={formName}
                 onChangeText={setFormName}
-                placeholder="Ex: Frango grelhado"
+                placeholder={t('recipes.edit.item.namePlaceholder')}
                 placeholderTextColor={T.textFaint}
                 autoCorrect={false}
               />
 
               <View style={ss.inputRow}>
                 <View style={ss.inputHalf}>
-                  <Text style={ss.fieldLabel}>QUANTIDADE (G)</Text>
+                  <Text style={ss.fieldLabel}>{t('recipes.edit.item.qtyLabel')}</Text>
                   <TextInput
                     style={ss.input}
                     value={formQty}
@@ -370,7 +372,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
                   />
                 </View>
                 <View style={ss.inputHalf}>
-                  <Text style={ss.fieldLabel}>CALORIAS</Text>
+                  <Text style={ss.fieldLabel}>{t('recipes.edit.item.calLabel')}</Text>
                   <TextInput
                     style={ss.input}
                     value={formCal}
@@ -384,7 +386,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
 
               <View style={ss.inputRow}>
                 <View style={ss.inputThird}>
-                  <Text style={ss.fieldLabel}>PROTEÍNA (G)</Text>
+                  <Text style={ss.fieldLabel}>{t('recipes.edit.item.proteinLabel')}</Text>
                   <TextInput
                     style={ss.input}
                     value={formProtein}
@@ -395,7 +397,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
                   />
                 </View>
                 <View style={ss.inputThird}>
-                  <Text style={ss.fieldLabel}>CARBO (G)</Text>
+                  <Text style={ss.fieldLabel}>{t('recipes.edit.item.carbsLabel')}</Text>
                   <TextInput
                     style={ss.input}
                     value={formCarbs}
@@ -406,7 +408,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
                   />
                 </View>
                 <View style={ss.inputThird}>
-                  <Text style={ss.fieldLabel}>GORDURA (G)</Text>
+                  <Text style={ss.fieldLabel}>{t('recipes.edit.item.fatLabel')}</Text>
                   <TextInput
                     style={ss.input}
                     value={formFat}
@@ -424,7 +426,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
                   onPress={() => setEditingItem(null)}
                   activeOpacity={0.7}
                 >
-                  <Text style={ss.modalCancelText}>Cancelar</Text>
+                  <Text style={ss.modalCancelText}>{t('recipes.common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[ss.modalSaveBtn, !itemFormValid && ss.saveBtnDisabled]}
@@ -432,7 +434,7 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
                   disabled={!itemFormValid}
                   activeOpacity={0.85}
                 >
-                  <Text style={ss.modalSaveText}>Salvar item</Text>
+                  <Text style={ss.modalSaveText}>{t('recipes.edit.item.save')}</Text>
                 </TouchableOpacity>
               </View>
             </View>

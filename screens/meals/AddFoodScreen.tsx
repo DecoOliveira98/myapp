@@ -11,6 +11,7 @@ import {
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { PrefillData } from '../scanner/BarcodeScanScreen';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 
@@ -61,6 +62,7 @@ export default function AddFoodScreen({
   infoMessage,
 }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const isEditing = editingFood !== undefined;
 
@@ -211,19 +213,19 @@ export default function AddFoodScreen({
 
       onSaved();
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao salvar. Tente novamente.');
+      setError(e?.message ?? t('meals.common.errorSaveFallback'));
       setSaving(false);
     }
   }
 
   function handleDelete() {
     Alert.alert(
-      'Apagar item',
-      'Tem certeza? Esta ação não pode ser desfeita.',
+      t('meals.add.deleteTitle'),
+      t('meals.add.deleteMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('meals.common.cancel'), style: 'cancel' },
         {
-          text: 'Apagar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setDeleting(true);
@@ -233,7 +235,7 @@ export default function AddFoodScreen({
               .delete()
               .eq('id', editingFood!.id);
             if (deleteErr) {
-              setError(deleteErr.message ?? 'Erro ao apagar. Tente novamente.');
+              setError(deleteErr.message ?? t('meals.add.errorDelete'));
               setDeleting(false);
             } else {
               onDeleted();
@@ -248,9 +250,9 @@ export default function AddFoodScreen({
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onCancel} hitSlop={8}>
-          <Text style={styles.cancelText}>Cancelar</Text>
+          <Text style={styles.cancelText}>{t('meals.common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{isEditing ? 'Editar item' : 'Adicionar item'}</Text>
+        <Text style={styles.title}>{isEditing ? t('meals.add.titleEdit') : t('meals.add.titleNew')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -267,7 +269,7 @@ export default function AddFoodScreen({
               onPress={() => switchMode('per100')}
             >
               <Text style={[styles.toggleText, mode === 'per100' && styles.toggleTextActive]}>
-                Por 100g
+                {t('meals.add.modePer100')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -275,70 +277,70 @@ export default function AddFoodScreen({
               onPress={() => switchMode('totals')}
             >
               <Text style={[styles.toggleText, mode === 'totals' && styles.toggleTextActive]}>
-                Totais diretos
+                {t('meals.add.modeTotals')}
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
-        <Text style={styles.label}>Nome do alimento</Text>
+        <Text style={styles.label}>{t('meals.add.nameLabel')}</Text>
         <TextInput
           style={styles.input}
           value={name}
           onChangeText={setName}
-          placeholder="Ex: Arroz branco"
+          placeholder={t('meals.add.namePlaceholder')}
           placeholderTextColor={T.textTertiary}
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>Quantidade (g)</Text>
+        <Text style={styles.label}>{t('meals.add.quantityLabel')}</Text>
         <TextInput
           style={styles.input}
           value={quantity}
           onChangeText={setQuantity}
-          placeholder="Ex: 150"
+          placeholder={t('meals.add.quantityPlaceholder')}
           placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Calorias / 100g' : 'Calorias (total)'}
+          {mode === 'per100' ? t('meals.add.calPer100') : t('meals.add.calTotal')}
         </Text>
         <TextInput
           style={styles.input}
           value={cal}
           onChangeText={setCal}
-          placeholder="Ex: 130"
+          placeholder="0"
           placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Proteína / 100g' : 'Proteína (g total)'}
+          {mode === 'per100' ? t('meals.add.proteinPer100') : t('meals.add.proteinTotal')}
         </Text>
         <TextInput
           style={styles.input}
           value={protein}
           onChangeText={setProtein}
-          placeholder="Ex: 2,7"
+          placeholder="0"
           placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Carbo / 100g' : 'Carbo (g total)'}
+          {mode === 'per100' ? t('meals.add.carbsPer100') : t('meals.add.carbsTotal')}
         </Text>
         <TextInput
           style={styles.input}
           value={carbs}
           onChangeText={setCarbs}
-          placeholder="Ex: 28"
+          placeholder="0"
           placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Gordura / 100g' : 'Gordura (g total)'}
+          {mode === 'per100' ? t('meals.add.fatPer100') : t('meals.add.fatTotal')}
         </Text>
         <TextInput
           style={styles.input}
@@ -362,7 +364,7 @@ export default function AddFoodScreen({
           onPress={handleSave}
           disabled={!canSave}
         >
-          <Text style={styles.saveBtnText}>{saving ? 'Salvando...' : 'Salvar'}</Text>
+          <Text style={styles.saveBtnText}>{saving ? t('meals.common.saving') : t('meals.add.save')}</Text>
         </TouchableOpacity>
 
         {isEditing && (
@@ -371,7 +373,7 @@ export default function AddFoodScreen({
             onPress={handleDelete}
             disabled={busy}
           >
-            <Text style={styles.deleteBtnText}>{deleting ? 'Apagando...' : 'Apagar'}</Text>
+            <Text style={styles.deleteBtnText}>{deleting ? t('recipes.common.deleting') : t('common.delete')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>

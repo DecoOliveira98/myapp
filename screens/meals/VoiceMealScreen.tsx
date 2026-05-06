@@ -12,6 +12,7 @@ import { Session } from '@supabase/supabase-js';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 
@@ -41,6 +42,7 @@ function round1(n: number): number {
 
 export default function VoiceMealScreen({ session, mealType, date, onCancel, onSaved }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
   const [recording, setRecording] = useState(false);
@@ -57,7 +59,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
     try {
       const perm = await Audio.requestPermissionsAsync();
       if (!perm.granted) {
-        setError('Permissão de microfone negada');
+        setError(t('meals.voice.errorPermission'));
         return;
       }
       await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
@@ -65,7 +67,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
       setRecordingObj(recording);
       setRecording(true);
     } catch {
-      setError('Não foi possível iniciar a gravação');
+      setError(t('meals.voice.errorStart'));
     }
   }
 
@@ -77,12 +79,12 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
       const uri = recordingObj.getURI();
       setRecordingObj(null);
       if (!uri) {
-        setError('Áudio não foi salvo');
+        setError(t('meals.voice.errorAudio'));
         return;
       }
       await transcribe(uri);
     } catch {
-      setError('Erro ao finalizar gravação');
+      setError(t('meals.voice.errorStop'));
     }
   }
 
@@ -97,21 +99,21 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
         body: { audio_base64: base64, mime_type: 'audio/m4a', language: 'pt' },
       });
       if (invokeErr) {
-        setError('Erro de conexão na transcrição');
+        setError(t('meals.voice.errorTranscribe'));
         return;
       }
       if ((data as any).error) {
-        setError('A transcrição falhou. Tente de novo.');
+        setError(t('meals.voice.errorTranscribeFailed'));
         return;
       }
       const transcribed = (data as any).text as string;
       if (!transcribed?.trim()) {
-        setError('Não consegui entender o áudio. Fale mais alto e claro.');
+        setError(t('meals.voice.errorInaudible'));
         return;
       }
       setText(transcribed.trim());
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao transcrever');
+      setError(e?.message ?? t('meals.voice.errorTranscribeGeneric'));
     } finally {
       setTranscribing(false);
     }
@@ -126,18 +128,18 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
     });
 
     if (invokeErr) {
-      setError('Erro de conexão. Tente de novo.');
+      setError(t('meals.common.errorConnection'));
       setParsing(false);
       return;
     }
     if ((data as any).error) {
-      setError('A IA não conseguiu estruturar. Tente reescrever.');
+      setError(t('meals.voice.errorAI'));
       setParsing(false);
       return;
     }
     const parsed = (data as any).items as ParsedItem[];
     if (!parsed || parsed.length === 0) {
-      setError('Nenhum alimento identificado. Reescreva a descrição.');
+      setError(t('meals.common.errorNoFood'));
       setParsing(false);
       return;
     }
@@ -189,7 +191,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
 
       onSaved();
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao salvar.');
+      setError(e?.message ?? t('meals.common.errorSave'));
       setSaving(false);
     }
   }
@@ -200,14 +202,14 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
       <View style={styles.screen}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setItems(null)} hitSlop={8}>
-            <Text style={styles.cancelText}>← Voltar</Text>
+            <Text style={styles.cancelText}>{t('meals.common.back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Confira antes de salvar</Text>
+          <Text style={styles.title}>{t('meals.common.confirmTitle')}</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={styles.subtitle}>
-            Vou adicionar {items.length} {items.length === 1 ? 'item' : 'itens'}. Você pode ajustar valores depois tocando em cada item da lista.
+            {t('meals.common.confirmSubtitle', { count: items.length })}
           </Text>
 
           {items.map((item, i) => (
@@ -216,7 +218,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
               <Text style={styles.itemMeta}>{item.quantity_g}g · {item.calories} kcal</Text>
               <Text style={styles.itemMacros}>{item.protein_g}p · {item.carbs_g}c · {item.fat_g}g</Text>
               {item.confidence === 'low' && (
-                <Text style={styles.lowConfidence}>⚠ Estimativa imprecisa — descreva com mais detalhe se preferir</Text>
+                <Text style={styles.lowConfidence}>{t('meals.common.lowConfidence')}</Text>
               )}
             </View>
           ))}
@@ -228,7 +230,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
             onPress={handleSave}
             disabled={saving}
           >
-            <Text style={styles.actionBtnText}>{saving ? 'Salvando...' : 'Salvar todos'}</Text>
+            <Text style={styles.actionBtnText}>{saving ? t('meals.common.saving') : t('meals.common.saveAll')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -243,15 +245,13 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onCancel} hitSlop={8}>
-          <Text style={styles.cancelText}>Cancelar</Text>
+          <Text style={styles.cancelText}>{t('meals.common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Falar refeição</Text>
+        <Text style={styles.title}>{t('meals.voice.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text style={styles.subtitle}>
-          Aperte e fale o que comeu. Solte quando terminar.
-        </Text>
+        <Text style={styles.subtitle}>{t('meals.voice.subtitle')}</Text>
 
         <View style={styles.micContainer}>
           <TouchableOpacity
@@ -272,14 +272,14 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
             )}
           </TouchableOpacity>
           <Text style={styles.micLabel}>
-            {transcribing ? 'Transcrevendo...' : recording ? 'Soltar' : 'Pressionar'}
+            {transcribing ? t('meals.voice.transcribing') : recording ? t('meals.voice.releaseBtn') : t('meals.voice.pressBtn')}
           </Text>
         </View>
 
         {text !== '' && (
           <View style={styles.transcriptBox}>
-            <Text style={styles.transcriptLabel}>Texto transcrito</Text>
-            <Text style={styles.transcriptHint}>Você pode editar antes de estruturar.</Text>
+            <Text style={styles.transcriptLabel}>{t('meals.voice.transcriptLabel')}</Text>
+            <Text style={styles.transcriptHint}>{t('meals.voice.transcriptHint')}</Text>
             <TextInput
               style={styles.textArea}
               value={text}
@@ -298,7 +298,7 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
           onPress={handleStructure}
           disabled={!canStructure}
         >
-          <Text style={styles.actionBtnText}>{parsing ? 'Estruturando...' : 'Estruturar com IA'}</Text>
+          <Text style={styles.actionBtnText}>{parsing ? t('meals.common.structuring') : t('meals.common.structureAI')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

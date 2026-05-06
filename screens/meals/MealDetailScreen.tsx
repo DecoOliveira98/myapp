@@ -16,6 +16,7 @@ import DescribeMealScreen from './DescribeMealScreen';
 import PhotoMealScreen from './PhotoMealScreen';
 import VoiceMealScreen from './VoiceMealScreen';
 import ApplyRecipeScreen from '../recipes/ApplyRecipeScreen';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 
@@ -53,6 +54,7 @@ type ScreenState = 'loading' | 'error' | 'ready';
 
 export default function MealDetailScreen({ session, mealType, mealLabel, date, onClose }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [state, setState] = useState<ScreenState>('loading');
   const [foods, setFoods] = useState<FoodItem[]>([]);
@@ -111,7 +113,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
         onCancel={() => setFormMode(null)}
         onProductFound={(data) => setFormMode({ kind: 'add', prefill: data })}
         onProductNotFound={(barcode) =>
-          setFormMode({ kind: 'add', infoMessage: `Produto ${barcode} não encontrado. Adicione manualmente.` })
+          setFormMode({ kind: 'add', infoMessage: t('meals.add.productNotFound', { barcode }) })
         }
       />
     );
@@ -192,7 +194,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   if (state === 'error') {
     return (
       <View style={styles.centered}>
-        <Text style={styles.secondaryText}>Erro ao carregar</Text>
+        <Text style={styles.secondaryText}>{t('meals.detail.error')}</Text>
       </View>
     );
   }
@@ -201,7 +203,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} hitSlop={8}>
-          <Text style={styles.backText}>← Voltar</Text>
+          <Text style={styles.backText}>{t('meals.common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{mealLabel}</Text>
       </View>
@@ -212,7 +214,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Nenhum item ainda</Text>
+            <Text style={styles.emptyText}>{t('meals.detail.empty')}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -232,7 +234,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
           style={styles.registerButton}
           onPress={() => setMenuOpen(true)}
         >
-          <Text style={styles.registerButtonText}>Registrar</Text>
+          <Text style={styles.registerButtonText}>{t('meals.detail.register')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -248,61 +250,61 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
           onPress={() => setMenuOpen(false)}
         >
           <View style={styles.sheet} onStartShouldSetResponder={() => true}>
-            <Text style={styles.sheetTitle}>Como registrar?</Text>
+            <Text style={styles.sheetTitle}>{t('meals.detail.howToRegister')}</Text>
 
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'add' }); }}
             >
-              <Text style={styles.sheetOptionLabel}>+ Manual</Text>
-              <Text style={styles.sheetOptionDesc}>Digite os nutrientes</Text>
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.manual')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.manualDesc')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'scan' }); }}
             >
-              <Text style={styles.sheetOptionLabel}>📷 Escanear código</Text>
-              <Text style={styles.sheetOptionDesc}>Lê o barcode e busca os nutrientes</Text>
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.scan')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.scanDesc')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'photo' }); }}
             >
-              <Text style={styles.sheetOptionLabel}>📸 Foto</Text>
-              <Text style={styles.sheetOptionDesc}>Tire ou escolha foto, IA estima</Text>
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.photo')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.photoDesc')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'describe' }); }}
             >
-              <Text style={styles.sheetOptionLabel}>✨ Descrever</Text>
-              <Text style={styles.sheetOptionDesc}>Escreva o que comeu, IA estrutura</Text>
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.describe')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.describeDesc')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'voice' }); }}
             >
-              <Text style={styles.sheetOptionLabel}>🎤 Falar</Text>
-              <Text style={styles.sheetOptionDesc}>Grave e a IA transcreve + estrutura</Text>
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.voice')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.voiceDesc')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'apply_recipe' }); }}
             >
-              <Text style={styles.sheetOptionLabel}>📖 Da receita</Text>
-              <Text style={styles.sheetOptionDesc}>Aplique uma receita salva à refeição</Text>
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.fromRecipe')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.fromRecipeDesc')}</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.sheetCancel}
               onPress={() => setMenuOpen(false)}
             >
-              <Text style={styles.sheetCancelText}>Cancelar</Text>
+              <Text style={styles.sheetCancelText}>{t('meals.common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </TouchableOpacity>

@@ -22,6 +22,7 @@ import ReportScreen from '../reports/ReportScreen';
 import AvatarMenu from '../../components/avatar/AvatarMenu';
 import { useProfile } from '../../hooks/useProfile';
 import ProfileScreen from '../profile/ProfileScreen';
+import { useTranslation } from 'react-i18next';
 
 type Props = { session: Session };
 
@@ -42,7 +43,7 @@ type DailyTotals = {
   byMeal: { breakfast: number; lunch: number; dinner: number; snack: number };
 };
 
-type MealEntry = { type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; label: string };
+type MealEntry = { type: 'breakfast' | 'lunch' | 'dinner' | 'snack'; labelKey: string };
 
 type WeightSummary = {
   current: number | null;
@@ -52,10 +53,10 @@ type WeightSummary = {
 };
 
 const MEALS: MealEntry[] = [
-  { type: 'breakfast', label: 'Café da manhã' },
-  { type: 'lunch', label: 'Almoço' },
-  { type: 'dinner', label: 'Jantar' },
-  { type: 'snack', label: 'Lanche' },
+  { type: 'breakfast', labelKey: 'home.meals.breakfast' },
+  { type: 'lunch', labelKey: 'home.meals.lunch' },
+  { type: 'dinner', labelKey: 'home.meals.dinner' },
+  { type: 'snack', labelKey: 'home.meals.snack' },
 ];
 
 const BAR_MAX_H = 80;
@@ -79,27 +80,17 @@ function isoToDate(iso: string): Date {
   return new Date(y, m - 1, d);
 }
 
-function dayOfWeekPT(iso: string): string {
-  const days = ['Domingo', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
-  return days[isoToDate(iso).getDay()];
+function formatDateLong(date: Date, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(date);
 }
 
-function dayOfWeekShortPT(iso: string): string {
-  return ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][isoToDate(iso).getDay()];
+function dayOfWeekShort(iso: string, locale: string): string {
+  return new Intl.DateTimeFormat(locale, { weekday: 'short' }).format(isoToDate(iso));
 }
 
-function formatDatePT(date: Date): string {
-  const months = [
-    'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
-    'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
-  ];
-  return `${date.getDate()} de ${months[date.getMonth()]}`;
-}
-
-function formatDateShort(iso: string): string {
-  const months = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
-  const [, m, d] = iso.split('-').map(Number);
-  return `${d} ${months[m - 1]}`;
+function formatDateShort(iso: string, locale: string): string {
+  const d = isoToDate(iso);
+  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short' }).format(d);
 }
 
 function formatKcal(n: number): string {
@@ -133,8 +124,10 @@ function getHeadline(
 
 export default function HomeScreen({ session }: Props) {
   const { T } = useTheme();
+  const { t, i18n } = useTranslation();
   const ss = useMemo(() => makeStyles(T), [T]);
 
+  const locale = i18n.language?.startsWith('en') ? 'en-US' : 'pt-BR';
   const todayISO = useMemo(() => isoToday(), []);
   const [selectedDateISO, setSelectedDateISO] = useState(todayISO);
   const [selectedMeal, setSelectedMeal] = useState<MealEntry | null>(null);
@@ -170,7 +163,7 @@ export default function HomeScreen({ session }: Props) {
     session.user.user_metadata?.name ??
     session.user.user_metadata?.full_name ??
     session.user.email ??
-    'User';
+    t('common.noEmail');
 
   const scrollViewRef = useRef<ScrollView>(null);
   const [mealsY, setMealsY] = useState(600);
@@ -323,21 +316,21 @@ export default function HomeScreen({ session }: Props) {
   if (loading) {
     return (
       <View style={ss.centered}>
-        <Text style={[ss.eyebrow, { marginBottom: 0 }]}>Carregando...</Text>
+        <Text style={[ss.eyebrow, { marginBottom: 0 }]}>{t('common.loading')}...</Text>
       </View>
     );
   }
   if (profileError) {
     return (
       <View style={ss.centered}>
-        <Text style={ss.bodyText}>Erro ao carregar perfil</Text>
+        <Text style={ss.bodyText}>{t('home.errors.loadProfile')}</Text>
       </View>
     );
   }
   if (!targets || targets.daily_calorie_target == null) {
     return (
       <View style={ss.centered}>
-        <Text style={ss.bodyText}>Completa o onboarding primeiro</Text>
+        <Text style={ss.bodyText}>{t('home.errors.completeOnboarding')}</Text>
       </View>
     );
   }
@@ -361,7 +354,7 @@ export default function HomeScreen({ session }: Props) {
       <MealDetailScreen
         session={session}
         mealType={selectedMeal.type}
-        mealLabel={selectedMeal.label}
+        mealLabel={t(selectedMeal.labelKey)}
         date={selectedDateISO}
         onClose={() => setSelectedMeal(null)}
       />
@@ -419,7 +412,7 @@ export default function HomeScreen({ session }: Props) {
                 <Text style={ss.navArrow}>←</Text>
               </TouchableOpacity>
               <Text style={ss.eyebrow} numberOfLines={1}>
-                {dayOfWeekPT(selectedDateISO).toUpperCase()} · {formatDatePT(isoToDate(selectedDateISO)).toUpperCase()}
+                {formatDateLong(isoToDate(selectedDateISO), locale).toUpperCase()}
               </Text>
               <TouchableOpacity
                 onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
@@ -441,7 +434,7 @@ export default function HomeScreen({ session }: Props) {
 
           <View style={ss.streakPill}>
             <Animated.View style={[ss.pulseDot, { opacity: pulseAnim }]} />
-            <Text style={ss.streakText}>{streak} dia{streak !== 1 ? 's' : ''}</Text>
+            <Text style={ss.streakText}>{t('home.streakDays', { count: streak })}</Text>
           </View>
         </View>
 
@@ -458,7 +451,7 @@ export default function HomeScreen({ session }: Props) {
               {formatKcal(totals.kcal)}
             </Text>
             <View style={ss.calorieTarget}>
-              <Text style={ss.calorieTargetLabel}>META DIÁRIA</Text>
+              <Text style={ss.calorieTargetLabel}>{t('home.dailyTarget').toUpperCase()}</Text>
               <Text style={ss.calorieTargetNum}>{formatKcal(targets.daily_calorie_target)} kcal</Text>
             </View>
           </View>
@@ -468,9 +461,9 @@ export default function HomeScreen({ session }: Props) {
           </View>
           <View style={ss.progressMeta}>
             <Text style={ss.progressMetaText}>
-              <Text style={ss.progressMetaBold}>{Math.round(progressPct)}%</Text> consumido
+              <Text style={ss.progressMetaBold}>{Math.round(progressPct)}%</Text> {t('home.consumed')}
             </Text>
-            <Text style={ss.progressMetaText}>{formatKcal(remaining)} kcal restantes</Text>
+            <Text style={ss.progressMetaText}>{t('home.kcalRemaining', { value: formatKcal(remaining) })}</Text>
           </View>
 
           <View style={ss.actions}>
@@ -479,14 +472,14 @@ export default function HomeScreen({ session }: Props) {
               onPress={() => setShowMealPicker(v => !v)}
               activeOpacity={0.85}
             >
-              <Text style={ss.btnPrimaryText}>REGISTRAR  ↗</Text>
+              <Text style={ss.btnPrimaryText}>{`${t('home.register').toUpperCase()}  ↗`}</Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={ss.btnGhost}
               onPress={() => scrollViewRef.current?.scrollTo({ y: mealsY, animated: true })}
               activeOpacity={0.75}
             >
-              <Text style={ss.btnGhostText}>VER DETALHES</Text>
+              <Text style={ss.btnGhostText}>{t('home.viewDetails').toUpperCase()}</Text>
             </TouchableOpacity>
           </View>
 
@@ -499,7 +492,7 @@ export default function HomeScreen({ session }: Props) {
                   onPress={() => { setSelectedMeal(meal); setShowMealPicker(false); }}
                   activeOpacity={0.7}
                 >
-                  <Text style={ss.mealPickerBtnText}>{meal.label}</Text>
+                  <Text style={ss.mealPickerBtnText}>{t(meal.labelKey)}</Text>
                 </TouchableOpacity>
               ))}
             </View>
@@ -509,12 +502,12 @@ export default function HomeScreen({ session }: Props) {
         {/* ── Macros ─────────────────────────────────────────────────── */}
         <View style={ss.macrosCard}>
           <View style={ss.macrosHeader}>
-            <Text style={ss.macrosTitle}>Macros</Text>
+            <Text style={ss.macrosTitle}>{t('home.macros')}</Text>
             <Text style={ss.macrosRatio}>{proteinPct}P · {carbsPct}C · {fatPct}G</Text>
           </View>
-          <MacroRow label="Proteína" consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} ss={ss} />
-          <MacroRow label="Carbo" consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor={T.macroCarbs} ss={ss} />
-          <MacroRow label="Gordura" consumed={totals.fat_g} target={targets.daily_fat_g} fillColor={T.macroFat} ss={ss} />
+          <MacroRow label={t('home.macrosProtein')} consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} ss={ss} />
+          <MacroRow label={t('home.macrosCarbs')} consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor={T.macroCarbs} ss={ss} />
+          <MacroRow label={t('home.macrosFat')} consumed={totals.fat_g} target={targets.daily_fat_g} fillColor={T.macroFat} ss={ss} />
         </View>
 
         {/* ── Refeições ──────────────────────────────────────────────── */}
@@ -522,15 +515,15 @@ export default function HomeScreen({ session }: Props) {
           style={ss.sectionHeader}
           onLayout={e => setMealsY(e.nativeEvent.layout.y)}
         >
-          <Text style={ss.sectionTitle}>Refeições de hoje</Text>
-          <Text style={ss.sectionMeta}>{MEALS.length} refeições</Text>
+          <Text style={ss.sectionTitle}>{t('home.todayMeals')}</Text>
+          <Text style={ss.sectionMeta}>{t('home.mealsCount', { count: MEALS.length })}</Text>
         </View>
 
         <View style={ss.mealsGrid}>
           {MEALS.map(meal => (
             <MealCard
               key={meal.type}
-              label={meal.label}
+              label={t(meal.labelKey)}
               kcal={totals.byMeal[meal.type]}
               onPress={() => setSelectedMeal(meal)}
               ss={ss}
@@ -540,13 +533,9 @@ export default function HomeScreen({ session }: Props) {
 
         {/* ── Últimos 7 dias ─────────────────────────────────────────── */}
         <View style={ss.sectionHeader}>
-          <Text style={ss.sectionTitle}>Últimos sete dias</Text>
+          <Text style={ss.sectionTitle}>{t('home.lastSevenDays')}</Text>
           {weekAvgKcal > 0 && (
-            <Text style={ss.sectionMeta}>
-              média{' '}
-              <Text style={ss.accentText}>{formatKcal(weekAvgKcal)}</Text>
-              {' '}kcal
-            </Text>
+            <Text style={ss.sectionMeta}>{t('home.weekAverageKcal', { value: formatKcal(weekAvgKcal) })}</Text>
           )}
         </View>
 
@@ -567,7 +556,7 @@ export default function HomeScreen({ session }: Props) {
                   />
                 </View>
                 <Text style={[ss.weekDayLabel, isThisToday && ss.weekDayLabelToday]}>
-                  {dayOfWeekShortPT(date)}
+                  {dayOfWeekShort(date, locale)}
                 </Text>
                 <Text style={[ss.weekDayNum, isThisToday && ss.weekDayNumToday]}>
                   {dayKcal > 0 ? String(Math.round(dayKcal)) : '—'}
@@ -579,11 +568,11 @@ export default function HomeScreen({ session }: Props) {
 
         {/* ── Peso ───────────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowWeight(true)} activeOpacity={0.7}>
-          <Text style={ss.auxCardLabel}>Peso</Text>
+          <Text style={ss.auxCardLabel}>{t('home.cards.weight')}</Text>
           {weight.current === null ? (
             <>
               <Text style={ss.auxCardValueEmpty}>—</Text>
-              <Text style={ss.auxCardSub}>Toque para registrar</Text>
+              <Text style={ss.auxCardSub}>{t('home.cards.tapToRegister')}</Text>
             </>
           ) : (
             <>
@@ -593,10 +582,14 @@ export default function HomeScreen({ session }: Props) {
               </Text>
               <Text style={ss.auxCardSub}>
                 {weight.diff === null
-                  ? `Primeira pesagem em ${formatDateShort(weight.currentDate!)}`
+                  ? t('home.weight.firstWeighIn', { date: formatDateShort(weight.currentDate!, locale) })
                   : weight.diff === 0
-                    ? `Sem mudança desde ${formatDateShort(weight.firstDate!)}`
-                    : `${weight.diff < 0 ? '↓' : '↑'} ${Math.abs(weight.diff)} kg desde ${formatDateShort(weight.firstDate!)}`}
+                    ? t('home.weight.noChangeSince', { date: formatDateShort(weight.firstDate!, locale) })
+                    : t('home.weight.changeSince', {
+                      direction: weight.diff < 0 ? '↓' : '↑',
+                      value: Math.abs(weight.diff),
+                      date: formatDateShort(weight.firstDate!, locale),
+                    })}
               </Text>
             </>
           )}
@@ -604,46 +597,46 @@ export default function HomeScreen({ session }: Props) {
 
         {/* ── Chat ───────────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
-          <Text style={ss.auxCardLabel}>Assistente IA</Text>
-          <Text style={ss.auxCardSub}>Pergunte sobre refeições, peso ou metas</Text>
+          <Text style={ss.auxCardLabel}>{t('home.cards.aiAssistant')}</Text>
+          <Text style={ss.auxCardSub}>{t('home.cards.askMealsWeightGoals')}</Text>
         </TouchableOpacity>
 
         {/* ── Receitas ───────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipes(true)} activeOpacity={0.7}>
-          <Text style={ss.auxCardLabel}>Receitas</Text>
-          <Text style={ss.auxCardSub}>Crie atalhos pras suas comidas frequentes</Text>
+          <Text style={ss.auxCardLabel}>{t('home.cards.recipes')}</Text>
+          <Text style={ss.auxCardSub}>{t('home.cards.frequentFoodShortcuts')}</Text>
         </TouchableOpacity>
 
         {/* ── Explorar receitas ─────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipeSearch(true)} activeOpacity={0.7}>
-          <Text style={ss.auxCardLabel}>🔎 Explorar receitas</Text>
-          <Text style={ss.auxCardSub}>Buscar receitas no Spoonacular</Text>
+          <Text style={ss.auxCardLabel}>{t('home.cards.exploreRecipes')}</Text>
+          <Text style={ss.auxCardSub}>{t('home.cards.searchSpoonacular')}</Text>
         </TouchableOpacity>
 
         {/* ── Jejum ──────────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowFasting(true)} activeOpacity={0.7}>
-          <Text style={ss.auxCardLabel}>⏱ Jejum</Text>
+          <Text style={ss.auxCardLabel}>{t('home.cards.fasting')}</Text>
           {activeFasting !== null ? (
             <>
               <Text style={ss.auxCardValue}>
-                Jejuando há {fastingH}h {fastingM}min
+                {t('home.fasting.activeFor', { h: fastingH, m: fastingM })}
               </Text>
-              <Text style={ss.auxCardSub}>Toque para encerrar ou ver detalhes</Text>
+              <Text style={ss.auxCardSub}>{t('home.cards.tapToEndOrDetails')}</Text>
             </>
           ) : (
-            <Text style={ss.auxCardSub}>Toque para iniciar</Text>
+            <Text style={ss.auxCardSub}>{t('home.cards.tapToStart')}</Text>
           )}
         </TouchableOpacity>
 
         {/* ── Relatório ──────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowReport(true)} activeOpacity={0.7}>
-          <Text style={ss.auxCardLabel}>📊 Relatório</Text>
-          <Text style={ss.auxCardSub}>Exportar histórico em PDF</Text>
+          <Text style={ss.auxCardLabel}>{t('home.cards.report')}</Text>
+          <Text style={ss.auxCardSub}>{t('home.cards.exportPdf')}</Text>
         </TouchableOpacity>
 
         {/* ── Sair ───────────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.signOutBtn} onPress={handleSignOut} activeOpacity={0.6}>
-          <Text style={ss.signOutText}>Sair</Text>
+          <Text style={ss.signOutText}>{t('common.signOut')}</Text>
         </TouchableOpacity>
 
       </ScrollView>
@@ -697,6 +690,7 @@ function MacroRow({ label, consumed, target, fillColor, ss }: MacroRowProps) {
 type MealCardProps = { label: string; kcal: number; onPress: () => void; ss: Styles };
 
 function MealCard({ label, kcal, onPress, ss }: MealCardProps) {
+  const { t } = useTranslation();
   return (
     <TouchableOpacity style={ss.mealCard} onPress={onPress} activeOpacity={0.75}>
       <View style={ss.mealCardInner}>
@@ -706,10 +700,10 @@ function MealCard({ label, kcal, onPress, ss }: MealCardProps) {
             {kcal > 0 ? (
               <>
                 <Text style={ss.accentText}>{formatKcal(kcal)}</Text>
-                <Text> kcal</Text>
+                <Text> {t('home.kcalUnit')}</Text>
               </>
             ) : (
-              'Vazio'
+              t('home.empty')
             )}
           </Text>
         </View>

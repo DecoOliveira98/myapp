@@ -12,6 +12,7 @@ import { Session } from '@supabase/supabase-js';
 import * as ImagePicker from 'expo-image-picker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 
@@ -41,6 +42,7 @@ function round1(n: number): number {
 
 export default function PhotoMealScreen({ session, mealType, date, onCancel, onSaved }: Props) {
     const { T } = useTheme();
+    const { t } = useTranslation();
     const styles = useMemo(() => makeStyles(T), [T]);
     const [photo, setPhoto] = useState<{ base64: string; mediaType: string; uri: string } | null>(null);
     const [hint, setHint] = useState('');
@@ -58,7 +60,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                 ? await ImagePicker.requestCameraPermissionsAsync()
                 : await ImagePicker.requestMediaLibraryPermissionsAsync();
             if (!perm.granted) {
-                setError(source === 'camera' ? 'Permissão de câmera negada' : 'Permissão de galeria negada');
+                setError(source === 'camera' ? t('meals.photo.errorCamera') : t('meals.photo.errorGallery'));
                 return;
             }
             const result = source === 'camera'
@@ -83,12 +85,12 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                 { compress: 0.7, format: ImageManipulator.SaveFormat.JPEG, base64: true }
             );
             if (!compressed.base64) {
-                setError('Erro ao processar imagem');
+                setError(t('meals.photo.errorProcess'));
                 return;
             }
             setPhoto({ base64: compressed.base64, mediaType: 'image/jpeg', uri: compressed.uri });
         } catch (e: any) {
-            setError(e?.message ?? 'Erro ao escolher foto');
+            setError(e?.message ?? t('meals.photo.errorChoose'));
         } finally {
             setPickingImage(false);
         }
@@ -108,18 +110,18 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
         });
 
         if (invokeErr) {
-            setError('Erro de conexão. Tente de novo.');
+            setError(t('meals.common.errorConnection'));
             setParsing(false);
             return;
         }
         if ((data as any).error) {
-            setError('A IA não conseguiu analisar a foto.');
+            setError(t('meals.photo.errorAI'));
             setParsing(false);
             return;
         }
         const parsed = (data as any).items as ParsedItem[];
         if (!parsed || parsed.length === 0) {
-            setError('Nenhum alimento identificado. Tente outra foto ou adicione manual.');
+            setError(t('meals.photo.errorNoFood'));
             setParsing(false);
             return;
         }
@@ -171,7 +173,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
 
             onSaved();
         } catch (e: any) {
-            setError(e?.message ?? 'Erro ao salvar.');
+            setError(e?.message ?? t('meals.common.errorSave'));
             setSaving(false);
         }
     }
@@ -182,14 +184,14 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
             <View style={styles.screen}>
                 <View style={styles.header}>
                     <TouchableOpacity onPress={() => setItems(null)} hitSlop={8}>
-                        <Text style={styles.cancelText}>← Voltar</Text>
+                        <Text style={styles.cancelText}>{t('meals.common.back')}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.title}>Confira antes de salvar</Text>
+                    <Text style={styles.title}>{t('meals.common.confirmTitle')}</Text>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
                     <Text style={styles.subtitle}>
-                        Vou adicionar {items.length} {items.length === 1 ? 'item' : 'itens'}. Você pode ajustar valores depois tocando em cada item da lista.
+                        {t('meals.common.confirmSubtitle', { count: items.length })}
                     </Text>
 
                     {items.map((item, i) => (
@@ -198,7 +200,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                             <Text style={styles.itemMeta}>{item.quantity_g}g · {item.calories} kcal</Text>
                             <Text style={styles.itemMacros}>{item.protein_g}p · {item.carbs_g}c · {item.fat_g}g</Text>
                             {item.confidence === 'low' && (
-                                <Text style={styles.lowConfidence}>⚠ Estimativa imprecisa — tire outra foto ou ajuste depois</Text>
+                                <Text style={styles.lowConfidence}>{t('meals.common.lowConfidencePhoto')}</Text>
                             )}
                         </View>
                     ))}
@@ -210,7 +212,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                         onPress={handleSave}
                         disabled={saving}
                     >
-                        <Text style={styles.saveBtnText}>{saving ? 'Salvando...' : 'Salvar todos'}</Text>
+                        <Text style={styles.saveBtnText}>{saving ? t('meals.common.saving') : t('meals.common.saveAll')}</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </View>
@@ -230,9 +232,9 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                         }}
                         hitSlop={8}
                     >
-                        <Text style={styles.cancelText}>← Voltar</Text>
+                        <Text style={styles.cancelText}>{t('meals.common.back')}</Text>
                     </TouchableOpacity>
-                    <Text style={styles.title}>Confirmar foto</Text>
+                    <Text style={styles.title}>{t('meals.photo.confirmTitle')}</Text>
                 </View>
 
                 <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -242,12 +244,12 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                         resizeMode="cover"
                     />
 
-                    <Text style={styles.label}>Dica (opcional)</Text>
+                    <Text style={styles.label}>{t('meals.photo.hintLabel')}</Text>
                     <TextInput
                         style={styles.input}
                         value={hint}
                         onChangeText={setHint}
-                        placeholder="Ex: prato de almoço com arroz e feijão"
+                        placeholder={t('meals.photo.hintPlaceholder')}
                         placeholderTextColor={T.textTertiary}
                     />
 
@@ -258,7 +260,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                         onPress={handleParse}
                         disabled={parsing}
                     >
-                        <Text style={styles.saveBtnText}>{parsing ? 'Estruturando...' : 'Estruturar com IA'}</Text>
+                        <Text style={styles.saveBtnText}>{parsing ? t('meals.common.structuring') : t('meals.common.structureAI')}</Text>
                     </TouchableOpacity>
                 </ScrollView>
             </View>
@@ -270,15 +272,13 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
         <View style={styles.screen}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={onCancel} hitSlop={8}>
-                    <Text style={styles.cancelText}>Cancelar</Text>
+                    <Text style={styles.cancelText}>{t('meals.common.cancel')}</Text>
                 </TouchableOpacity>
-                <Text style={styles.title}>Foto da refeição</Text>
+                <Text style={styles.title}>{t('meals.photo.title')}</Text>
             </View>
 
             <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-                <Text style={styles.subtitle}>
-                    Tire uma foto ou escolha da galeria. A IA vai estimar os alimentos.
-                </Text>
+                <Text style={styles.subtitle}>{t('meals.photo.subtitle')}</Text>
 
                 <View style={styles.pickRow}>
                     <TouchableOpacity
@@ -286,7 +286,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                         onPress={() => pickImage('camera')}
                         disabled={pickingImage}
                     >
-                        <Text style={styles.pickBtnText}>📷 Tirar foto</Text>
+                        <Text style={styles.pickBtnText}>{t('meals.photo.takePhoto')}</Text>
                     </TouchableOpacity>
 
                     <TouchableOpacity
@@ -294,7 +294,7 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                         onPress={() => pickImage('gallery')}
                         disabled={pickingImage}
                     >
-                        <Text style={styles.pickBtnText}>🖼 Galeria</Text>
+                        <Text style={styles.pickBtnText}>{t('meals.photo.gallery')}</Text>
                     </TouchableOpacity>
                 </View>
 

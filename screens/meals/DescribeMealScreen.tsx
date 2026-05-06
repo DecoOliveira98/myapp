@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 
@@ -38,6 +39,7 @@ function round1(n: number): number {
 
 export default function DescribeMealScreen({ session, mealType, date, onCancel, onSaved }: Props) {
   const { T } = useTheme();
+  const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const [text, setText] = useState('');
   const [parsing, setParsing] = useState(false);
@@ -54,18 +56,18 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
     });
 
     if (invokeErr) {
-      setError('Erro de conexão. Tente de novo.');
+      setError(t('meals.common.errorConnection'));
       setParsing(false);
       return;
     }
     if ((data as any).error) {
-      setError('A IA não conseguiu estruturar. Tente reescrever.');
+      setError(t('meals.describe.errorAI'));
       setParsing(false);
       return;
     }
     const parsed = (data as any).items as ParsedItem[];
     if (!parsed || parsed.length === 0) {
-      setError('Nenhum alimento identificado. Reescreva a descrição.');
+      setError(t('meals.common.errorNoFood'));
       setParsing(false);
       return;
     }
@@ -117,7 +119,7 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
 
       onSaved();
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao salvar.');
+      setError(e?.message ?? t('meals.common.errorSave'));
       setSaving(false);
     }
   }
@@ -128,14 +130,14 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
       <View style={styles.screen}>
         <View style={styles.header}>
           <TouchableOpacity onPress={() => setItems(null)} hitSlop={8}>
-            <Text style={styles.cancelText}>← Voltar</Text>
+            <Text style={styles.cancelText}>{t('meals.common.back')}</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Confira antes de salvar</Text>
+          <Text style={styles.title}>{t('meals.common.confirmTitle')}</Text>
         </View>
 
         <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
           <Text style={styles.subtitle}>
-            Vou adicionar {items.length} {items.length === 1 ? 'item' : 'itens'}. Você pode ajustar valores depois tocando em cada item da lista.
+            {t('meals.common.confirmSubtitle', { count: items.length })}
           </Text>
 
           {items.map((item, i) => (
@@ -144,7 +146,7 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
               <Text style={styles.itemMeta}>{item.quantity_g}g · {item.calories} kcal</Text>
               <Text style={styles.itemMacros}>{item.protein_g}p · {item.carbs_g}c · {item.fat_g}g</Text>
               {item.confidence === 'low' && (
-                <Text style={styles.lowConfidence}>⚠ Estimativa imprecisa — descreva com mais detalhe se preferir</Text>
+                <Text style={styles.lowConfidence}>{t('meals.common.lowConfidence')}</Text>
               )}
             </View>
           ))}
@@ -156,7 +158,7 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
             onPress={handleSave}
             disabled={saving}
           >
-            <Text style={styles.saveBtnText}>{saving ? 'Salvando...' : 'Salvar todos'}</Text>
+            <Text style={styles.saveBtnText}>{saving ? t('meals.common.saving') : t('meals.common.saveAll')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>
@@ -170,15 +172,13 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onCancel} hitSlop={8}>
-          <Text style={styles.cancelText}>Cancelar</Text>
+          <Text style={styles.cancelText}>{t('meals.common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>Descrever refeição</Text>
+        <Text style={styles.title}>{t('meals.describe.title')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
-        <Text style={styles.subtitle}>
-          Escreva o que você comeu em linguagem natural. Ex: "comi um sanduíche de frango com salada e suco de laranja".
-        </Text>
+        <Text style={styles.subtitle}>{t('meals.describe.subtitle')}</Text>
 
         <TextInput
           style={styles.textArea}
@@ -186,7 +186,7 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
           onChangeText={setText}
           multiline
           numberOfLines={6}
-          placeholder="Descreva aqui..."
+          placeholder={t('meals.describe.placeholder')}
           placeholderTextColor={T.textTertiary}
           autoFocus
           textAlignVertical="top"
@@ -199,7 +199,7 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
           onPress={handleParse}
           disabled={!canParse}
         >
-          <Text style={styles.saveBtnText}>{parsing ? 'Estruturando...' : 'Estruturar com IA'}</Text>
+          <Text style={styles.saveBtnText}>{parsing ? t('meals.common.structuring') : t('meals.common.structureAI')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
