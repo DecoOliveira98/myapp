@@ -30,6 +30,7 @@ import {
   setLanguagePreference,
   type LanguagePreference,
 } from '../../i18n';
+import PressableButton from '../../components/ui/PressableButton';
 import {
   ActivityLevel,
   calculateAge,
@@ -771,14 +772,13 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
             />
           </View>
 
-          <TouchableOpacity
+          <PressableButton
             style={[ps.btnSave, saving && ps.btnSaveDisabled]}
             onPress={handleSave}
             disabled={saving}
-            activeOpacity={0.85}
           >
             {saving ? <ActivityIndicator color={T.onAccent} size="small" /> : <Text style={ps.btnSaveText}>{t('profile.saveBtn')}</Text>}
-          </TouchableOpacity>
+          </PressableButton>
         </ScrollView>
       </KeyboardAvoidingView>
 

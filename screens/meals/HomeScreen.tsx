@@ -23,6 +23,7 @@ import AvatarMenu from '../../components/avatar/AvatarMenu';
 import { useProfile } from '../../hooks/useProfile';
 import ProfileScreen from '../profile/ProfileScreen';
 import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = { session: Session };
 
@@ -467,20 +468,18 @@ export default function HomeScreen({ session }: Props) {
           </View>
 
           <View style={ss.actions}>
-            <TouchableOpacity
+            <PressableButton
               style={ss.btnPrimary}
               onPress={() => setShowMealPicker(v => !v)}
-              activeOpacity={0.85}
             >
               <Text style={ss.btnPrimaryText}>{`${t('home.register').toUpperCase()}  ↗`}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
+            </PressableButton>
+            <PressableButton
               style={ss.btnGhost}
               onPress={() => scrollViewRef.current?.scrollTo({ y: mealsY, animated: true })}
-              activeOpacity={0.75}
             >
               <Text style={ss.btnGhostText}>{t('home.viewDetails').toUpperCase()}</Text>
-            </TouchableOpacity>
+            </PressableButton>
           </View>
 
           {showMealPicker && (
@@ -567,7 +566,7 @@ export default function HomeScreen({ session }: Props) {
         </View>
 
         {/* ── Peso ───────────────────────────────────────────────────── */}
-        <TouchableOpacity style={ss.auxCard} onPress={() => setShowWeight(true)} activeOpacity={0.7}>
+        <PressableButton style={ss.auxCard} onPress={() => setShowWeight(true)}>
           <Text style={ss.auxCardLabel}>{t('home.cards.weight')}</Text>
           {weight.current === null ? (
             <>
@@ -593,28 +592,28 @@ export default function HomeScreen({ session }: Props) {
               </Text>
             </>
           )}
-        </TouchableOpacity>
+        </PressableButton>
 
         {/* ── Chat ───────────────────────────────────────────────────── */}
-        <TouchableOpacity style={ss.auxCard} onPress={() => setShowChat(true)} activeOpacity={0.7}>
+        <PressableButton style={ss.auxCard} onPress={() => setShowChat(true)}>
           <Text style={ss.auxCardLabel}>{t('home.cards.aiAssistant')}</Text>
           <Text style={ss.auxCardSub}>{t('home.cards.askMealsWeightGoals')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {/* ── Receitas ───────────────────────────────────────────────── */}
-        <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipes(true)} activeOpacity={0.7}>
+        <PressableButton style={ss.auxCard} onPress={() => setShowRecipes(true)}>
           <Text style={ss.auxCardLabel}>{t('home.cards.recipes')}</Text>
           <Text style={ss.auxCardSub}>{t('home.cards.frequentFoodShortcuts')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {/* ── Explorar receitas ─────────────────────────────────────── */}
-        <TouchableOpacity style={ss.auxCard} onPress={() => setShowRecipeSearch(true)} activeOpacity={0.7}>
+        <PressableButton style={ss.auxCard} onPress={() => setShowRecipeSearch(true)}>
           <Text style={ss.auxCardLabel}>{t('home.cards.exploreRecipes')}</Text>
           <Text style={ss.auxCardSub}>{t('home.cards.searchSpoonacular')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {/* ── Jejum ──────────────────────────────────────────────────── */}
-        <TouchableOpacity style={ss.auxCard} onPress={() => setShowFasting(true)} activeOpacity={0.7}>
+        <PressableButton style={ss.auxCard} onPress={() => setShowFasting(true)}>
           <Text style={ss.auxCardLabel}>{t('home.cards.fasting')}</Text>
           {activeFasting !== null ? (
             <>
@@ -626,7 +625,7 @@ export default function HomeScreen({ session }: Props) {
           ) : (
             <Text style={ss.auxCardSub}>{t('home.cards.tapToStart')}</Text>
           )}
-        </TouchableOpacity>
+        </PressableButton>
 
         {/* ── Relatório ──────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.auxCard} onPress={() => setShowReport(true)} activeOpacity={0.7}>

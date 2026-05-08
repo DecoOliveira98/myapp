@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import RecipeEditScreen from './RecipeEditScreen';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -157,13 +158,12 @@ export default function RecipesListScreen({ session, onClose }: Props) {
       )}
 
       {/* ── Fixed bottom button ── */}
-      <TouchableOpacity
+      <PressableButton
         style={ss.newBtn}
         onPress={() => setEditing({ recipeId: null })}
-        activeOpacity={0.85}
       >
         <Text style={ss.newBtnText}>{t('recipes.list.newRecipe')}</Text>
-      </TouchableOpacity>
+      </PressableButton>
 
     </View>
   );

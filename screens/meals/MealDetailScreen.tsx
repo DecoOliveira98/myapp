@@ -19,6 +19,7 @@ import ApplyRecipeScreen from '../recipes/ApplyRecipeScreen';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -230,12 +231,12 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
       />
 
       <View style={styles.footer}>
-        <TouchableOpacity
+        <PressableButton
           style={styles.registerButton}
           onPress={() => setMenuOpen(true)}
         >
           <Text style={styles.registerButtonText}>{t('meals.detail.register')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
       </View>
 
       <Modal
@@ -252,53 +253,53 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
           <View style={styles.sheet} onStartShouldSetResponder={() => true}>
             <Text style={styles.sheetTitle}>{t('meals.detail.howToRegister')}</Text>
 
-            <TouchableOpacity
+            <PressableButton
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'add' }); }}
             >
               <Text style={styles.sheetOptionLabel}>{t('meals.detail.manual')}</Text>
               <Text style={styles.sheetOptionDesc}>{t('meals.detail.manualDesc')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
 
-            <TouchableOpacity
+            <PressableButton
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'scan' }); }}
             >
               <Text style={styles.sheetOptionLabel}>{t('meals.detail.scan')}</Text>
               <Text style={styles.sheetOptionDesc}>{t('meals.detail.scanDesc')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
 
-            <TouchableOpacity
+            <PressableButton
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'photo' }); }}
             >
               <Text style={styles.sheetOptionLabel}>{t('meals.detail.photo')}</Text>
               <Text style={styles.sheetOptionDesc}>{t('meals.detail.photoDesc')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
 
-            <TouchableOpacity
+            <PressableButton
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'describe' }); }}
             >
               <Text style={styles.sheetOptionLabel}>{t('meals.detail.describe')}</Text>
               <Text style={styles.sheetOptionDesc}>{t('meals.detail.describeDesc')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
 
-            <TouchableOpacity
+            <PressableButton
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'voice' }); }}
             >
               <Text style={styles.sheetOptionLabel}>{t('meals.detail.voice')}</Text>
               <Text style={styles.sheetOptionDesc}>{t('meals.detail.voiceDesc')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
 
-            <TouchableOpacity
+            <PressableButton
               style={styles.sheetOption}
               onPress={() => { setMenuOpen(false); setFormMode({ kind: 'apply_recipe' }); }}
             >
               <Text style={styles.sheetOptionLabel}>{t('meals.detail.fromRecipe')}</Text>
               <Text style={styles.sheetOptionDesc}>{t('meals.detail.fromRecipeDesc')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
 
             <TouchableOpacity
               style={styles.sheetCancel}

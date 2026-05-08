@@ -17,6 +17,7 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -192,7 +193,7 @@ export default function WeightScreen({ session, onClose }: Props) {
           <Text style={styles.errorText}>{saveError}</Text>
         )}
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
           onPress={handleSave}
           disabled={!canSave}
@@ -200,7 +201,7 @@ export default function WeightScreen({ session, onClose }: Props) {
           <Text style={styles.saveBtnText}>
             {saving ? t('weight.saving') : editing ? t('weight.update') : t('common.save')}
           </Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {editing && (
           <TouchableOpacity

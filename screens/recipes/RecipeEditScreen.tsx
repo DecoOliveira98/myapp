@@ -16,6 +16,7 @@ import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = { session: Session; recipeId: string | null; onClose: () => void };
 
@@ -303,29 +304,27 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
         {error != null && <Text style={ss.errorText}>{error}</Text>}
 
         {/* ── Salvar ── */}
-        <TouchableOpacity
+        <PressableButton
           style={[ss.saveBtn, !canSave && ss.saveBtnDisabled]}
           onPress={save}
           disabled={!canSave}
-          activeOpacity={0.85}
         >
           <Text style={ss.saveBtnText}>
             {saving ? t('recipes.common.saving') : t('recipes.edit.save')}
           </Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {/* ── Apagar (só no modo edição) ── */}
         {recipeId !== null && (
-          <TouchableOpacity
+          <PressableButton
             style={[ss.deleteBtn, deleting && ss.saveBtnDisabled]}
             onPress={handleDelete}
             disabled={deleting}
-            activeOpacity={0.85}
           >
             <Text style={ss.deleteBtnText}>
               {deleting ? t('recipes.common.deleting') : t('recipes.edit.delete')}
             </Text>
-          </TouchableOpacity>
+          </PressableButton>
         )}
 
       </ScrollView>

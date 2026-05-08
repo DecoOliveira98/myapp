@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -218,14 +219,13 @@ export default function FastingScreen({ session, onClose }: Props) {
               </>
             )}
 
-            <TouchableOpacity
+            <PressableButton
               style={[ss.actionBtn, ss.endBtn, busy && ss.btnDisabled]}
               onPress={endFasting}
               disabled={busy}
-              activeOpacity={0.8}
             >
               <Text style={ss.actionBtnText}>{busy ? t('fasting.ending') : t('fasting.end')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
           </View>
         ) : (
           <View style={ss.sessionCard}>
@@ -245,14 +245,13 @@ export default function FastingScreen({ session, onClose }: Props) {
             </View>
             <Text style={ss.inputHint}>{t('fasting.inputHint')}</Text>
 
-            <TouchableOpacity
+            <PressableButton
               style={[ss.actionBtn, ss.startBtn, busy && ss.btnDisabled]}
               onPress={startFasting}
               disabled={busy}
-              activeOpacity={0.8}
             >
               <Text style={ss.actionBtnText}>{busy ? t('fasting.starting') : t('fasting.start')}</Text>
-            </TouchableOpacity>
+            </PressableButton>
           </View>
         )}
 

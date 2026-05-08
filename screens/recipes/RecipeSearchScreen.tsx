@@ -14,6 +14,9 @@ import {
 import { Session } from '@supabase/supabase-js';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = { session: Session; onClose: () => void };
 
@@ -34,7 +37,9 @@ function safeNum(n: number | null | undefined): number {
 }
 
 export default function RecipeSearchScreen({ session, onClose }: Props) {
+    const { T } = useTheme();
     const { t } = useTranslation();
+    const ss = useMemo(() => makeStyles(T), [T]);
     const [query, setQuery] = useState('');
     const [searching, setSearching] = useState(false);
     const [results, setResults] = useState<SearchResult[]>([]);
@@ -107,7 +112,7 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                         value={query}
                         onChangeText={setQuery}
                         placeholder="Ex: chicken salad, pasta, smoothie..."
-                        placeholderTextColor="#999"
+                        placeholderTextColor={T.textTertiary}
                         keyboardType="default"
                         returnKeyType="search"
                         onSubmitEditing={runSearch}
@@ -116,27 +121,27 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                     />
                     <Text style={ss.subtle}>{t('recipes.search.hint')}</Text>
 
-                    <TouchableOpacity
-                        style={[ss.primaryBtn, !canSearch && ss.btnDisabled]}
+                    <PressableButton
+                        style={[ss.searchBtn, !canSearch && ss.btnDisabled]}
                         onPress={runSearch}
                         disabled={!canSearch}
-                        activeOpacity={0.85}
                     >
-                        <Text style={ss.primaryBtnText}>{searching ? t('recipes.search.searching') : t('recipes.search.searchBtn')}</Text>
-                    </TouchableOpacity>
+                        <Text style={ss.searchBtnText}>{searching ? t('recipes.search.searching') : t('recipes.search.searchBtn')}</Text>
+                    </PressableButton>
 
                     {error ? <Text style={ss.error}>{error}</Text> : null}
                 </View>
 
                 {searching && results.length === 0 ? (
                     <View style={ss.centered}>
-                        <ActivityIndicator color="#222" />
+                        <ActivityIndicator color={T.accent} />
                     </View>
                 ) : (
                     <FlatList
                         data={results}
                         keyExtractor={(item) => String(item.spoonacular_id)}
                         contentContainerStyle={ss.listContent}
+                        ItemSeparatorComponent={() => <View style={ss.separator} />}
                         renderItem={({ item }) => {
                             const mins = item.ready_in_minutes == null ? '—' : `${item.ready_in_minutes}`;
                             return (
@@ -179,18 +184,34 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
             <ScrollView style={ss.scroll} contentContainerStyle={ss.detailContent}>
                 <Image source={{ uri: selected.image }} style={ss.heroImage} resizeMode="cover" />
 
-                <Text style={ss.detailMeta}>
-                    {t('recipes.search.servings', { mins: selected.ready_in_minutes == null ? '—' : selected.ready_in_minutes, count: selected.servings })}
-                </Text>
-
-                <View style={ss.summaryCard}>
-                    <Text style={ss.summaryText}>
-                        {t('recipes.search.perServing', { kcal: Math.round(safeNum(selected.per_serving?.kcal)), p: Math.round(safeNum(selected.per_serving?.protein_g)), c: Math.round(safeNum(selected.per_serving?.carbs_g)), f: Math.round(safeNum(selected.per_serving?.fat_g)) })}
+                <View style={ss.detailHead}>
+                    <Text style={ss.detailTitle}>{selected.title}</Text>
+                    <Text style={ss.detailMeta}>
+                        {t('recipes.search.servings', { mins: selected.ready_in_minutes == null ? '—' : selected.ready_in_minutes, count: selected.servings })}
                     </Text>
                 </View>
 
-                <Text style={ss.sectionTitle}>{t('recipes.search.ingredients')}</Text>
-                <View style={ss.sectionCard}>
+                <View style={ss.macroStrip}>
+                    <View style={ss.macroStat}>
+                        <Text style={ss.macroLabel}>kcal</Text>
+                        <Text style={ss.macroValue}>{Math.round(safeNum(selected.per_serving?.kcal))}</Text>
+                    </View>
+                    <View style={ss.macroStat}>
+                        <Text style={ss.macroLabel}>P</Text>
+                        <Text style={ss.macroValue}>{Math.round(safeNum(selected.per_serving?.protein_g))}</Text>
+                    </View>
+                    <View style={ss.macroStat}>
+                        <Text style={ss.macroLabel}>C</Text>
+                        <Text style={ss.macroValue}>{Math.round(safeNum(selected.per_serving?.carbs_g))}</Text>
+                    </View>
+                    <View style={[ss.macroStat, ss.macroStatLast]}>
+                        <Text style={ss.macroLabel}>G</Text>
+                        <Text style={ss.macroValue}>{Math.round(safeNum(selected.per_serving?.fat_g))}</Text>
+                    </View>
+                </View>
+
+                <View style={ss.sectionWrap}>
+                    <Text style={ss.sectionTitle}>{t('recipes.search.ingredients')}</Text>
                     {selected.ingredients.map((ingredient, idx) => (
                         <Text key={`${ingredient.name}-${idx}`} style={ss.bulletLine}>
                             • {ingredient.original}
@@ -198,201 +219,301 @@ export default function RecipeSearchScreen({ session, onClose }: Props) {
                     ))}
                 </View>
 
-                <Text style={ss.sectionTitle}>{t('recipes.search.instructions')}</Text>
-                <View style={ss.sectionCard}>
+                <View style={ss.sectionWrap}>
+                    <Text style={ss.sectionTitle}>{t('recipes.search.instructions')}</Text>
                     {selected.instructions.length === 0 ? (
                         <Text style={ss.bulletLine}>{t('recipes.search.noInstructions')}</Text>
                     ) : (
                         selected.instructions.map((step, i) => (
-                            <Text key={`${i}-${step.slice(0, 12)}`} style={ss.bulletLine}>
-                                {i + 1}. {step}
-                            </Text>
+                            <View key={`${i}-${step.slice(0, 12)}`} style={ss.stepRow}>
+                                <Text style={ss.stepNum}>{i + 1}</Text>
+                                <Text style={ss.stepText}>{step}</Text>
+                            </View>
                         ))
                     )}
                 </View>
 
-                {error ? <Text style={ss.error}>{error}</Text> : null}
+                {error ? <Text style={[ss.error, ss.detailActions]}>{error}</Text> : null}
 
-                <TouchableOpacity
-                    style={[ss.primaryBtn, adding && ss.btnDisabled, { marginTop: 8 }]}
-                    onPress={addAsRecipe}
-                    disabled={adding}
-                    activeOpacity={0.85}
-                >
-                    <Text style={ss.primaryBtnText}>
-                        {adding ? t('recipes.search.adding') : t('recipes.search.addBtn')}
-                    </Text>
-                </TouchableOpacity>
+                <View style={ss.detailActions}>
+                    <PressableButton
+                        style={[ss.primaryBtn, adding && ss.btnDisabled]}
+                        onPress={addAsRecipe}
+                        disabled={adding}
+                    >
+                        <Text style={ss.primaryBtnText}>
+                            {adding ? t('recipes.search.adding') : t('recipes.search.addBtn')}
+                        </Text>
+                    </PressableButton>
+                </View>
             </ScrollView>
         </View>
     );
 }
 
-const ss = StyleSheet.create({
-    root: {
-        flex: 1,
-        backgroundColor: '#fff',
-    },
-    header: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingTop: 56,
-        paddingHorizontal: 16,
-        paddingBottom: 12,
-        borderBottomWidth: 1,
-        borderBottomColor: '#eee',
-    },
-    backBtn: {
-        width: 84,
-    },
-    backText: {
-        color: '#111',
-        fontSize: 12,
-        letterSpacing: 0.6,
-    },
-    headerTitle: {
-        flex: 1,
-        textAlign: 'center',
-        color: '#111',
-        fontSize: 22,
-        fontWeight: '600',
-        marginHorizontal: 8,
-    },
-    headerRight: {
-        width: 84,
-    },
-    searchWrap: {
-        padding: 16,
-        gap: 10,
-    },
-    input: {
-        borderWidth: 1,
-        borderColor: '#eee',
-        borderRadius: 12,
-        paddingHorizontal: 14,
-        paddingVertical: 14,
-        fontSize: 16,
-        color: '#111',
-        backgroundColor: '#fff',
-    },
-    subtle: {
-        color: '#666',
-        fontSize: 12,
-    },
-    primaryBtn: {
-        backgroundColor: '#222',
-        borderRadius: 12,
-        paddingVertical: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    primaryBtnText: {
-        color: '#fff',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    btnDisabled: {
-        opacity: 0.5,
-    },
-    error: {
-        color: '#c0392b',
-        fontSize: 14,
-    },
-    centered: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    listContent: {
-        paddingHorizontal: 16,
-        paddingBottom: 24,
-    },
-    resultCard: {
-        borderWidth: 1,
-        borderColor: '#eee',
-        borderRadius: 12,
-        padding: 12,
-        marginBottom: 10,
-        flexDirection: 'row',
-        gap: 12,
-        backgroundColor: '#fff',
-    },
-    thumb: {
-        width: 60,
-        height: 60,
-        borderRadius: 8,
-        backgroundColor: '#f5f5f5',
-    },
-    resultInfo: {
-        flex: 1,
-    },
-    resultTitle: {
-        color: '#111',
-        fontSize: 16,
-        fontWeight: '700',
-        marginBottom: 4,
-    },
-    resultMeta: {
-        color: '#666',
-        fontSize: 13,
-        marginBottom: 4,
-    },
-    resultMacro: {
-        color: '#111',
-        fontSize: 13,
-        fontWeight: '700',
-    },
-    scroll: {
-        flex: 1,
-    },
-    detailContent: {
-        padding: 16,
-        paddingBottom: 28,
-    },
-    heroImage: {
-        width: '100%',
-        aspectRatio: 16 / 9,
-        borderRadius: 12,
-        backgroundColor: '#f4f4f4',
-        marginBottom: 12,
-    },
-    detailMeta: {
-        color: '#666',
-        fontSize: 14,
-        marginBottom: 10,
-    },
-    summaryCard: {
-        borderWidth: 1,
-        borderColor: '#eee',
-        borderRadius: 12,
-        padding: 16,
-        marginBottom: 14,
-        backgroundColor: '#fff',
-    },
-    summaryText: {
-        color: '#111',
-        fontSize: 14,
-        fontWeight: '600',
-    },
-    sectionTitle: {
-        color: '#111',
-        fontSize: 20,
-        fontWeight: '700',
-        marginTop: 10,
-        marginBottom: 8,
-    },
-    sectionCard: {
-        borderWidth: 1,
-        borderColor: '#eee',
-        borderRadius: 12,
-        padding: 16,
-        backgroundColor: '#fff',
-    },
-    bulletLine: {
-        color: '#111',
-        fontSize: 14,
-        lineHeight: 22,
-        marginBottom: 6,
-    },
-});
+function makeStyles(T: TokenSet) {
+    return StyleSheet.create({
+        root: {
+            flex: 1,
+            backgroundColor: T.bgBase,
+        },
+        header: {
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingTop: 56,
+            paddingHorizontal: T.sp5,
+            paddingBottom: T.sp3,
+            borderBottomWidth: 1,
+            borderBottomColor: T.borderSoft,
+        },
+        backBtn: {
+            width: 84,
+            justifyContent: 'center',
+        },
+        backText: {
+            color: T.textSecondary,
+            fontSize: T.textXs,
+            letterSpacing: 1.2,
+            fontFamily: T.fontMono,
+            textTransform: 'uppercase',
+        },
+        headerTitle: {
+            flex: 1,
+            textAlign: 'center',
+            color: T.textPrimary,
+            fontSize: T.textXl,
+            fontFamily: T.fontDisplayItalic,
+            marginHorizontal: T.sp2,
+            lineHeight: T.textXl * 1.2,
+        },
+        headerRight: {
+            width: 84,
+        },
+        searchWrap: {
+            paddingHorizontal: T.sp5,
+            paddingTop: T.sp4,
+            paddingBottom: T.sp3,
+            gap: T.sp3,
+        },
+        input: {
+            borderBottomWidth: 1,
+            borderBottomColor: T.borderSoft,
+            paddingHorizontal: 0,
+            paddingVertical: T.sp3,
+            fontSize: T.textMd,
+            color: T.textPrimary,
+            fontFamily: T.fontBody,
+            backgroundColor: 'transparent',
+        },
+        subtle: {
+            color: T.textTertiary,
+            fontSize: 11,
+            fontFamily: T.fontMono,
+            letterSpacing: 0.8,
+            textAlign: 'right',
+        },
+        searchBtn: {
+            borderWidth: 1,
+            borderColor: T.borderStrong,
+            borderRadius: 6,
+            paddingVertical: 13,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: 'transparent',
+        },
+        searchBtnText: {
+            color: T.textPrimary,
+            fontSize: T.textXs,
+            fontFamily: T.fontMonoMedium,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+        },
+        primaryBtn: {
+            backgroundColor: T.accent,
+            borderRadius: 6,
+            paddingVertical: 14,
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: T.accent,
+        },
+        primaryBtnText: {
+            color: T.onAccent,
+            fontSize: T.textXs,
+            fontFamily: T.fontMonoMedium,
+            letterSpacing: 2,
+            textTransform: 'uppercase',
+        },
+        btnDisabled: {
+            opacity: 0.45,
+        },
+        error: {
+            color: T.danger,
+            fontSize: T.textSm,
+            fontFamily: T.fontBody,
+            lineHeight: T.textSm * 1.35,
+        },
+        centered: {
+            flex: 1,
+            alignItems: 'center',
+            justifyContent: 'center',
+        },
+        listContent: {
+            paddingHorizontal: T.sp5,
+            paddingBottom: T.sp6,
+        },
+        separator: {
+            height: 1,
+            backgroundColor: T.borderFaint,
+        },
+        resultCard: {
+            paddingVertical: T.sp5,
+            flexDirection: 'row',
+            gap: T.sp4,
+            backgroundColor: 'transparent',
+        },
+        thumb: {
+            width: 80,
+            height: 100,
+            borderRadius: 4,
+            backgroundColor: T.surface2,
+        },
+        resultInfo: {
+            flex: 1,
+            justifyContent: 'center',
+            gap: T.sp1,
+        },
+        resultTitle: {
+            color: T.textPrimary,
+            fontSize: 20,
+            fontFamily: T.fontDisplay,
+            lineHeight: 24,
+            letterSpacing: -0.2,
+        },
+        resultMeta: {
+            color: T.textTertiary,
+            fontSize: 11,
+            fontFamily: T.fontMono,
+            letterSpacing: 0.6,
+            textTransform: 'uppercase',
+            lineHeight: 14,
+        },
+        resultMacro: {
+            color: T.textSecondary,
+            fontSize: 11,
+            fontFamily: T.fontMono,
+            letterSpacing: 0.35,
+            lineHeight: 14,
+        },
+        scroll: {
+            flex: 1,
+        },
+        detailContent: {
+            paddingBottom: T.sp7,
+        },
+        heroImage: {
+            width: '100%',
+            aspectRatio: 16 / 9,
+            borderRadius: 0,
+            backgroundColor: T.surface2,
+            marginBottom: T.sp5,
+        },
+        detailHead: {
+            paddingHorizontal: T.sp5,
+            marginBottom: T.sp5,
+        },
+        detailTitle: {
+            color: T.textPrimary,
+            fontSize: 28,
+            fontFamily: T.fontDisplay,
+            lineHeight: 34,
+            letterSpacing: -0.4,
+            marginBottom: T.sp2,
+        },
+        detailMeta: {
+            color: T.textTertiary,
+            fontSize: 11,
+            fontFamily: T.fontMono,
+            letterSpacing: 0.8,
+            textTransform: 'uppercase',
+        },
+        macroStrip: {
+            flexDirection: 'row',
+            borderTopWidth: 1,
+            borderTopColor: T.borderSoft,
+            borderBottomWidth: 1,
+            borderBottomColor: T.borderSoft,
+            marginHorizontal: T.sp5,
+            marginBottom: T.sp6,
+        },
+        macroStat: {
+            flex: 1,
+            paddingVertical: T.sp3,
+            alignItems: 'center',
+            borderRightWidth: 1,
+            borderRightColor: T.borderFaint,
+        },
+        macroStatLast: {
+            borderRightWidth: 0,
+        },
+        macroLabel: {
+            color: T.textTertiary,
+            fontSize: 10,
+            fontFamily: T.fontMono,
+            letterSpacing: 1.2,
+            textTransform: 'uppercase',
+            marginBottom: 2,
+        },
+        macroValue: {
+            color: T.textPrimary,
+            fontSize: T.textLg,
+            fontFamily: T.fontDisplay,
+            lineHeight: T.textLg * 1.2,
+        },
+        sectionWrap: {
+            paddingHorizontal: T.sp5,
+            marginBottom: T.sp5,
+        },
+        sectionTitle: {
+            color: T.textSecondary,
+            fontSize: T.textXs,
+            fontFamily: T.fontMono,
+            letterSpacing: 1.8,
+            textTransform: 'uppercase',
+            marginBottom: T.sp3,
+        },
+        bulletLine: {
+            color: T.textPrimary,
+            fontSize: T.textBase,
+            fontFamily: T.fontBody,
+            lineHeight: T.textBase * 1.45,
+            marginBottom: T.sp2,
+        },
+        stepRow: {
+            flexDirection: 'row',
+            gap: T.sp3,
+            marginBottom: T.sp3,
+            alignItems: 'flex-start',
+        },
+        stepNum: {
+            color: T.textPrimary,
+            fontSize: 24,
+            fontFamily: T.fontDisplayItalic,
+            lineHeight: 28,
+            width: 24,
+            textAlign: 'left',
+        },
+        stepText: {
+            flex: 1,
+            color: T.textPrimary,
+            fontSize: T.textBase,
+            fontFamily: T.fontBody,
+            lineHeight: T.textBase * 1.5,
+        },
+        detailActions: {
+            paddingHorizontal: T.sp5,
+            marginTop: T.sp2,
+        },
+    });
+}
