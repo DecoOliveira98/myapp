@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -207,13 +208,13 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
 
                     {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-                    <TouchableOpacity
+                    <PressableButton
                         style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
                         onPress={handleSave}
                         disabled={saving}
                     >
                         <Text style={styles.saveBtnText}>{saving ? t('meals.common.saving') : t('meals.common.saveAll')}</Text>
-                    </TouchableOpacity>
+                    </PressableButton>
                 </ScrollView>
             </View>
         );
@@ -255,13 +256,13 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
 
                     {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-                    <TouchableOpacity
+                    <PressableButton
                         style={[styles.saveBtn, parsing && styles.saveBtnDisabled]}
                         onPress={handleParse}
                         disabled={parsing}
                     >
                         <Text style={styles.saveBtnText}>{parsing ? t('meals.common.structuring') : t('meals.common.structureAI')}</Text>
-                    </TouchableOpacity>
+                    </PressableButton>
                 </ScrollView>
             </View>
         );
@@ -281,21 +282,21 @@ export default function PhotoMealScreen({ session, mealType, date, onCancel, onS
                 <Text style={styles.subtitle}>{t('meals.photo.subtitle')}</Text>
 
                 <View style={styles.pickRow}>
-                    <TouchableOpacity
+                    <PressableButton
                         style={[styles.pickBtn, pickingImage && styles.saveBtnDisabled]}
                         onPress={() => pickImage('camera')}
                         disabled={pickingImage}
                     >
                         <Text style={styles.pickBtnText}>{t('meals.photo.takePhoto')}</Text>
-                    </TouchableOpacity>
+                    </PressableButton>
 
-                    <TouchableOpacity
+                    <PressableButton
                         style={[styles.pickBtn, pickingImage && styles.saveBtnDisabled]}
                         onPress={() => pickImage('gallery')}
                         disabled={pickingImage}
                     >
                         <Text style={styles.pickBtnText}>{t('meals.photo.gallery')}</Text>
-                    </TouchableOpacity>
+                    </PressableButton>
                 </View>
 
                 {error !== null && <Text style={styles.errorText}>{error}</Text>}

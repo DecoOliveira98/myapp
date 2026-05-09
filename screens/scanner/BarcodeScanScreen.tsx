@@ -11,6 +11,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 export type PrefillData = {
   name: string;
@@ -71,9 +72,9 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
     return (
       <View style={styles.centered}>
         <Text style={styles.permissionText}>{t('scanner.allowCameraAccess')}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={requestPermission}>
+        <PressableButton style={styles.primaryButton} onPress={requestPermission}>
           <Text style={styles.primaryButtonText}>{t('scanner.allow')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
         <TouchableOpacity style={styles.secondaryButton} onPress={onCancel}>
           <Text style={styles.secondaryButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
@@ -85,9 +86,9 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
     return (
       <View style={styles.centered}>
         <Text style={styles.permissionText}>{t('scanner.permissionDenied')}</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={onCancel}>
+        <PressableButton style={styles.primaryButton} onPress={onCancel}>
           <Text style={styles.primaryButtonText}>{t('common.back')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
       </View>
     );
   }

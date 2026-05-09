@@ -6,7 +6,6 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from 'react-native';
 import * as WebBrowser from 'expo-web-browser';
@@ -16,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 // AuthScreen não recebe props: o App.tsx escuta onAuthStateChange e
 // troca de tela automaticamente quando o login/cadastro tem sucesso.
@@ -113,7 +113,7 @@ export default function AuthScreen() {
           <Text style={styles.titleAccent}>Calorie Tracker</Text>
         </Text>
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.button, styles.googleButton, loading && styles.buttonDisabled]}
           onPress={handleGoogleSignIn}
           disabled={loading}
@@ -128,7 +128,7 @@ export default function AuthScreen() {
             </Svg>
             <Text style={styles.googleButtonText}>{t('auth.continueWithGoogle')}</Text>
           </View>
-        </TouchableOpacity>
+        </PressableButton>
 
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
@@ -155,15 +155,15 @@ export default function AuthScreen() {
           autoCapitalize="none"
         />
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.button, loading && styles.buttonDisabled]}
           onPress={handleSignIn}
           disabled={loading}
         >
           <Text style={styles.buttonText}>{loading ? t('auth.signingIn') : t('auth.signIn')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.button, styles.buttonSecondary, loading && styles.buttonDisabled]}
           onPress={handleSignUp}
           disabled={loading}
@@ -171,7 +171,7 @@ export default function AuthScreen() {
           <Text style={[styles.buttonText, styles.buttonTextSecondary]}>
             {loading ? t('auth.creatingAccount') : t('auth.createAccount')}
           </Text>
-        </TouchableOpacity>
+        </PressableButton>
       </View>
     </KeyboardAvoidingView>
   );

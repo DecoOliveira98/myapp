@@ -297,9 +297,9 @@ export default function RecipeEditScreen({ session, recipeId, onClose }: Props) 
           ))
         )}
 
-        <TouchableOpacity style={ss.addItemBtn} onPress={openNewItem} activeOpacity={0.75}>
+        <PressableButton style={ss.addItemBtn} onPress={openNewItem}>
           <Text style={ss.addItemBtnText}>{t('recipes.edit.addItem')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {error != null && <Text style={ss.errorText}>{error}</Text>}
 

@@ -15,6 +15,7 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = {
   session: Session;
@@ -200,13 +201,13 @@ export default function ChatScreen({ session, onClose }: Props) {
             onSubmitEditing={send}
             blurOnSubmit={false}
           />
-          <TouchableOpacity
+          <PressableButton
             style={[styles.sendBtn, (!input.trim() || sending) && styles.sendBtnDisabled]}
             onPress={send}
             disabled={!input.trim() || sending}
           >
             <Text style={styles.sendBtnText}>→</Text>
-          </TouchableOpacity>
+          </PressableButton>
         </View>
       </View>
     </KeyboardAvoidingView>

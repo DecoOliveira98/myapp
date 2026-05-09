@@ -14,6 +14,7 @@ import { PrefillData } from '../scanner/BarcodeScanScreen';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -359,22 +360,22 @@ export default function AddFoodScreen({
 
         {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
           onPress={handleSave}
           disabled={!canSave}
         >
           <Text style={styles.saveBtnText}>{saving ? t('meals.common.saving') : t('meals.add.save')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {isEditing && (
-          <TouchableOpacity
+          <PressableButton
             style={[styles.deleteBtn, deleting && styles.deleteBtnDisabled]}
             onPress={handleDelete}
             disabled={busy}
           >
             <Text style={styles.deleteBtnText}>{deleting ? t('recipes.common.deleting') : t('common.delete')}</Text>
-          </TouchableOpacity>
+          </PressableButton>
         )}
       </ScrollView>
     </View>

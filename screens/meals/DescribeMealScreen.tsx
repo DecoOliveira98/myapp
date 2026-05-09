@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -153,13 +154,13 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
 
           {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-          <TouchableOpacity
+          <PressableButton
             style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
             onPress={handleSave}
             disabled={saving}
           >
             <Text style={styles.saveBtnText}>{saving ? t('meals.common.saving') : t('meals.common.saveAll')}</Text>
-          </TouchableOpacity>
+          </PressableButton>
         </ScrollView>
       </View>
     );
@@ -194,13 +195,13 @@ export default function DescribeMealScreen({ session, mealType, date, onCancel, 
 
         {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.saveBtn, !canParse && styles.saveBtnDisabled]}
           onPress={handleParse}
           disabled={!canParse}
         >
           <Text style={styles.saveBtnText}>{parsing ? t('meals.common.structuring') : t('meals.common.structureAI')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
       </ScrollView>
     </View>
   );

@@ -204,13 +204,13 @@ export default function WeightScreen({ session, onClose }: Props) {
         </PressableButton>
 
         {editing && (
-          <TouchableOpacity
+          <PressableButton
             style={[styles.deleteBtn, deleting && styles.deleteBtnDisabled]}
             onPress={handleDelete}
             disabled={busy}
           >
             <Text style={styles.deleteBtnText}>{deleting ? t('weight.deleting') : t('weight.delete')}</Text>
-          </TouchableOpacity>
+          </PressableButton>
         )}
 
         <View style={styles.separator} />

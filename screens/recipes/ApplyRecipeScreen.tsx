@@ -13,6 +13,7 @@ import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type Props = {
   session: Session;
@@ -203,16 +204,15 @@ export default function ApplyRecipeScreen({ session, mealType, date, onCancel, o
 
           {error != null && <Text style={ss.errorText}>{error}</Text>}
 
-          <TouchableOpacity
+          <PressableButton
             style={[ss.applyBtn, applying && ss.applyBtnDisabled]}
             onPress={apply}
             disabled={applying}
-            activeOpacity={0.85}
           >
             <Text style={ss.applyBtnText}>
               {applying ? t('recipes.apply.applying') : t('recipes.apply.applyBtn')}
             </Text>
-          </TouchableOpacity>
+          </PressableButton>
         </ScrollView>
       </View>
     );

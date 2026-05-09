@@ -12,6 +12,7 @@ import { supabase } from '../../lib/supabase';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
 import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 // Tipos auxiliares para deixar as opções de chip fortemente tipadas
 type Gender = 'male' | 'female';
@@ -228,7 +229,7 @@ export default function Onboarding({ onComplete }: Props) {
         <Chip label={t('onboarding.gainWeight')} selected={goal === 'gain'} onPress={() => setGoal('gain')} />
       </View>
 
-      <TouchableOpacity
+      <PressableButton
         style={[styles.saveButton, saving && styles.saveButtonDisabled]}
         onPress={handleSave}
         disabled={saving}
@@ -236,7 +237,7 @@ export default function Onboarding({ onComplete }: Props) {
         <Text style={styles.saveButtonText}>
           {saving ? t('onboarding.saving') : t('onboarding.saveAndContinue')}
         </Text>
-      </TouchableOpacity>
+      </PressableButton>
     </ScrollView>
   );
 }

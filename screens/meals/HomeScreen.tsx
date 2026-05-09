@@ -628,10 +628,10 @@ export default function HomeScreen({ session }: Props) {
         </PressableButton>
 
         {/* ── Relatório ──────────────────────────────────────────────── */}
-        <TouchableOpacity style={ss.auxCard} onPress={() => setShowReport(true)} activeOpacity={0.7}>
+        <PressableButton style={ss.auxCard} onPress={() => setShowReport(true)}>
           <Text style={ss.auxCardLabel}>{t('home.cards.report')}</Text>
           <Text style={ss.auxCardSub}>{t('home.cards.exportPdf')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
 
         {/* ── Sair ───────────────────────────────────────────────────── */}
         <TouchableOpacity style={ss.signOutBtn} onPress={handleSignOut} activeOpacity={0.6}>

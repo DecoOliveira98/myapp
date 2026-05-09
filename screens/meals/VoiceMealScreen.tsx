@@ -11,10 +11,12 @@ import {
 import { Session } from '@supabase/supabase-js';
 import { Audio } from 'expo-av';
 import * as FileSystem from 'expo-file-system';
+import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -225,13 +227,13 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
 
           {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-          <TouchableOpacity
+          <PressableButton
             style={[styles.actionBtn, saving && styles.actionBtnDisabled]}
             onPress={handleSave}
             disabled={saving}
           >
             <Text style={styles.actionBtnText}>{saving ? t('meals.common.saving') : t('meals.common.saveAll')}</Text>
-          </TouchableOpacity>
+          </PressableButton>
         </ScrollView>
       </View>
     );
@@ -260,8 +262,14 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
               recording && styles.micButtonActive,
               micDisabled && styles.micButtonDisabled,
             ]}
-            onPressIn={startRecording}
-            onPressOut={stopRecording}
+            onPressIn={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              startRecording();
+            }}
+            onPressOut={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+              stopRecording();
+            }}
             disabled={micDisabled}
             activeOpacity={0.8}
           >
@@ -293,13 +301,13 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
 
         {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.actionBtn, !canStructure && styles.actionBtnDisabled]}
           onPress={handleStructure}
           disabled={!canStructure}
         >
           <Text style={styles.actionBtnText}>{parsing ? t('meals.common.structuring') : t('meals.common.structureAI')}</Text>
-        </TouchableOpacity>
+        </PressableButton>
       </ScrollView>
     </View>
   );
