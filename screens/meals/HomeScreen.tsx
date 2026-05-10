@@ -184,6 +184,8 @@ export default function HomeScreen({ session }: Props) {
 
   // ── Goal-reached celebration state ───────────────────────────────────────
   const goalPulseAnim = useRef(new Animated.Value(0)).current;
+  const slideX = useRef(new Animated.Value(0)).current;
+  const slideOpacity = useRef(new Animated.Value(1)).current;
   // Keyed by date: true once the pulse has fired for that day
   const goalPulsedRef = useRef<Record<string, boolean>>({});
   // Keyed by date: true after loadTotals resolves for that date (distinguishes initial useState 0 from real data)
@@ -363,6 +365,23 @@ export default function HomeScreen({ session }: Props) {
 
   async function handleSignOut() { await supabase.auth.signOut(); }
 
+  function animateDayChange(direction: 'next' | 'prev') {
+    if (direction === 'next' && selectedDateISO === todayISO) return;
+    const sign = direction === 'next' ? -1 : 1;
+    const newDate = addDaysIso(selectedDateISO, direction === 'next' ? 1 : -1);
+    Animated.parallel([
+      Animated.timing(slideX, { toValue: sign * 24, duration: 100, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      Animated.timing(slideOpacity, { toValue: 0, duration: 100, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+    ]).start(() => {
+      setSelectedDateISO(newDate);
+      slideX.setValue(-sign * 24);
+      Animated.parallel([
+        Animated.timing(slideX, { toValue: 0, duration: 150, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+        Animated.timing(slideOpacity, { toValue: 1, duration: 150, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
+      ]).start();
+    });
+  }
+
   // ── Animation hooks (must be before early returns) ────────────────────────
   // Raw values use safe fallbacks so hooks are always called unconditionally.
   const _animTarget = targets?.daily_calorie_target ?? 1;
@@ -474,14 +493,14 @@ export default function HomeScreen({ session }: Props) {
         <View style={ss.topRow}>
           <View style={ss.topRowMain}>
             <View style={ss.dateNav}>
-              <TouchableOpacity onPress={() => setSelectedDateISO(addDaysIso(selectedDateISO, -1))} hitSlop={14}>
+              <TouchableOpacity onPress={() => animateDayChange('prev')} hitSlop={14}>
                 <Text style={ss.navArrow}>←</Text>
               </TouchableOpacity>
               <Text style={ss.eyebrow} numberOfLines={1}>
                 {formatDateLong(isoToDate(selectedDateISO), locale).toUpperCase()}
               </Text>
               <TouchableOpacity
-                onPress={() => canGoForward && setSelectedDateISO(addDaysIso(selectedDateISO, 1))}
+                onPress={() => animateDayChange('next')}
                 disabled={!canGoForward}
                 hitSlop={14}
               >
@@ -503,6 +522,9 @@ export default function HomeScreen({ session }: Props) {
             <Text style={ss.streakText}>{t('home.streakDays', { count: streak })}</Text>
           </View>
         </View>
+
+        {/* Content below header — slides on day navigation */}
+        <Animated.View style={{ transform: [{ translateX: slideX }], opacity: slideOpacity }}>
 
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <View style={ss.hero}>
@@ -715,6 +737,7 @@ export default function HomeScreen({ session }: Props) {
           <Text style={ss.signOutText}>{t('common.signOut')}</Text>
         </TouchableOpacity>
 
+        </Animated.View>
       </ScrollView>
 
       <NavBar
