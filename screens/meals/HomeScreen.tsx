@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Easing,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Haptics from 'expo-haptics';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { type TokenSet } from '../../theme/tokens';
@@ -180,6 +182,15 @@ export default function HomeScreen({ session }: Props) {
     ).start();
   }, [pulseAnim]);
 
+  // ── Goal-reached celebration state ───────────────────────────────────────
+  const goalPulseAnim = useRef(new Animated.Value(0)).current;
+  // Keyed by date: true once the pulse has fired for that day
+  const goalPulsedRef = useRef<Record<string, boolean>>({});
+  // Keyed by date: true after loadTotals resolves for that date (distinguishes initial useState 0 from real data)
+  const firstRealLoadRef = useRef<Record<string, boolean>>({});
+  // Keyed by date: last real kcal value seen, for transition detection
+  const prevKcalRef = useRef<Record<string, number>>({});
+
   const targets: DailyTargets | null =
     profile && profile.daily_calorie_target != null
       ? {
@@ -212,6 +223,8 @@ export default function HomeScreen({ session }: Props) {
       if (mt && mt in byMeal) byMeal[mt] += item.calories ?? 0;
     }
     const round = (n: number) => Math.round((n + Number.EPSILON) * 10) / 10;
+    // Signal that real data (not the initial useState zero) has loaded for this date
+    firstRealLoadRef.current[selectedDateISO] = true;
     setTotals({
       kcal: round(kcal), protein_g: round(protein_g),
       carbs_g: round(carbs_g), fat_g: round(fat_g),
@@ -311,6 +324,43 @@ export default function HomeScreen({ session }: Props) {
 
   useEffect(() => { loadStreak(); }, [loadStreak]);
 
+  // ── Goal-reached detection ─────────────────────────────────────────────────
+  useEffect(() => {
+    if (!targets || !firstRealLoadRef.current[selectedDateISO]) return;
+
+    const target = targets.daily_calorie_target;
+    const prev = prevKcalRef.current[selectedDateISO];
+    prevKcalRef.current[selectedDateISO] = totals.kcal;
+
+    if (prev === undefined) return; // first real data for this date → baseline only
+
+    if (
+      prev < target &&
+      totals.kcal >= target &&
+      !goalPulsedRef.current[selectedDateISO]
+    ) {
+      goalPulsedRef.current[selectedDateISO] = true;
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      // Delay matches the 300ms bar animation + 50ms breath
+      setTimeout(() => {
+        Animated.sequence([
+          Animated.timing(goalPulseAnim, {
+            toValue: 0.6,
+            duration: 250,
+            easing: Easing.out(Easing.cubic),
+            useNativeDriver: true,
+          }),
+          Animated.timing(goalPulseAnim, {
+            toValue: 0,
+            duration: 250,
+            easing: Easing.in(Easing.cubic),
+            useNativeDriver: true,
+          }),
+        ]).start();
+      }, 350);
+    }
+  }, [totals.kcal, selectedDateISO, targets]);
+
   async function handleSignOut() { await supabase.auth.signOut(); }
 
   // ── Animation hooks (must be before early returns) ────────────────────────
@@ -385,7 +435,8 @@ export default function HomeScreen({ session }: Props) {
 
   const progressPct = Math.min((totals.kcal / targets.daily_calorie_target) * 100, 100);
   const remaining = Math.max(targets.daily_calorie_target - totals.kcal, 0);
-  const headline = getHeadline(totals.kcal, targets.daily_calorie_target, isToday);
+  const isGoalReached = totals.kcal >= targets.daily_calorie_target;
+  const headline = isGoalReached ? null : getHeadline(totals.kcal, targets.daily_calorie_target, isToday);
 
   const weekDates = Array.from({ length: 7 }, (_, i) => addDaysIso(todayISO, -(6 - i)));
   const maxWeekKcal = Math.max(
@@ -456,9 +507,15 @@ export default function HomeScreen({ session }: Props) {
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <View style={ss.hero}>
           <Text style={ss.heroHeadline}>
-            {headline.pre}
-            <Text style={ss.heroHeadlineItalic}>{headline.italic}</Text>
-            {headline.post}
+            {isGoalReached ? (
+              <Text style={ss.heroHeadlineItalic}>{t('home.headlines.goalReached')}</Text>
+            ) : (
+              <>
+                {headline!.pre}
+                <Text style={ss.heroHeadlineItalic}>{headline!.italic}</Text>
+                {headline!.post}
+              </>
+            )}
           </Text>
 
           <View style={ss.calorieRow}>
@@ -471,8 +528,14 @@ export default function HomeScreen({ session }: Props) {
             </View>
           </View>
 
-          <View style={ss.progressTrack}>
-            <View style={[ss.progressFill, { width: `${animPct}%` as any }]} />
+          <View style={ss.progressBarContainer}>
+            <View style={ss.progressTrack}>
+              <View style={[ss.progressFill, { width: `${animPct}%` as any }]} />
+            </View>
+            <Animated.View
+              pointerEvents="none"
+              style={[ss.goalPulseOverlay, { opacity: goalPulseAnim }]}
+            />
           </View>
           <View style={ss.progressMeta}>
             <Text style={ss.progressMetaText}>
@@ -861,13 +924,24 @@ function makeStyles(tokens: TokenSet) {
       letterSpacing: 0.4,
       fontWeight: '500',
     },
+    progressBarContainer: {
+      marginBottom: tokens.sp2,
+      position: 'relative',
+    },
     progressTrack: {
       height: 1,
       backgroundColor: tokens.borderSoft,
-      marginBottom: tokens.sp2,
     },
     progressFill: {
       height: 1,
+      backgroundColor: tokens.accent,
+    },
+    goalPulseOverlay: {
+      position: 'absolute',
+      top: -6,
+      left: 0,
+      right: 0,
+      bottom: -6,
       backgroundColor: tokens.accent,
     },
     progressMeta: {

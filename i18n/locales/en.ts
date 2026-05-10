@@ -174,6 +174,9 @@ const en = {
         fasting: {
             activeFor: 'Fasting for {{h}}h {{m}}min',
         },
+        headlines: {
+            goalReached: 'goal reached.',
+        },
     },
     fasting: {
         title: 'Fasting',

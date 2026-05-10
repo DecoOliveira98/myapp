@@ -174,6 +174,9 @@ const pt = {
         fasting: {
             activeFor: 'Jejuando há {{h}}h {{m}}min',
         },
+        headlines: {
+            goalReached: 'meta atingida.',
+        },
     },
     fasting: {
         title: 'Jejum',
