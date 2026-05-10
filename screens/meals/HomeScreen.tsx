@@ -21,6 +21,7 @@ import FastingScreen from '../fasting/FastingScreen';
 import ReportScreen from '../reports/ReportScreen';
 import AvatarMenu from '../../components/avatar/AvatarMenu';
 import { useProfile } from '../../hooks/useProfile';
+import { useAnimatedNumber } from '../../hooks/useAnimatedNumber';
 import ProfileScreen from '../profile/ProfileScreen';
 import { useTranslation } from 'react-i18next';
 import PressableButton from '../../components/ui/PressableButton';
@@ -312,6 +313,19 @@ export default function HomeScreen({ session }: Props) {
 
   async function handleSignOut() { await supabase.auth.signOut(); }
 
+  // ── Animation hooks (must be before early returns) ────────────────────────
+  // Raw values use safe fallbacks so hooks are always called unconditionally.
+  const _animTarget = targets?.daily_calorie_target ?? 1;
+  const _progressPctRaw = Math.min((totals.kcal / _animTarget) * 100, 100);
+  const _remainingRaw = Math.max(_animTarget - totals.kcal, 0);
+
+  const animKcal = useAnimatedNumber(totals.kcal, selectedDateISO);
+  const animPct = useAnimatedNumber(_progressPctRaw, selectedDateISO);
+  const animRemaining = useAnimatedNumber(_remainingRaw, selectedDateISO);
+  const animProtein = useAnimatedNumber(totals.protein_g, selectedDateISO);
+  const animCarbs = useAnimatedNumber(totals.carbs_g, selectedDateISO);
+  const animFat = useAnimatedNumber(totals.fat_g, selectedDateISO);
+
   // ── Loading / error states ────────────────────────────────────────────────
 
   if (loading) {
@@ -449,7 +463,7 @@ export default function HomeScreen({ session }: Props) {
 
           <View style={ss.calorieRow}>
             <Text style={ss.calorieNum} adjustsFontSizeToFit numberOfLines={1}>
-              {formatKcal(totals.kcal)}
+              {formatKcal(animKcal)}
             </Text>
             <View style={ss.calorieTarget}>
               <Text style={ss.calorieTargetLabel}>{t('home.dailyTarget').toUpperCase()}</Text>
@@ -458,13 +472,13 @@ export default function HomeScreen({ session }: Props) {
           </View>
 
           <View style={ss.progressTrack}>
-            <View style={[ss.progressFill, { width: `${progressPct}%` as any }]} />
+            <View style={[ss.progressFill, { width: `${animPct}%` as any }]} />
           </View>
           <View style={ss.progressMeta}>
             <Text style={ss.progressMetaText}>
-              <Text style={ss.progressMetaBold}>{Math.round(progressPct)}%</Text> {t('home.consumed')}
+              <Text style={ss.progressMetaBold}>{Math.round(animPct)}%</Text> {t('home.consumed')}
             </Text>
-            <Text style={ss.progressMetaText}>{t('home.kcalRemaining', { value: formatKcal(remaining) })}</Text>
+            <Text style={ss.progressMetaText}>{t('home.kcalRemaining', { value: formatKcal(animRemaining) })}</Text>
           </View>
 
           <View style={ss.actions}>
@@ -504,9 +518,9 @@ export default function HomeScreen({ session }: Props) {
             <Text style={ss.macrosTitle}>{t('home.macros')}</Text>
             <Text style={ss.macrosRatio}>{proteinPct}P · {carbsPct}C · {fatPct}G</Text>
           </View>
-          <MacroRow label={t('home.macrosProtein')} consumed={totals.protein_g} target={targets.daily_protein_g} fillColor={T.accent} ss={ss} />
-          <MacroRow label={t('home.macrosCarbs')} consumed={totals.carbs_g} target={targets.daily_carbs_g} fillColor={T.macroCarbs} ss={ss} />
-          <MacroRow label={t('home.macrosFat')} consumed={totals.fat_g} target={targets.daily_fat_g} fillColor={T.macroFat} ss={ss} />
+          <MacroRow label={t('home.macrosProtein')} consumed={animProtein} target={targets.daily_protein_g} fillColor={T.accent} ss={ss} />
+          <MacroRow label={t('home.macrosCarbs')} consumed={animCarbs} target={targets.daily_carbs_g} fillColor={T.macroCarbs} ss={ss} />
+          <MacroRow label={t('home.macrosFat')} consumed={animFat} target={targets.daily_fat_g} fillColor={T.macroFat} ss={ss} />
         </View>
 
         {/* ── Refeições ──────────────────────────────────────────────── */}
