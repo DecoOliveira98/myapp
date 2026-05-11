@@ -20,6 +20,16 @@ const pt = {
         portuguese: 'Português',
         english: 'English',
     },
+    voice: {
+        morning: ['café primeiro. depois o resto.', 'o dia ainda começa.', 'manhã. sem pressa.'],
+        firstLog: ['um começo honesto.', 'primeira refeição. anotado.', 'começou.'],
+        goalHit: ['foi um bom dia.', 'meta atingida.', 'chegou.'],
+        streak3: 'três dias. já é constância.',
+        streak7: 'uma semana. ritmo.',
+        streak14: 'duas semanas. sólido.',
+        streak30: 'trinta dias. isso é prática.',
+        returnAfterAbsence: ['você voltou.', 'bom te ver.', 'o dia tá esperando.'],
+    },
     loadingPage: {
         eyebrow: 'CARREGANDO',
         text: 'Preparando sua experiência…',
@@ -173,9 +183,6 @@ const pt = {
         },
         fasting: {
             activeFor: 'Jejuando há {{h}}h {{m}}min',
-        },
-        headlines: {
-            goalReached: 'meta atingida.',
         },
     },
     fasting: {

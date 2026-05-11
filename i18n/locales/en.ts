@@ -20,6 +20,16 @@ const en = {
         portuguese: 'Portuguese',
         english: 'English',
     },
+    voice: {
+        morning: ['coffee first. then the rest.', "the day's still starting.", 'morning. no rush.'],
+        firstLog: ['an honest start.', 'first meal. noted.', 'and so it begins.'],
+        goalHit: ['a good day.', 'goal reached.', 'you got there.'],
+        streak3: "three days. that's consistency.",
+        streak7: "a week. you've got rhythm.",
+        streak14: 'two weeks. solid.',
+        streak30: "thirty days. that's practice.",
+        returnAfterAbsence: ["you're back.", 'good to see you.', "the day's waiting."],
+    },
     loadingPage: {
         eyebrow: 'LOADING',
         text: 'Preparing your experience…',
@@ -173,9 +183,6 @@ const en = {
         },
         fasting: {
             activeFor: 'Fasting for {{h}}h {{m}}min',
-        },
-        headlines: {
-            goalReached: 'goal reached.',
         },
     },
     fasting: {

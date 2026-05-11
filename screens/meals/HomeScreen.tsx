@@ -24,6 +24,8 @@ import ReportScreen from '../reports/ReportScreen';
 import AvatarMenu from '../../components/avatar/AvatarMenu';
 import { useProfile } from '../../hooks/useProfile';
 import { useAnimatedNumber } from '../../hooks/useAnimatedNumber';
+import { useUserVoiceContext } from '../../hooks/useUserVoiceContext';
+import { useVoiceHeadline } from '../../hooks/useVoiceHeadline';
 import ProfileScreen from '../profile/ProfileScreen';
 import { useTranslation } from 'react-i18next';
 import PressableButton from '../../components/ui/PressableButton';
@@ -105,25 +107,6 @@ function formatKcal(n: number): string {
   return String(r);
 }
 
-function getHeadline(
-  kcal: number,
-  target: number,
-  isToday: boolean,
-): { pre: string; italic: string; post: string } {
-  if (!isToday) {
-    const pct = target > 0 ? Math.round((kcal / target) * 100) : 0;
-    return { pre: 'Você atingiu', italic: `${pct}%`, post: ' da meta neste dia.' };
-  }
-  if (kcal === 0) {
-    return { pre: 'Como foi', italic: ' o dia', post: ' por aí?' };
-  }
-  const pct = kcal / target;
-  if (pct > 1.05) return { pre: 'Você', italic: ' passou da meta', post: ' hoje.' };
-  if (pct >= 0.8) return { pre: 'Você está', italic: ' no caminho.', post: '' };
-  if (pct >= 0.5) return { pre: 'Bom', italic: ' começo de dia.', post: '' };
-  return { pre: 'O dia ainda', italic: ' começa.', post: '' };
-}
-
 // ── Main screen ───────────────────────────────────────────────────────────────
 
 export default function HomeScreen({ session }: Props) {
@@ -144,6 +127,11 @@ export default function HomeScreen({ session }: Props) {
   const [showProfile, setShowProfile] = useState(false);
 
   const { profile, loading, error: profileError, refetch: refetchProfile } = useProfile(session);
+  const {
+    streakDays,
+    daysSinceLastLog,
+    refresh: refreshVoiceContext,
+  } = useUserVoiceContext(session, profile?.daily_calorie_target ?? null);
   const [activeFasting, setActiveFasting] = useState<ActiveFasting | null>(null);
   const [fastingNow, setFastingNow] = useState(new Date());
   const [showMealPicker, setShowMealPicker] = useState(false);
@@ -307,8 +295,10 @@ export default function HomeScreen({ session }: Props) {
   }, [session.user.id, todayISO]);
 
   useEffect(() => {
-    if (selectedMeal === null) { loadTotals(); loadWeekData(); }
-  }, [selectedMeal, loadTotals, loadWeekData]);
+    if (selectedMeal === null) {
+      void Promise.all([loadTotals(), loadWeekData(), refreshVoiceContext()]);
+    }
+  }, [selectedMeal, loadTotals, loadWeekData, refreshVoiceContext]);
 
   useEffect(() => {
     if (!showWeight) loadWeightSummary();
@@ -395,6 +385,21 @@ export default function HomeScreen({ session }: Props) {
   const animCarbs = useAnimatedNumber(totals.carbs_g, selectedDateISO);
   const animFat = useAnimatedNumber(totals.fat_g, selectedDateISO);
 
+  const isToday = selectedDateISO === todayISO;
+  const mealsCountToday = useMemo(
+    () => Object.values(totals.byMeal).filter(kcal => kcal > 0).length,
+    [totals.byMeal],
+  );
+  const headline = useVoiceHeadline({
+    totalsKcal: totals.kcal,
+    targetKcal: targets?.daily_calorie_target ?? 0,
+    mealsCountToday,
+    streakDays,
+    daysSinceLastLog,
+    currentHour: new Date().getHours(),
+    isToday,
+  });
+
   // ── Loading / error states ────────────────────────────────────────────────
 
   if (loading) {
@@ -450,12 +455,9 @@ export default function HomeScreen({ session }: Props) {
 
   const yesterdayISO = addDaysIso(todayISO, -1);
   const canGoForward = selectedDateISO !== todayISO;
-  const isToday = selectedDateISO === todayISO;
 
   const progressPct = Math.min((totals.kcal / targets.daily_calorie_target) * 100, 100);
   const remaining = Math.max(targets.daily_calorie_target - totals.kcal, 0);
-  const isGoalReached = totals.kcal >= targets.daily_calorie_target;
-  const headline = isGoalReached ? null : getHeadline(totals.kcal, targets.daily_calorie_target, isToday);
 
   const weekDates = Array.from({ length: 7 }, (_, i) => addDaysIso(todayISO, -(6 - i)));
   const maxWeekKcal = Math.max(
@@ -528,17 +530,7 @@ export default function HomeScreen({ session }: Props) {
 
         {/* ── Hero ───────────────────────────────────────────────────── */}
         <View style={ss.hero}>
-          <Text style={ss.heroHeadline}>
-            {isGoalReached ? (
-              <Text style={ss.heroHeadlineItalic}>{t('home.headlines.goalReached')}</Text>
-            ) : (
-              <>
-                {headline!.pre}
-                <Text style={ss.heroHeadlineItalic}>{headline!.italic}</Text>
-                {headline!.post}
-              </>
-            )}
-          </Text>
+          <Text style={ss.heroHeadlineItalic}>{headline}</Text>
 
           <View style={ss.calorieRow}>
             <Text style={ss.calorieNum} adjustsFontSizeToFit numberOfLines={1}>
