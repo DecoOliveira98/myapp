@@ -62,7 +62,7 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
           "microphonePermission": "Permitir $(PRODUCT_NAME) acessar o microfone para descrever refeições"
         }

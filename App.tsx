@@ -12,6 +12,7 @@ import {
 import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold } from '@expo-google-fonts/geist';
 import { GeistMono_400Regular, GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './theme/ThemeContext';
 import AuthScreen from './screens/auth/AuthScreen';
 import AuthCallbackScreen from './screens/auth/AuthCallbackScreen';
@@ -105,18 +106,20 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      {!i18nReady || initializing || (!fontsLoaded && !fontError) ? (
-        <LoadingPage />
-      ) : !session && isHandlingAuthCallback ? (
-        <AuthCallbackScreen onResolved={() => setIsHandlingAuthCallback(false)} />
-      ) : !session ? (
-        <AuthScreen />
-      ) : needsOnboarding ? (
-        <Onboarding onComplete={() => setNeedsOnboarding(false)} />
-      ) : (
-        <HomeScreen session={session} />
-      )}
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        {!i18nReady || initializing || (!fontsLoaded && !fontError) ? (
+          <LoadingPage />
+        ) : !session && isHandlingAuthCallback ? (
+          <AuthCallbackScreen onResolved={() => setIsHandlingAuthCallback(false)} />
+        ) : !session ? (
+          <AuthScreen />
+        ) : needsOnboarding ? (
+          <Onboarding onComplete={() => setNeedsOnboarding(false)} />
+        ) : (
+          <HomeScreen session={session} />
+        )}
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }
