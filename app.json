@@ -37,10 +37,8 @@
         "android.permission.READ_MEDIA_IMAGES",
         "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
-        "android.permission.CAMERA",
-        "android.permission.READ_MEDIA_IMAGES",
-        "android.permission.RECORD_AUDIO",
-        "android.permission.MODIFY_AUDIO_SETTINGS"
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
       ],
       "package": "com.aloliveira98.myapp"
     },
@@ -77,6 +75,11 @@
           "color": "#F5B544"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "4da00bde-b43f-4c7f-9f03-ad25270c640a"
+      }
+    }
   }
 }
