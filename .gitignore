@@ -43,3 +43,7 @@ yarn-error.*
 
 .vscode/
 
+TODO.md
+/docs
+.claude
+

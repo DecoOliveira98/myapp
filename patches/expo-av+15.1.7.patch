@@ -1,0 +1,1218 @@
+diff --git a/node_modules/expo-av/android/.gradle/8.9/checksums/checksums.lock b/node_modules/expo-av/android/.gradle/8.9/checksums/checksums.lock
+new file mode 100644
+index 0000000..19eeb67
+Binary files /dev/null and b/node_modules/expo-av/android/.gradle/8.9/checksums/checksums.lock differ
+diff --git a/node_modules/expo-av/android/.gradle/8.9/dependencies-accessors/gc.properties b/node_modules/expo-av/android/.gradle/8.9/dependencies-accessors/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/expo-av/android/.gradle/8.9/fileChanges/last-build.bin b/node_modules/expo-av/android/.gradle/8.9/fileChanges/last-build.bin
+new file mode 100644
+index 0000000..f76dd23
+Binary files /dev/null and b/node_modules/expo-av/android/.gradle/8.9/fileChanges/last-build.bin differ
+diff --git a/node_modules/expo-av/android/.gradle/8.9/fileHashes/fileHashes.lock b/node_modules/expo-av/android/.gradle/8.9/fileHashes/fileHashes.lock
+new file mode 100644
+index 0000000..e2a5416
+Binary files /dev/null and b/node_modules/expo-av/android/.gradle/8.9/fileHashes/fileHashes.lock differ
+diff --git a/node_modules/expo-av/android/.gradle/8.9/gc.properties b/node_modules/expo-av/android/.gradle/8.9/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/expo-av/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock b/node_modules/expo-av/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock
+new file mode 100644
+index 0000000..aa89a41
+Binary files /dev/null and b/node_modules/expo-av/android/.gradle/buildOutputCleanup/buildOutputCleanup.lock differ
+diff --git a/node_modules/expo-av/android/.gradle/buildOutputCleanup/cache.properties b/node_modules/expo-av/android/.gradle/buildOutputCleanup/cache.properties
+new file mode 100644
+index 0000000..e8f2ac9
+--- /dev/null
++++ b/node_modules/expo-av/android/.gradle/buildOutputCleanup/cache.properties
+@@ -0,0 +1,2 @@
++#Sun May 10 19:48:07 IST 2026
++gradle.version=8.9
+diff --git a/node_modules/expo-av/android/.gradle/vcs-1/gc.properties b/node_modules/expo-av/android/.gradle/vcs-1/gc.properties
+new file mode 100644
+index 0000000..e69de29
+diff --git a/node_modules/expo-av/android/bin/build.gradle b/node_modules/expo-av/android/bin/build.gradle
+new file mode 100644
+index 0000000..cb0d462
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/build.gradle
+@@ -0,0 +1,95 @@
++import expo.modules.plugin.gradle.ExpoModuleExtension
++
++plugins {
++  id 'com.android.library'
++  id 'expo-module-gradle-plugin'
++}
++
++def getReactNativeDir = {
++  return project.extensions.getByType(ExpoModuleExtension).reactNativeDir
++}
++
++def REACT_NATIVE_DIR = getReactNativeDir()
++
++def reactNativeArchitectures() {
++    def value = project.getProperties().get("reactNativeArchitectures")
++    return value ? value.split(",") : ["armeabi-v7a", "x86", "x86_64", "arm64-v8a"]
++}
++
++group = 'host.exp.exponent'
++version = '15.1.7'
++
++android {
++  if (rootProject.hasProperty("ndkPath")) {
++    ndkPath rootProject.ext.ndkPath
++  }
++  if (rootProject.hasProperty("ndkVersion")) {
++    ndkVersion rootProject.ext.ndkVersion
++  }
++
++  namespace "expo.modules.av"
++  defaultConfig {
++    versionCode 24
++    versionName "15.1.7"
++
++    externalNativeBuild {
++      cmake {
++        cppFlags "-O2 -frtti -fexceptions -Wall -fstack-protector-all"
++        abiFilters (*reactNativeArchitectures())
++        arguments "-DANDROID_STL=c++_shared",
++          "-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON",
++          "-DREACT_NATIVE_DIR=${REACT_NATIVE_DIR}"
++      }
++    }
++  }
++
++  externalNativeBuild {
++    cmake {
++      path "CMakeLists.txt"
++    }
++  }
++
++  buildFeatures {
++    prefab true
++  }
++
++  packagingOptions {
++    // Gradle will add cmake target dependencies into packaging.
++    // Theses files are intermediated linking files to build reanimated and should not be in final package.
++    excludes += [
++        "**/libc++_shared.so",
++        "**/libreactnative.so",
++        "**/libreactnativejni.so",
++        "**/libglog.so",
++        "**/libjscexecutor.so",
++        "**/libfbjni.so",
++        "**/libfolly_json.so",
++        "**/libhermes.so",
++        "**/libjsi.so",
++    ]
++  }
++
++
++  testOptions {
++    unitTests.all {
++      useJUnitPlatform()
++    }
++  }
++}
++
++dependencies {
++  implementation 'com.facebook.react:react-android'
++
++  compileOnly 'com.facebook.fbjni:fbjni:0.3.0'
++
++  api 'com.google.android.exoplayer:exoplayer:2.18.1'
++  api 'com.google.android.exoplayer:extension-okhttp:2.18.1'
++
++  api "com.squareup.okhttp3:okhttp:3.14.9"
++  api "com.squareup.okhttp3:okhttp-urlconnection:3.14.9"
++
++  testImplementation 'org.junit.jupiter:junit-jupiter-api:5.5.1'
++  testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.5.1"
++
++  testImplementation 'io.mockk:mockk:1.12.3'
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/cpp/EXAV.cpp b/node_modules/expo-av/android/bin/src/main/cpp/EXAV.cpp
+new file mode 100644
+index 0000000..8a87f2f
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/cpp/EXAV.cpp
+@@ -0,0 +1,14 @@
++// Copyright © 2021-present 650 Industries, Inc. (aka Expo)
++
++#include <jni.h>
++#include <fbjni/fbjni.h>
++#include "JAVManager.h"
++#include "JPlayerData.h"
++#include <android/log.h>
++
++JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *) {
++  return facebook::jni::initialize(vm, [] {
++    expo::av::JAVManager::registerNatives();
++    expo::av::JPlayerData::registerNatives();
++  });
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/cpp/JAVManager.cpp b/node_modules/expo-av/android/bin/src/main/cpp/JAVManager.cpp
+new file mode 100644
+index 0000000..def69a0
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/cpp/JAVManager.cpp
+@@ -0,0 +1,138 @@
++// Copyright © 2021-present 650 Industries, Inc. (aka Expo)
++
++#include "JAVManager.h"
++
++#include <jsi/jsi.h>
++
++#include <jni.h>
++#include <fbjni/fbjni.h>
++
++#include <memory>
++#include <string>
++
++#include <ReactCommon/CallInvokerHolder.h>
++#include <ReactCommon/CallInvoker.h>
++
++#include <android/log.h>
++
++namespace expo {
++  namespace av {
++
++    namespace jsi = facebook::jsi;
++    namespace jni = facebook::jni;
++
++    jni::local_ref<JAVManager::jhybriddata>
++    JAVManager::initHybrid(jni::alias_ref<jhybridobject> jThis) {
++      return makeCxxInstance(jThis);
++    }
++
++    void JAVManager::registerNatives() {
++      registerHybrid({
++                       makeNativeMethod("initHybrid", JAVManager::initHybrid),
++                       makeNativeMethod("installJSIBindings", JAVManager::installJSIBindings),
++                     });
++    }
++
++    JPlayerData *JAVManager::getMediaPlayerById(int id) {
++      static const auto func = javaPart_->getClass()->getMethod<JPlayerData *(jint)>(
++        "getMediaPlayerById");
++      auto result = func(javaPart_.get(), id);
++      return result->cthis();
++    }
++
++    void JAVManager::installJSIBindings(jlong jsRuntimePointer,
++                                        jni::alias_ref<facebook::react::CallInvokerHolder::javaobject> jsCallInvokerHolder) {
++      auto &runtime = *reinterpret_cast<jsi::Runtime *>(jsRuntimePointer);
++      auto callInvokerHolder = jsCallInvokerHolder->cthis();
++      if (callInvokerHolder == nullptr) {
++        jni::throwNewJavaException("java/lang/IllegalStateException", "CallInvokerHolder is null");
++      }
++      auto callInvoker = callInvokerHolder->getCallInvoker();
++      auto function = [this, callInvoker](jsi::Runtime &runtime,
++                                          const jsi::Value &thisValue,
++                                          const jsi::Value *args,
++                                          size_t argsCount) -> jsi::Value {
++        auto playerId = args[0].asNumber();
++
++        auto mediaPlayer = getMediaPlayerById(static_cast<int>(playerId));
++        if (mediaPlayer == nullptr) {
++          auto message = "Sound Instance with ID " + std::to_string(playerId) +
++                         "does not exist!";
++          throw jsi::JSError(runtime, message.c_str());
++        }
++
++        if (argsCount > 1 && args[1].isObject()) {
++          // second parameter received, it's the callback function.
++          auto message = "Setting Audio Sample Buffer Callback for Player " +
++                         std::to_string(playerId) + "...";
++          __android_log_write(ANDROID_LOG_INFO, TAG, message.c_str());
++
++          auto callback = args[1].asObject(runtime).asFunction(runtime);
++          auto callbackShared = std::make_shared<jsi::Function>(std::move(callback));
++
++          mediaPlayer->setSampleBufferCallback([callbackShared, &runtime, callInvoker](
++            jni::alias_ref <jni::JArrayByte> sampleBuffer, double positionSeconds) {
++            auto channelsCount = /* TODO: channelsCount */ 1;
++            auto size = sampleBuffer->size();
++
++            // TODO: Avoid copy by directly using ArrayBuffer? Or accessing values in the sampleBuffer?
++            // copies the JNI array (signed 8 bit int (byte)) into a vector and reinterprets it as an unsigned 8 bit int (u_byte)
++            std::vector<uint8_t> buffer(size);
++            sampleBuffer->getRegion(0, size, reinterpret_cast<int8_t *>(buffer.data()));
++
++            // TODO: Run per channel instead of flat array?
++            auto channels = jsi::Array(runtime, channelsCount);
++            for (auto i = 0; i < channelsCount; i++) {
++              auto channel = jsi::Object(runtime);
++
++              auto frames = jsi::Array(runtime, size);
++
++              for (size_t ii = 0; ii < size; ii++) {
++                // `buffer` is interpreted as a 8-bit unsigned integer (byte), so it ranges from
++                // 0 to 255. To normalize it to a -1..1 scale we subtract 128 and divide by 128.
++                double frame = (static_cast<double>(buffer[ii]) - 128) / 128.0;
++                frames.setValueAtIndex(runtime, ii, jsi::Value(frame));
++              }
++
++              channel.setProperty(runtime, "frames", frames);
++              channels.setValueAtIndex(runtime, i, channel);
++            }
++
++            // TODO: Avoid smart pointer here? Cannot move into lambda...
++            auto sample = std::make_shared<jsi::Object>(runtime);
++            sample->setProperty(runtime, "channels", channels);
++            sample->setProperty(runtime, "timestamp", jsi::Value(positionSeconds));
++
++            callInvoker->invokeAsync([callbackShared, &runtime, sample]() {
++              try {
++                jsi::Object *s = sample.get();
++                callbackShared->call(runtime, std::move(*s));
++              } catch (std::exception &exception) {
++                auto message = "Sample Buffer Callback threw an error: " +
++                               std::string(exception.what());
++                __android_log_write(ANDROID_LOG_ERROR, TAG, message.c_str());
++              }
++            });
++          });
++        } else {
++          // second parameter omitted or undefined, so remove callback
++          __android_log_write(ANDROID_LOG_INFO, TAG,
++                              "Unsetting Sample Buffer Callback...");
++
++          mediaPlayer->unsetSampleBufferCallback();
++        }
++
++        return jsi::Value::undefined();
++      };
++      runtime.global().setProperty(runtime,
++                                   "__EXAV_setOnAudioSampleReceivedCallback",
++                                   jsi::Function::createFromHostFunction(runtime,
++                                                                         jsi::PropNameID::forAscii(
++                                                                           runtime,
++                                                                           "__EXAV_setOnAudioSampleReceivedCallback"),
++                                                                         2,
++                                                                         function));
++    }
++
++  } // namespace av
++} // namespace expo
+diff --git a/node_modules/expo-av/android/bin/src/main/cpp/JAVManager.h b/node_modules/expo-av/android/bin/src/main/cpp/JAVManager.h
+new file mode 100644
+index 0000000..6107c0a
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/cpp/JAVManager.h
+@@ -0,0 +1,44 @@
++// Copyright © 2021-present 650 Industries, Inc. (aka Expo)
++
++#pragma once
++
++#include <jni.h>
++#include <fbjni/fbjni.h>
++#include <jsi/jsi.h>
++
++#include <memory>
++
++#include <ReactCommon/CallInvokerHolder.h>
++#include <ReactCommon/CallInvoker.h>
++
++#include "JPlayerData.h"
++
++namespace expo {
++  namespace av {
++
++    namespace jni = facebook::jni;
++
++    class JAVManager : public jni::HybridClass<JAVManager> {
++    public:
++      static auto constexpr kJavaDescriptor = "Lexpo/modules/av/AVManager;";
++      static auto constexpr TAG = "JAVManager";
++
++      static jni::local_ref<jhybriddata> initHybrid(jni::alias_ref<jhybridobject> jThis);
++
++      static void registerNatives();
++
++      void installJSIBindings(jlong jsRuntimePointer,
++                              jni::alias_ref<facebook::react::CallInvokerHolder::javaobject> jsCallInvokerHolder);
++
++    private:
++      friend HybridBase;
++      jni::global_ref<JAVManager::javaobject> javaPart_;
++
++      explicit JAVManager(jni::alias_ref<jhybridobject> jThis) :
++        javaPart_(jni::make_global(jThis)) {}
++
++      JPlayerData *getMediaPlayerById(int id);
++    };
++
++  } // namespace av
++} // namespace expo
+diff --git a/node_modules/expo-av/android/bin/src/main/cpp/JPlayerData.cpp b/node_modules/expo-av/android/bin/src/main/cpp/JPlayerData.cpp
+new file mode 100644
+index 0000000..b6eed0f
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/cpp/JPlayerData.cpp
+@@ -0,0 +1,67 @@
++// Copyright © 2021-present 650 Industries, Inc. (aka Expo)
++
++#include "JPlayerData.h"
++
++#include <jni.h>
++#include <fbjni/fbjni.h>
++
++#include <memory>
++#include <string>
++
++namespace expo {
++  namespace av {
++
++    namespace jni = facebook::jni;
++
++    jni::local_ref<JPlayerData::jhybriddata>
++    JPlayerData::initHybrid(jni::alias_ref<jhybridobject> jThis) {
++      return makeCxxInstance(jThis);
++    }
++
++    void JPlayerData::registerNatives() {
++      registerHybrid({
++                       makeNativeMethod("initHybrid", JPlayerData::initHybrid),
++                       makeNativeMethod("sampleBufferCallback", JPlayerData::sampleBufferCallback),
++                     });
++    }
++
++    void JPlayerData::sampleBufferCallback(jni::alias_ref<jni::JArrayByte> sampleBuffer,
++                                           jdouble positionSeconds) {
++      if (sampleBufferCallback_ == nullptr) {
++        __android_log_write(ANDROID_LOG_WARN, TAG, "Sample Buffer Callback is null!");
++        setEnableSampleBufferCallback(false);
++        return;
++      }
++
++      auto sampleBufferStrong = make_local(sampleBuffer);
++      try {
++        sampleBufferCallback_(sampleBufferStrong, positionSeconds);
++      } catch (const std::exception &exception) {
++        auto message = "Sample Buffer Callback threw an error! " + std::string(exception.what());
++        __android_log_write(ANDROID_LOG_ERROR, TAG, message.c_str());
++      }
++    }
++
++    void JPlayerData::setEnableSampleBufferCallback(bool enable) {
++      if (enable) {
++        __android_log_write(ANDROID_LOG_INFO, TAG, "Enabling Sample Buffer Callback...");
++      } else {
++        __android_log_write(ANDROID_LOG_INFO, TAG, "Disabling Sample Buffer Callback...");
++      }
++      static const auto javaMethod = javaPart_->getClass()->getMethod<void(bool)>(
++        "setEnableSampleBufferCallback");
++      javaMethod(javaPart_.get(), enable);
++    }
++
++    void JPlayerData::setSampleBufferCallback(const SampleBufferCallback &&sampleBufferCallback) {
++      sampleBufferCallback_ = sampleBufferCallback;
++      setEnableSampleBufferCallback(true);
++    }
++
++    void JPlayerData::unsetSampleBufferCallback() {
++      sampleBufferCallback_ = nullptr;
++      setEnableSampleBufferCallback(false);
++    }
++
++  } // namespace av
++} // namespace expo
+diff --git a/node_modules/expo-av/android/bin/src/main/cpp/JPlayerData.h b/node_modules/expo-av/android/bin/src/main/cpp/JPlayerData.h
+new file mode 100644
+index 0000000..e51a5be
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/cpp/JPlayerData.h
+@@ -0,0 +1,46 @@
++// Copyright © 2021-present 650 Industries, Inc. (aka Expo)
++
++#pragma once
++
++#include <jni.h>
++#include <fbjni/fbjni.h>
++
++#include <memory>
++
++namespace expo {
++  namespace av {
++
++    namespace jni = facebook::jni;
++
++    using SampleBufferCallback = std::function<void(jni::local_ref<jni::JArrayByte>, double)>;
++
++    class JPlayerData : public jni::HybridClass<JPlayerData> {
++    public:
++      static auto constexpr kJavaDescriptor = "Lexpo/modules/av/player/PlayerData;";
++      static auto constexpr TAG = "JPlayerData";
++
++      static jni::local_ref<jhybriddata> initHybrid(jni::alias_ref<jhybridobject> jThis);
++
++      static void registerNatives();
++
++      void setSampleBufferCallback(const SampleBufferCallback &&sampleBufferCallback);
++
++      void unsetSampleBufferCallback();
++
++    private:
++      friend HybridBase;
++      jni::global_ref<JPlayerData::javaobject> javaPart_;
++      SampleBufferCallback sampleBufferCallback_;
++
++      void
++      sampleBufferCallback(jni::alias_ref<jni::JArrayByte> sampleBuffer, jdouble positionSeconds);
++
++      void setEnableSampleBufferCallback(bool enable);
++
++      explicit JPlayerData(jni::alias_ref<jhybridobject> jThis) :
++        javaPart_(jni::make_global(jThis)),
++        sampleBufferCallback_(nullptr) {}
++    };
++
++  } // namespace av
++} // namespace expo
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManager$AudioInterruptionMode.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManager$AudioInterruptionMode.class
+new file mode 100644
+index 0000000..0de72ef
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManager$AudioInterruptionMode.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManager.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManager.class
+new file mode 100644
+index 0000000..55c2df1
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManager.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManagerInterface.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManagerInterface.class
+new file mode 100644
+index 0000000..391d1ca
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVManagerInterface.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVModule.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVModule.kt
+new file mode 100644
+index 0000000..60a8d8d
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVModule.kt
+@@ -0,0 +1,155 @@
++package expo.modules.av
++
++import android.Manifest
++import android.os.Bundle
++import expo.modules.core.arguments.ReadableArguments
++import expo.modules.interfaces.permissions.Permissions
++import expo.modules.kotlin.exception.CodedException
++import expo.modules.kotlin.modules.Module
++import expo.modules.kotlin.modules.ModuleDefinition
++import java.lang.ref.WeakReference
++
++private class AVManagerModuleNotFound : CodedException(message = "AVManagerInterface not found")
++
++private typealias KotlinPromise = expo.modules.kotlin.Promise
++private typealias LegacyPromise =
++  @Suppress("DEPRECATION")
++  expo.modules.core.Promise
++
++class AVModule : Module() {
++  private val _avManager by lazy { appContext.legacyModule<AVManagerInterface>() }
++  private val avManager: AVManagerInterface
++    get() = _avManager ?: throw AVManagerModuleNotFound()
++
++  override fun definition() = ModuleDefinition {
++    Name("ExponentAV")
++
++    Events(
++      "didUpdatePlaybackStatus",
++      "ExponentAV.onError",
++      "Expo.Recording.recorderUnloaded"
++    )
++
++    OnCreate {
++      // Slightly hacky way to be able to emit events using the new event emitter from legacy modules.
++      val weakModule = WeakReference(this@AVModule)
++      val emitEvent = { name: String, body: Bundle ->
++        try {
++          // It may thrown, because RN event emitter may not be available
++          // we can just ignore those cases
++          weakModule.get()?.sendEvent(name, body)
++        } catch (_: Throwable) {
++        }
++        Unit
++      }
++
++      appContext.legacyModule<AVManagerInterface>()?.setEmitEventWrapper(emitEvent)
++    }
++
++    AsyncFunction("setAudioIsEnabled") { value: Boolean ->
++      avManager.setAudioIsEnabled(value)
++    }
++
++    AsyncFunction("setAudioMode") { map: ReadableArguments ->
++      avManager.setAudioMode(map)
++    }
++
++    AsyncFunction("loadForSound") { source: ReadableArguments, status: ReadableArguments, promise: KotlinPromise ->
++      avManager.loadForSound(source, status, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("unloadForSound") { key: Int, promise: KotlinPromise ->
++      avManager.unloadForSound(key, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("setStatusForSound") { key: Int, status: ReadableArguments, promise: KotlinPromise ->
++      avManager.setStatusForSound(key, status, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("replaySound") { key: Int, status: ReadableArguments, promise: KotlinPromise ->
++      avManager.replaySound(key, status, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("getStatusForSound") { key: Int, promise: KotlinPromise ->
++      avManager.getStatusForSound(key, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("loadForVideo") { tag: Int, source: ReadableArguments?, status: ReadableArguments?, promise: KotlinPromise ->
++      avManager.loadForVideo(tag, source, status, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("unloadForVideo") { tag: Int, promise: KotlinPromise ->
++      avManager.unloadForVideo(tag, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("setStatusForVideo") { tag: Int, status: ReadableArguments, promise: KotlinPromise ->
++      avManager.setStatusForVideo(tag, status, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("replayVideo") { tag: Int, status: ReadableArguments, promise: KotlinPromise ->
++      avManager.replayVideo(tag, status, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("getStatusForVideo") { tag: Int, promise: KotlinPromise ->
++      avManager.getStatusForVideo(tag, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("prepareAudioRecorder") { options: ReadableArguments, promise: KotlinPromise ->
++      avManager.prepareAudioRecorder(options, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("getAvailableInputs") { promise: KotlinPromise ->
++      avManager.getAvailableInputs(promise.toLegacyPromise())
++    }
++
++    AsyncFunction("getCurrentInput") { promise: KotlinPromise ->
++      avManager.getCurrentInput(promise.toLegacyPromise())
++    }
++
++    AsyncFunction("setInput") { uid: String, promise: KotlinPromise ->
++      avManager.setInput(uid, promise.toLegacyPromise())
++    }
++
++    AsyncFunction("startAudioRecording") { promise: KotlinPromise ->
++      avManager.startAudioRecording(promise.toLegacyPromise())
++    }
++
++    AsyncFunction("pauseAudioRecording") { promise: KotlinPromise ->
++      avManager.pauseAudioRecording(promise.toLegacyPromise())
++    }
++
++    AsyncFunction("stopAudioRecording") { promise: KotlinPromise ->
++      avManager.stopAudioRecording(promise.toLegacyPromise())
++    }
++
++    AsyncFunction("getAudioRecordingStatus") { promise: KotlinPromise ->
++      avManager.getAudioRecordingStatus(promise.toLegacyPromise())
++    }
++
++    AsyncFunction("unloadAudioRecorder") { promise: KotlinPromise ->
++      avManager.unloadAudioRecorder(promise.toLegacyPromise())
++    }
++
++    AsyncFunction("requestPermissionsAsync") { promise: KotlinPromise ->
++      Permissions.askForPermissionsWithPermissionsManager(appContext.permissions, promise, Manifest.permission.RECORD_AUDIO)
++    }
++
++    AsyncFunction("getPermissionsAsync") { promise: KotlinPromise ->
++      Permissions.getPermissionsWithPermissionsManager(appContext.permissions, promise, Manifest.permission.RECORD_AUDIO)
++    }
++  }
++}
++
++@Suppress("TYPEALIAS_EXPANSION_DEPRECATION")
++private fun KotlinPromise.toLegacyPromise(): LegacyPromise {
++  val newPromise = this
++  return object : LegacyPromise {
++    override fun resolve(value: Any?) {
++      newPromise.resolve(value)
++    }
++
++    override fun reject(c: String?, m: String?, e: Throwable?) {
++      newPromise.reject(c ?: "unknown", m, e)
++    }
++  }
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVPackage.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVPackage.class
+new file mode 100644
+index 0000000..9a8cef8
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AVPackage.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AudioEventHandler.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AudioEventHandler.class
+new file mode 100644
+index 0000000..781672c
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AudioEventHandler.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AudioFocusNotAcquiredException.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AudioFocusNotAcquiredException.class
+new file mode 100644
+index 0000000..7a0f54c
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/AudioFocusNotAcquiredException.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/EmitEventWrapper.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/EmitEventWrapper.class
+new file mode 100644
+index 0000000..154e3f5
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/EmitEventWrapper.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/ForwardingCookieHandler.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/ForwardingCookieHandler.class
+new file mode 100644
+index 0000000..7da0f15
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/ForwardingCookieHandler.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/ViewUtils.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/ViewUtils.kt
+new file mode 100644
+index 0000000..d18b58a
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/ViewUtils.kt
+@@ -0,0 +1,78 @@
++package expo.modules.av
++
++import androidx.annotation.AnyThread
++import androidx.annotation.UiThread
++import com.facebook.react.bridge.UiThreadUtil
++import com.facebook.react.uimanager.IllegalViewOperationException
++import expo.modules.av.video.VideoView
++import expo.modules.av.video.VideoViewWrapper
++import expo.modules.core.ModuleRegistry
++import expo.modules.core.Promise
++import expo.modules.core.interfaces.services.UIManager
++
++object ViewUtils {
++  interface VideoViewCallback {
++    fun runWithVideoView(videoView: VideoView): Unit
++  }
++
++  @UiThread
++  private fun tryRunWithVideoViewOnUiThread(moduleRegistry: ModuleRegistry, viewTag: Int, callback: VideoViewCallback, promise: Promise) {
++    try {
++      val videoWrapperView = moduleRegistry.getModule(UIManager::class.java).resolveView(viewTag) as VideoViewWrapper?
++      val videoView = videoWrapperView?.videoViewInstance
++      if (videoView != null) {
++        callback.runWithVideoView(videoView)
++      } else {
++        promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.")
++      }
++    } catch (e: IllegalViewOperationException) {
++      promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.")
++    }
++  }
++
++  /**
++   * Rejects the promise if the VideoView is not found, otherwise executes the callback.
++   */
++  @JvmStatic
++  @AnyThread
++  @Deprecated("Use `dispatchCommands` in favor of finding view with imperative calls")
++  fun tryRunWithVideoView(moduleRegistry: ModuleRegistry, viewTag: Int, callback: VideoViewCallback, promise: Promise) {
++    if (UiThreadUtil.isOnUiThread()) {
++      tryRunWithVideoViewOnUiThread(moduleRegistry, viewTag, callback, promise)
++    } else {
++      UiThreadUtil.runOnUiThread {
++        tryRunWithVideoViewOnUiThread(moduleRegistry, viewTag, callback, promise)
++      }
++    }
++  }
++
++  @UiThread
++  private fun tryRunWithVideoViewOnUiThread(moduleRegistry: ModuleRegistry, viewTag: Int, callback: VideoViewCallback, promise: expo.modules.kotlin.Promise) {
++    try {
++      val videoWrapperView = moduleRegistry.getModule(UIManager::class.java).resolveView(viewTag) as VideoViewWrapper?
++      val videoView = videoWrapperView?.videoViewInstance
++      if (videoView != null) {
++        callback.runWithVideoView(videoView)
++      } else {
++        promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.", null)
++      }
++    } catch (e: IllegalViewOperationException) {
++      promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.", null)
++    }
++  }
++
++  /**
++   * Rejects the promise if the VideoView is not found, otherwise executes the callback.
++   */
++  @AnyThread
++  @Deprecated("Use `dispatchCommands` in favor of finding view with imperative calls")
++  fun tryRunWithVideoView(moduleRegistry: ModuleRegistry, viewTag: Int, callback: VideoViewCallback, promise: expo.modules.kotlin.Promise) {
++    if (UiThreadUtil.isOnUiThread()) {
++      tryRunWithVideoViewOnUiThread(moduleRegistry, viewTag, callback, promise)
++    } else {
++      UiThreadUtil.runOnUiThread {
++        tryRunWithVideoViewOnUiThread(moduleRegistry, viewTag, callback, promise)
++      }
++    }
++  }
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/MediaPlayerData.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/MediaPlayerData.class
+new file mode 100644
+index 0000000..93d5802
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/MediaPlayerData.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$ErrorListener.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$ErrorListener.class
+new file mode 100644
+index 0000000..bd64103
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$ErrorListener.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$FullscreenPresenter.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$FullscreenPresenter.class
+new file mode 100644
+index 0000000..fa6c3c4
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$FullscreenPresenter.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$LoadCompletionListener.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$LoadCompletionListener.class
+new file mode 100644
+index 0000000..444de1a
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$LoadCompletionListener.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$SetStatusCompletionListener.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$SetStatusCompletionListener.class
+new file mode 100644
+index 0000000..039e456
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$SetStatusCompletionListener.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$StatusUpdateListener.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$StatusUpdateListener.class
+new file mode 100644
+index 0000000..03d8a84
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$StatusUpdateListener.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$VideoSizeUpdateListener.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$VideoSizeUpdateListener.class
+new file mode 100644
+index 0000000..d9d1127
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData$VideoSizeUpdateListener.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData.class
+new file mode 100644
+index 0000000..e976e2f
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerData.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerDataControl.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerDataControl.class
+new file mode 100644
+index 0000000..2c93dd9
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/PlayerDataControl.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/SimpleExoPlayerData.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/SimpleExoPlayerData.class
+new file mode 100644
+index 0000000..ffdeb32
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/SimpleExoPlayerData.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/CustomHeadersOkHttpDataSourceFactory.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/CustomHeadersOkHttpDataSourceFactory.kt
+new file mode 100644
+index 0000000..f604599
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/CustomHeadersOkHttpDataSourceFactory.kt
+@@ -0,0 +1,38 @@
++package expo.modules.av.player.datasource
++
++import androidx.collection.ArrayMap
++import com.google.android.exoplayer2.upstream.HttpDataSource.BaseFactory
++import com.google.android.exoplayer2.upstream.HttpDataSource.RequestProperties
++import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
++import okhttp3.CacheControl
++import okhttp3.Call
++
++// Mainly a copy of com.google.android.exoplayer2.ext.okhttp.OkHttpDataSourceFactory,
++// because it's declared as final :(
++class CustomHeadersOkHttpDataSourceFactory(
++  private val callFactory: Call.Factory,
++  private val userAgent: String?,
++  requestHeaders: Map<String, Any>?
++) : BaseFactory() {
++  private val cacheControl: CacheControl? = null
++
++  private fun updateRequestProperties(requestHeaders: Map<String, Any>?) {
++    if (requestHeaders != null) {
++      val requestProperties = ArrayMap<String, String>()
++      for ((key, value) in requestHeaders) {
++        if (value is String) {
++          requestProperties[key] = value
++        }
++      }
++      setDefaultRequestProperties(requestProperties)
++    }
++  }
++
++  override fun createDataSourceInternal(defaultRequestProperties: RequestProperties): OkHttpDataSource {
++    return OkHttpDataSource(callFactory, userAgent, cacheControl, defaultRequestProperties)
++  }
++
++  init {
++    updateRequestProperties(requestHeaders)
++  }
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/DataSourceFactoryProvider.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/DataSourceFactoryProvider.class
+new file mode 100644
+index 0000000..e474056
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/DataSourceFactoryProvider.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/SharedCookiesDataSourceFactory.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/SharedCookiesDataSourceFactory.class
+new file mode 100644
+index 0000000..0f392ad
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/SharedCookiesDataSourceFactory.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/SharedCookiesDataSourceFactoryProvider.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/SharedCookiesDataSourceFactoryProvider.class
+new file mode 100644
+index 0000000..10ec838
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/player/datasource/SharedCookiesDataSourceFactoryProvider.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/progress/AndroidLooperTimeMachine.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/progress/AndroidLooperTimeMachine.kt
+new file mode 100644
+index 0000000..dda3b8b
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/progress/AndroidLooperTimeMachine.kt
+@@ -0,0 +1,13 @@
++package expo.modules.av.progress
++
++import android.os.Handler
++
++class AndroidLooperTimeMachine : TimeMachine {
++
++  override fun scheduleAt(intervalMillis: Long, callback: TimeMachineTick) {
++    Handler().postDelayed(callback, intervalMillis)
++  }
++
++  override val time: Long
++    get() = System.currentTimeMillis()
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/progress/ProgressLooper.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/progress/ProgressLooper.kt
+new file mode 100644
+index 0000000..638cee3
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/progress/ProgressLooper.kt
+@@ -0,0 +1,70 @@
++package expo.modules.av.progress
++
++typealias TimeMachineTick = () -> Unit
++
++interface TimeMachine {
++  fun scheduleAt(intervalMillis: Long, callback: TimeMachineTick)
++  val time: Long
++}
++
++typealias PlayerProgressListener = () -> Unit
++
++class ProgressLooper(private val timeMachine: TimeMachine) {
++
++  private var interval = 0L
++  private var nextExpectedTick = -1L
++  private var waiting = false
++
++  private var shouldLoop: Boolean
++    get() = interval > 0 && nextExpectedTick >= 0 && !waiting
++    set(value) {
++      if (!value) {
++        interval = 0L
++        nextExpectedTick = -1L
++        waiting = false
++      }
++    }
++
++  private var listener: PlayerProgressListener? = null
++
++  fun setListener(listener: PlayerProgressListener) {
++    this.listener = listener
++  }
++
++  fun loop(interval: Long, listener: PlayerProgressListener) {
++    this.listener = listener
++    this.interval = interval
++    scheduleNextTick()
++  }
++
++  fun stopLooping() {
++    this.shouldLoop = false
++    this.listener = null
++  }
++
++  fun isLooping(): Boolean {
++    return this.interval > 0
++  }
++
++  private fun scheduleNextTick() {
++    if (nextExpectedTick == -1L) {
++      nextExpectedTick = timeMachine.time
++    }
++    if (shouldLoop) {
++      nextExpectedTick += calculateNextInterval()
++      waiting = true
++      timeMachine.scheduleAt(nextExpectedTick - timeMachine.time) {
++        waiting = false
++        listener?.invoke()
++        scheduleNextTick()
++      }
++    }
++  }
++
++  private fun calculateNextInterval() =
++    if (nextExpectedTick > timeMachine.time) {
++      interval
++    } else {
++      (((timeMachine.time - nextExpectedTick) / interval) + 1) * interval
++    }
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenPlayerUpdate.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenPlayerUpdate.kt
+new file mode 100644
+index 0000000..e837695
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenPlayerUpdate.kt
+@@ -0,0 +1,8 @@
++package expo.modules.av.video
++
++internal enum class FullscreenPlayerUpdate(val jsValue: Int) {
++  FULLSCREEN_PLAYER_WILL_PRESENT(0),
++  FULLSCREEN_PLAYER_DID_PRESENT(1),
++  FULLSCREEN_PLAYER_WILL_DISMISS(2),
++  FULLSCREEN_PLAYER_DID_DISMISS(3)
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayer$KeepScreenOnUpdater.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayer$KeepScreenOnUpdater.class
+new file mode 100644
+index 0000000..775a45e
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayer$KeepScreenOnUpdater.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayer.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayer.class
+new file mode 100644
+index 0000000..ac4db48
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayer.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayerPresentationChangeListener.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayerPresentationChangeListener.class
+new file mode 100644
+index 0000000..590211c
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayerPresentationChangeListener.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayerPresentationChangeProgressListener.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayerPresentationChangeProgressListener.class
+new file mode 100644
+index 0000000..2e6405a
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/FullscreenVideoPlayerPresentationChangeProgressListener.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/MediaController$MessageHandler.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/MediaController$MessageHandler.class
+new file mode 100644
+index 0000000..546acad
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/MediaController$MessageHandler.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/MediaController.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/MediaController.class
+new file mode 100644
+index 0000000..52cd170
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/MediaController.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoTextureView.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoTextureView.class
+new file mode 100644
+index 0000000..ac30a81
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoTextureView.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoView.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoView.class
+new file mode 100644
+index 0000000..3f44fe9
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoView.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoViewModule.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoViewModule.kt
+new file mode 100644
+index 0000000..ea0f68d
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoViewModule.kt
+@@ -0,0 +1,110 @@
++package expo.modules.av.video
++
++import com.facebook.react.bridge.ReadableMap
++import expo.modules.av.ViewUtils
++import expo.modules.av.video.scalablevideoview.ScalableType
++import expo.modules.core.arguments.MapArguments
++import expo.modules.kotlin.Promise
++import expo.modules.kotlin.modules.Module
++import expo.modules.kotlin.modules.ModuleDefinition
++
++class VideoViewModule : Module() {
++  override fun definition() = ModuleDefinition {
++    Name("ExpoVideoView")
++
++    View(VideoViewWrapper::class) {
++      OnViewDestroys<VideoViewWrapper> { view ->
++        view.videoViewInstance.onDropViewInstance()
++      }
++
++      Events(
++        "onStatusUpdate",
++        "onLoadStart",
++        "onLoad",
++        "onError",
++        "onReadyForDisplay",
++        "onFullscreenUpdate"
++      )
++
++      //region Props set directly in <Video> component
++
++      Prop("status") { view: VideoViewWrapper, status: ReadableMap ->
++        view.videoViewInstance.setStatus(MapArguments(status.toHashMap()), null)
++      }
++
++      Prop("useNativeControls") { view: VideoViewWrapper, useNativeControls: Boolean ->
++        view.videoViewInstance.setUseNativeControls(useNativeControls)
++      }
++
++      //endregion
++
++      //region Native only props -- set by Video.js
++
++      Prop("source") { view: VideoViewWrapper, source: ReadableMap ->
++        view.videoViewInstance.setSource(MapArguments(source.toHashMap()))
++      }
++
++      Prop("resizeMode") { view: VideoViewWrapper, resizeModeOrdinalString: String ->
++        view.videoViewInstance.setResizeMode(ScalableType.values()[resizeModeOrdinalString.toInt()])
++      }
++
++      //endregion
++    }
++
++    //region Native module
++
++    Constants(
++      "ScaleNone" to ScalableType.LEFT_TOP.ordinal.toString(),
++      "ScaleToFill" to ScalableType.FIT_XY.ordinal.toString(),
++      "ScaleAspectFit" to ScalableType.FIT_CENTER.ordinal.toString(),
++      "ScaleAspectFill" to ScalableType.CENTER_CROP.ordinal.toString()
++    )
++
++    AsyncFunction("setFullscreen") { tag: Int, shouldBeFullscreen: Boolean, promise: Promise ->
++      ViewUtils.tryRunWithVideoView(
++        appContext.legacyModuleRegistry,
++        tag,
++        object : ViewUtils.VideoViewCallback {
++          override fun runWithVideoView(videoView: VideoView) {
++            val listener = object : FullscreenVideoPlayerPresentationChangeProgressListener() {
++              override fun onFullscreenPlayerDidDismiss() {
++                promise.resolve(videoView.status)
++              }
++
++              override fun onFullscreenPlayerDidPresent() {
++                promise.resolve(videoView.status)
++              }
++
++              override fun onFullscreenPlayerPresentationTriedToInterrupt() {
++                promise.reject("E_FULLSCREEN_VIDEO_PLAYER", "This presentation change tries to interrupt an older request. Await the old request and then try again.", null)
++              }
++
++              override fun onFullscreenPlayerPresentationInterrupted() {
++                promise.reject("E_FULLSCREEN_VIDEO_PLAYER", "This presentation change has been interrupted by a newer change request.", null)
++              }
++
++              override fun onFullscreenPlayerPresentationError(errorMessage: String?) {
++                val rejectionMessageBuilder = StringBuilder()
++                rejectionMessageBuilder.append("This presentation change has been interrupted by an error.")
++                if (errorMessage != null) {
++                  rejectionMessageBuilder.append(" ")
++                  rejectionMessageBuilder.append(errorMessage)
++                }
++                promise.reject("E_FULLSCREEN_VIDEO_PLAYER", rejectionMessageBuilder.toString(), null)
++              }
++            }
++
++            if (shouldBeFullscreen) {
++              videoView.ensureFullscreenPlayerIsPresented(listener)
++            } else {
++              videoView.ensureFullscreenPlayerIsDismissed(listener)
++            }
++          }
++        },
++        promise
++      )
++    }
++
++    //endregion
++  }
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoViewWrapper.kt b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoViewWrapper.kt
+new file mode 100644
+index 0000000..354fdb6
+--- /dev/null
++++ b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/VideoViewWrapper.kt
+@@ -0,0 +1,55 @@
++package expo.modules.av.video
++
++import android.annotation.SuppressLint
++import android.content.Context
++import android.os.Bundle
++import android.widget.FrameLayout
++import expo.modules.core.interfaces.DoNotStrip
++import expo.modules.kotlin.AppContext
++import expo.modules.kotlin.viewevent.EventDispatcher
++
++/**
++ * We need the wrapper to be able to remove the view from the React-managed tree
++ * into the FullscreenVideoPlayer and not have to fight with the React styles
++ * overriding our native layout.
++ */
++@SuppressLint("ViewConstructor")
++@DoNotStrip
++class VideoViewWrapper @DoNotStrip constructor(context: Context, appContext: AppContext) : FrameLayout(context) {
++  val videoViewInstance: VideoView
++  private val mLayoutRunnable = Runnable {
++    measure(
++      MeasureSpec.makeMeasureSpec(width, MeasureSpec.EXACTLY),
++      MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY)
++    )
++    layout(left, top, right, bottom)
++  }
++
++  override fun requestLayout() {
++    super.requestLayout()
++
++    // Code borrowed from:
++    // https://github.com/facebook/react-native/blob/d19afc73f5048f81656d0b4424232ce6d69a6368/ReactAndroid/src/main/java/com/facebook/react/views/toolbar/ReactToolbar.java#L166
++
++    // It fixes two bugs:
++    // - ExpoMediaController's height = 0 when initialized (until relayout)
++    // - blank VideoView (until relayout) after dismissing FullscreenVideoPlayer
++    post(mLayoutRunnable)
++  }
++
++  init {
++    videoViewInstance = VideoView(context, this, appContext)
++    addView(videoViewInstance, generateDefaultLayoutParams())
++  }
++
++  //region view callbacks
++
++  val onStatusUpdate by EventDispatcher<Bundle>()
++  val onLoadStart by EventDispatcher<Unit>()
++  val onLoad by EventDispatcher<Bundle>()
++  val onError by EventDispatcher<Bundle>()
++  val onReadyForDisplay by EventDispatcher<Bundle>()
++  val onFullscreenUpdate by EventDispatcher<Bundle>()
++
++  //endregion
++}
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/PivotPoint.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/PivotPoint.class
+new file mode 100644
+index 0000000..e0677d0
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/PivotPoint.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/ScalableType.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/ScalableType.class
+new file mode 100644
+index 0000000..55a8ddb
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/ScalableType.class differ
+diff --git a/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/ScaleManager.class b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/ScaleManager.class
+new file mode 100644
+index 0000000..dc66395
+Binary files /dev/null and b/node_modules/expo-av/android/bin/src/main/java/expo/modules/av/video/scalablevideoview/ScaleManager.class differ
+diff --git a/node_modules/expo-av/android/src/main/java/expo/modules/av/ViewUtils.kt b/node_modules/expo-av/android/src/main/java/expo/modules/av/ViewUtils.kt
+index d18b58a..253f787 100644
+--- a/node_modules/expo-av/android/src/main/java/expo/modules/av/ViewUtils.kt
++++ b/node_modules/expo-av/android/src/main/java/expo/modules/av/ViewUtils.kt
+@@ -17,17 +17,7 @@ object ViewUtils {
+ 
+   @UiThread
+   private fun tryRunWithVideoViewOnUiThread(moduleRegistry: ModuleRegistry, viewTag: Int, callback: VideoViewCallback, promise: Promise) {
+-    try {
+-      val videoWrapperView = moduleRegistry.getModule(UIManager::class.java).resolveView(viewTag) as VideoViewWrapper?
+-      val videoView = videoWrapperView?.videoViewInstance
+-      if (videoView != null) {
+-        callback.runWithVideoView(videoView)
+-      } else {
+-        promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.")
+-      }
+-    } catch (e: IllegalViewOperationException) {
+-      promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.")
+-    }
++    promise.reject("E_VIDEO_UNSUPPORTED", "Legacy VideoView resolution is not supported in this version.")
+   }
+ 
+   /**
+@@ -48,17 +38,7 @@ object ViewUtils {
+ 
+   @UiThread
+   private fun tryRunWithVideoViewOnUiThread(moduleRegistry: ModuleRegistry, viewTag: Int, callback: VideoViewCallback, promise: expo.modules.kotlin.Promise) {
+-    try {
+-      val videoWrapperView = moduleRegistry.getModule(UIManager::class.java).resolveView(viewTag) as VideoViewWrapper?
+-      val videoView = videoWrapperView?.videoViewInstance
+-      if (videoView != null) {
+-        callback.runWithVideoView(videoView)
+-      } else {
+-        promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.", null)
+-      }
+-    } catch (e: IllegalViewOperationException) {
+-      promise.reject("E_VIDEO_TAGINCORRECT", "Invalid view returned from registry.", null)
+-    }
++    promise.reject("E_VIDEO_UNSUPPORTED", "Legacy VideoView resolution is not supported in this version.", null)
+   }
+ 
+   /**

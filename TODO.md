@@ -1,3 +1,1 @@
-- [x] Criar `components/avatar/AvatarMenu.tsx` com dropdown, acessibilidade e ações (Perfil stub + Sair funcional)
-- [x] Integrar `AvatarMenu` em `screens/meals/HomeScreen.tsx` no lugar do `Avatar`
-- [ ] Validar tipagem/consistência e revisar uso de tokens/ícones
+
