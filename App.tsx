@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
@@ -12,12 +13,24 @@ import {
 import { Geist_400Regular, Geist_500Medium, Geist_600SemiBold } from '@expo-google-fonts/geist';
 import { GeistMono_400Regular, GeistMono_500Medium } from '@expo-google-fonts/geist-mono';
 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeProvider } from './theme/ThemeContext';
 import AuthScreen from './screens/auth/AuthScreen';
 import AuthCallbackScreen from './screens/auth/AuthCallbackScreen';
 import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
 import HomeScreen from './screens/meals/HomeScreen';
 import Onboarding from './screens/auth/Onboarding';
+import { touchLastAppOpenedAt } from './lib/notifications/preferences';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -40,6 +53,7 @@ export default function App() {
   });
 
   useEffect(() => {
+    void touchLastAppOpenedAt();
     initializeI18n().finally(() => setI18nReady(true));
 
     const initializeAuth = async () => {
@@ -105,18 +119,20 @@ export default function App() {
   }
 
   return (
-    <ThemeProvider>
-      {!i18nReady || initializing || (!fontsLoaded && !fontError) ? (
-        <LoadingPage />
-      ) : !session && isHandlingAuthCallback ? (
-        <AuthCallbackScreen onResolved={() => setIsHandlingAuthCallback(false)} />
-      ) : !session ? (
-        <AuthScreen />
-      ) : needsOnboarding ? (
-        <Onboarding onComplete={() => setNeedsOnboarding(false)} />
-      ) : (
-        <HomeScreen session={session} />
-      )}
-    </ThemeProvider>
+    <SafeAreaProvider>
+      <ThemeProvider>
+        {!i18nReady || initializing || (!fontsLoaded && !fontError) ? (
+          <LoadingPage />
+        ) : !session && isHandlingAuthCallback ? (
+          <AuthCallbackScreen onResolved={() => setIsHandlingAuthCallback(false)} />
+        ) : !session ? (
+          <AuthScreen />
+        ) : needsOnboarding ? (
+          <Onboarding onComplete={() => setNeedsOnboarding(false)} />
+        ) : (
+          <HomeScreen session={session} />
+        )}
+      </ThemeProvider>
+    </SafeAreaProvider>
   );
 }

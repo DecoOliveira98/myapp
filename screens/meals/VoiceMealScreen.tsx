@@ -9,7 +9,13 @@ import {
   View,
 } from 'react-native';
 import { Session } from '@supabase/supabase-js';
-import { Audio } from 'expo-av';
+import {
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  setAudioModeAsync,
+  useAudioRecorder,
+  useAudioRecorderState,
+} from 'expo-audio';
 import * as FileSystem from 'expo-file-system';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../lib/supabase';
@@ -46,8 +52,9 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
   const { T } = useTheme();
   const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
-  const [recordingObj, setRecordingObj] = useState<Audio.Recording | null>(null);
-  const [recording, setRecording] = useState(false);
+  const audioRecorder = useAudioRecorder(RecordingPresets.HIGH_QUALITY);
+  const recorderState = useAudioRecorderState(audioRecorder);
+  const recording = recorderState.isRecording;
   const [transcribing, setTranscribing] = useState(false);
   const [text, setText] = useState('');
   const [parsing, setParsing] = useState(false);
@@ -59,27 +66,24 @@ export default function VoiceMealScreen({ session, mealType, date, onCancel, onS
     setError(null);
     setText('');
     try {
-      const perm = await Audio.requestPermissionsAsync();
+      const perm = await requestRecordingPermissionsAsync();
       if (!perm.granted) {
         setError(t('meals.voice.errorPermission'));
         return;
       }
-      await Audio.setAudioModeAsync({ allowsRecordingIOS: true, playsInSilentModeIOS: true });
-      const { recording } = await Audio.Recording.createAsync(Audio.RecordingOptionsPresets.HIGH_QUALITY);
-      setRecordingObj(recording);
-      setRecording(true);
+      await setAudioModeAsync({ allowsRecording: true, playsInSilentMode: true });
+      await audioRecorder.prepareToRecordAsync();
+      audioRecorder.record();
     } catch {
       setError(t('meals.voice.errorStart'));
     }
   }
 
   async function stopRecording() {
-    if (!recordingObj) return;
-    setRecording(false);
+    if (!recording) return;
     try {
-      await recordingObj.stopAndUnloadAsync();
-      const uri = recordingObj.getURI();
-      setRecordingObj(null);
+      await audioRecorder.stop();
+      const uri = audioRecorder.uri;
       if (!uri) {
         setError(t('meals.voice.errorAudio'));
         return;

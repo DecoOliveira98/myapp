@@ -20,6 +20,22 @@ const en = {
         portuguese: 'Portuguese',
         english: 'English',
     },
+    voice: {
+        emptyMorning: ['coffee first. then the rest.', "the day's still starting.", 'morning. no rush.'],
+        emptyAfternoon: ['midday. take your time.', 'afternoon. still time.', 'started late? still started.'],
+        emptyEvening: ["the day's winding down.", 'last window. if you still want to.', 'evening. no drama.'],
+        emptyNight: ['late.', 'the day was the day.', 'tomorrow starts over.'],
+        firstLog: ['an honest start.', 'first meal. noted.', 'and so it begins.'],
+        goalHit: ['a good day.', 'goal reached.', 'you got there.'],
+        streak3: "three days. that's consistency.",
+        streak7: "a week. you've got rhythm.",
+        streak14: 'two weeks. solid.',
+        streak30: "thirty days. that's practice.",
+        returnAfterAbsence: ["you're back.", 'good to see you.', "the day's waiting."],
+        pushAbsence: ["the day's waiting.", 'no pressure. just here.', "everything's here."],
+        pushStreakWarning: ['streak active. still time today.', "still time. your streak's waiting.", 'end of day coming.'],
+        pushWeeklyWeighIn: ['weighing time. no drama.', 'sunday check-in. weight and plan.', "the week's wrapping. step on it."],
+    },
     loadingPage: {
         eyebrow: 'LOADING',
         text: 'Preparing your experience…',
@@ -174,9 +190,6 @@ const en = {
         fasting: {
             activeFor: 'Fasting for {{h}}h {{m}}min',
         },
-        headlines: {
-            goalReached: 'goal reached.',
-        },
     },
     fasting: {
         title: 'Fasting',
@@ -277,6 +290,12 @@ const en = {
         themeSystem: 'System',
         themeLight: 'Light',
         themeDark: 'Dark',
+        notificationsSection: 'NOTIFICATIONS',
+        notifications: {
+            description: 'occasional reminders throughout the day. never at night (10pm–7am).',
+            permissionDeniedTitle: 'Notifications disabled',
+            permissionDeniedMessage: 'Enable notifications in your device Settings to receive reminders.',
+        },
         saveBtn: 'SAVE CHANGES',
         errors: {
             incompleteTitle: 'Incomplete data',

@@ -29,6 +29,7 @@ type Props = {
   mealLabel: string;
   date: string;
   onClose: () => void;
+  onMealSaved?: () => void | Promise<void>;
 };
 
 type FoodItem = {
@@ -53,7 +54,7 @@ type FormMode =
 
 type ScreenState = 'loading' | 'error' | 'ready';
 
-export default function MealDetailScreen({ session, mealType, mealLabel, date, onClose }: Props) {
+export default function MealDetailScreen({ session, mealType, mealLabel, date, onClose, onMealSaved }: Props) {
   const { T } = useTheme();
   const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
@@ -106,6 +107,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   const onFormDone = () => {
     setFormMode(null);
     loadFoods();
+    void onMealSaved?.();
   };
 
   if (formMode?.kind === 'scan') {

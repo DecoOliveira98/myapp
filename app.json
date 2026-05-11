@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "scheme": "myapp",
     "updates": {
@@ -62,14 +62,21 @@
         }
       ],
       [
-        "expo-av",
+        "expo-audio",
         {
           "microphonePermission": "Permitir $(PRODUCT_NAME) acessar o microfone para descrever refeições"
         }
       ],
       "@react-native-community/datetimepicker",
       "expo-font",
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#F5B544"
+        }
+      ]
     ]
   }
 }
