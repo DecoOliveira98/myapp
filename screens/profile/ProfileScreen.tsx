@@ -8,11 +8,13 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Session } from '@supabase/supabase-js';
@@ -30,6 +32,10 @@ import {
   setLanguagePreference,
   type LanguagePreference,
 } from '../../i18n';
+import {
+  getNotificationsEnabled,
+  setNotificationsEnabled as persistNotificationsEnabled,
+} from '../../lib/notifications/preferences';
 import PressableButton from '../../components/ui/PressableButton';
 import {
   ActivityLevel,
@@ -47,6 +53,7 @@ type Props = {
   profile: Profile | null;
   onClose: () => void;
   refetchProfile: () => Promise<void>;
+  onRescheduleNotifications?: () => void | Promise<void>;
 };
 
 type FormState = {
@@ -261,7 +268,13 @@ function makeOptionListStyles(T: TokenSet) {
 const MIN_DOB = new Date('1900-01-01T00:00:00');
 const DEFAULT_DOB = new Date('1990-01-01T00:00:00');
 
-export default function ProfileScreen({ session, profile, onClose, refetchProfile }: Props) {
+export default function ProfileScreen({
+  session,
+  profile,
+  onClose,
+  refetchProfile,
+  onRescheduleNotifications,
+}: Props) {
   const { T, themePreference, setThemePreference } = useTheme();
   const { t, i18n } = useTranslation();
   const locale = i18n.language?.startsWith('en') ? 'en-US' : 'pt-BR';
@@ -278,6 +291,7 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
     undefined,
   );
   const [languagePreference, setLanguagePreferenceState] = useState<LanguagePreference>('auto');
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
 
   useEffect(() => {
     setForm(profileToForm(profile));
@@ -292,7 +306,32 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
 
   useEffect(() => {
     getStoredLanguagePreference().then(setLanguagePreferenceState);
+    getNotificationsEnabled().then(setNotificationsEnabled);
   }, []);
+
+  async function handleNotificationsToggle(next: boolean) {
+    if (next) {
+      const { status } = await Notifications.requestPermissionsAsync();
+      if (status !== 'granted') {
+        setNotificationsEnabled(false);
+        await persistNotificationsEnabled(false);
+        Alert.alert(
+          t('profile.notifications.permissionDeniedTitle'),
+          t('profile.notifications.permissionDeniedMessage'),
+        );
+        return;
+      }
+
+      setNotificationsEnabled(true);
+      await persistNotificationsEnabled(true);
+      await onRescheduleNotifications?.();
+      return;
+    }
+
+    setNotificationsEnabled(false);
+    await persistNotificationsEnabled(false);
+    await Notifications.cancelAllScheduledNotificationsAsync();
+  }
 
   const displayName = useMemo(
     () => form.display_name || (session.user.user_metadata?.name as string | undefined) || session.user.email || 'User',
@@ -756,6 +795,20 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
           </View>
 
           <View style={ps.card}>
+            <Text style={ps.sectionLabel}>{t('profile.notificationsSection')}</Text>
+            <Text style={ps.microcopy}>{t('profile.notifications.description')}</Text>
+            <View style={ps.toggleRow}>
+              <Switch
+                value={notificationsEnabled}
+                onValueChange={handleNotificationsToggle}
+                trackColor={{ false: T.borderSoft, true: T.accentLine }}
+                thumbColor={notificationsEnabled ? T.accent : T.surface2}
+                accessibilityLabel={t('profile.notificationsSection')}
+              />
+            </View>
+          </View>
+
+          <View style={ps.card}>
             <Text style={ps.sectionLabel}>{t('common.language')}</Text>
             <SegmentedField
               value={languagePreference}
@@ -763,6 +816,9 @@ export default function ProfileScreen({ session, profile, onClose, refetchProfil
                 const next = v as LanguagePreference;
                 setLanguagePreferenceState(next);
                 await setLanguagePreference(next);
+                if (notificationsEnabled) {
+                  await onRescheduleNotifications?.();
+                }
               }}
               options={[
                 { value: 'auto', label: t('common.auto') },
@@ -995,6 +1051,11 @@ function makeStyles(T: TokenSet) {
       fontFamily: T.fontBody,
       fontSize: T.textXs,
       color: T.textTertiary,
+    },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-end',
     },
     modalBackdrop: {
       flex: 1,

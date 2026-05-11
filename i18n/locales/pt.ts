@@ -21,7 +21,10 @@ const pt = {
         english: 'English',
     },
     voice: {
-        morning: ['café primeiro. depois o resto.', 'o dia ainda começa.', 'manhã. sem pressa.'],
+        emptyMorning: ['café primeiro. depois o resto.', 'o dia ainda começa.', 'manhã. sem pressa.'],
+        emptyAfternoon: ['meio do dia. sem corrida.', 'tarde. ainda dá tempo.', 'começou tarde? começou.'],
+        emptyEvening: ['o dia tá fechando.', 'última janela. se ainda for.', 'noite chegando. sem drama.'],
+        emptyNight: ['tarde da noite.', 'o dia foi o dia.', 'amanhã recomeça.'],
         firstLog: ['um começo honesto.', 'primeira refeição. anotado.', 'começou.'],
         goalHit: ['foi um bom dia.', 'meta atingida.', 'chegou.'],
         streak3: 'três dias. já é constância.',
@@ -29,6 +32,9 @@ const pt = {
         streak14: 'duas semanas. sólido.',
         streak30: 'trinta dias. isso é prática.',
         returnAfterAbsence: ['você voltou.', 'bom te ver.', 'o dia tá esperando.'],
+        pushAbsence: ['o dia tá esperando.', 'sem cobrança. só lembrando.', 'tá tudo aqui.'],
+        pushStreakWarning: ['streak ativa. ainda dá hoje.', 'ainda dá tempo. seu streak agradece.', 'fim do dia chegando.'],
+        pushWeeklyWeighIn: ['hora da pesagem. sem drama.', 'domingo de pesagem. peso e plano.', 'fim de semana fechando. pesar.'],
     },
     loadingPage: {
         eyebrow: 'CARREGANDO',
@@ -284,6 +290,12 @@ const pt = {
         themeSystem: 'Sistema',
         themeLight: 'Claro',
         themeDark: 'Escuro',
+        notificationsSection: 'NOTIFICAÇÕES',
+        notifications: {
+            description: 'lembretes ocasionais ao longo do dia. nunca à noite (22h–7h).',
+            permissionDeniedTitle: 'Notificações desativadas',
+            permissionDeniedMessage: 'Ative as notificações nas Configurações do dispositivo para receber lembretes.',
+        },
         saveBtn: 'SALVAR ALTERAÇÕES',
         errors: {
             incompleteTitle: 'Dados incompletos',

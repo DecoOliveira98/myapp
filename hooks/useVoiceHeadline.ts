@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 export type VoiceHeadlineContext = {
   totalsKcal: number;
@@ -18,7 +19,22 @@ type VoiceTrigger =
   | 'streak3'
   | 'goalHit'
   | 'firstLog'
-  | 'morning';
+  | 'emptyMorning'
+  | 'emptyAfternoon'
+  | 'emptyEvening'
+  | 'emptyNight';
+
+const STREAK_TRIGGERS = new Set<VoiceTrigger>(['streak30', 'streak14', 'streak7', 'streak3']);
+
+function resolveEmptyTrigger(hour: number): Extract<
+  VoiceTrigger,
+  'emptyMorning' | 'emptyAfternoon' | 'emptyEvening' | 'emptyNight'
+> {
+  if (hour >= 5 && hour < 11) return 'emptyMorning';
+  if (hour >= 11 && hour < 17) return 'emptyAfternoon';
+  if (hour >= 17 && hour < 21) return 'emptyEvening';
+  return 'emptyNight';
+}
 
 function resolveTrigger(ctx: VoiceHeadlineContext): VoiceTrigger {
   if (ctx.isToday && ctx.daysSinceLastLog >= 2) return 'returnAfterAbsence';
@@ -30,25 +46,27 @@ function resolveTrigger(ctx: VoiceHeadlineContext): VoiceTrigger {
 
   if (ctx.targetKcal > 0 && ctx.totalsKcal >= ctx.targetKcal) return 'goalHit';
   if (ctx.mealsCountToday === 1) return 'firstLog';
-  return 'morning';
+  return resolveEmptyTrigger(ctx.currentHour);
 }
 
 function pickVariant(variants: string[]): string {
   return variants[Math.floor(Math.random() * variants.length)] ?? variants[0] ?? '';
 }
 
-export function useVoiceHeadline(ctx: VoiceHeadlineContext): string {
-  const { t } = useTranslation();
-  const trigger = resolveTrigger(ctx);
+export function pickVoiceFrase(triggerKey: string, t: TFunction): string {
+  if (STREAK_TRIGGERS.has(triggerKey as VoiceTrigger)) {
+    return t(`voice.${triggerKey}`);
+  }
 
-  if (trigger === 'streak30') return t('voice.streak30');
-  if (trigger === 'streak14') return t('voice.streak14');
-  if (trigger === 'streak7') return t('voice.streak7');
-  if (trigger === 'streak3') return t('voice.streak3');
-
-  const variants = t(`voice.${trigger}`, { returnObjects: true });
+  const variants = t(`voice.${triggerKey}`, { returnObjects: true });
   if (Array.isArray(variants)) {
     return pickVariant(variants.filter((item): item is string => typeof item === 'string'));
   }
   return typeof variants === 'string' ? variants : '';
+}
+
+export function useVoiceHeadline(ctx: VoiceHeadlineContext): string {
+  const { t } = useTranslation();
+  const trigger = resolveTrigger(ctx);
+  return pickVoiceFrase(trigger, t);
 }

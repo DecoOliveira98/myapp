@@ -27,6 +27,7 @@ import { useAnimatedNumber } from '../../hooks/useAnimatedNumber';
 import { useUserVoiceContext } from '../../hooks/useUserVoiceContext';
 import { useVoiceHeadline } from '../../hooks/useVoiceHeadline';
 import ProfileScreen from '../profile/ProfileScreen';
+import { rescheduleAllNotifications } from '../../lib/notifications/scheduler';
 import { useTranslation } from 'react-i18next';
 import PressableButton from '../../components/ui/PressableButton';
 
@@ -400,6 +401,26 @@ export default function HomeScreen({ session }: Props) {
     isToday,
   });
 
+  const rescheduleNotifications = useCallback(async () => {
+    if (!targets) return;
+    await rescheduleAllNotifications(
+      {
+        streakDays,
+        totalsKcal: totals.kcal,
+        targetKcal: targets.daily_calorie_target,
+        hasLoggedToday: totals.kcal > 0,
+        lastLogDate: totals.kcal > 0 ? todayISO : null,
+        currentHour: new Date().getHours(),
+      },
+      i18n.language ?? 'pt',
+    );
+  }, [i18n.language, streakDays, targets, todayISO, totals.kcal]);
+
+  useEffect(() => {
+    if (loading || !targets) return;
+    void rescheduleNotifications();
+  }, [loading, rescheduleNotifications, targets]);
+
   // ── Loading / error states ────────────────────────────────────────────────
 
   if (loading) {
@@ -430,6 +451,7 @@ export default function HomeScreen({ session }: Props) {
         profile={profile}
         onClose={() => setShowProfile(false)}
         refetchProfile={refetchProfile}
+        onRescheduleNotifications={rescheduleNotifications}
       />
     );
   }
@@ -446,6 +468,15 @@ export default function HomeScreen({ session }: Props) {
         mealLabel={t(selectedMeal.labelKey)}
         date={selectedDateISO}
         onClose={() => setSelectedMeal(null)}
+        onMealSaved={
+          selectedDateISO === todayISO
+            ? async () => {
+                await refreshVoiceContext();
+                await loadTotals();
+                await rescheduleNotifications();
+              }
+            : undefined
+        }
       />
     );
   }

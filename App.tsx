@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
@@ -19,6 +20,17 @@ import AuthCallbackScreen from './screens/auth/AuthCallbackScreen';
 import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
 import HomeScreen from './screens/meals/HomeScreen';
 import Onboarding from './screens/auth/Onboarding';
+import { touchLastAppOpenedAt } from './lib/notifications/preferences';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
+    shouldPlaySound: false,
+    shouldSetBadge: false,
+  }),
+});
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -41,6 +53,7 @@ export default function App() {
   });
 
   useEffect(() => {
+    void touchLastAppOpenedAt();
     initializeI18n().finally(() => setI18nReady(true));
 
     const initializeAuth = async () => {
