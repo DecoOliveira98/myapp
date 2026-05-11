@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -11,6 +11,10 @@ import {
 import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import { PrefillData } from '../scanner/BarcodeScanScreen';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -58,6 +62,9 @@ export default function AddFoodScreen({
   prefill,
   infoMessage,
 }: Props) {
+  const { T } = useTheme();
+  const { t } = useTranslation();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const isEditing = editingFood !== undefined;
 
   const [mode, setMode] = useState<Mode>(() => {
@@ -207,19 +214,19 @@ export default function AddFoodScreen({
 
       onSaved();
     } catch (e: any) {
-      setError(e?.message ?? 'Erro ao salvar. Tente novamente.');
+      setError(e?.message ?? t('meals.common.errorSaveFallback'));
       setSaving(false);
     }
   }
 
   function handleDelete() {
     Alert.alert(
-      'Apagar item',
-      'Tem certeza? Esta ação não pode ser desfeita.',
+      t('meals.add.deleteTitle'),
+      t('meals.add.deleteMessage'),
       [
-        { text: 'Cancelar', style: 'cancel' },
+        { text: t('meals.common.cancel'), style: 'cancel' },
         {
-          text: 'Apagar',
+          text: t('common.delete'),
           style: 'destructive',
           onPress: async () => {
             setDeleting(true);
@@ -229,7 +236,7 @@ export default function AddFoodScreen({
               .delete()
               .eq('id', editingFood!.id);
             if (deleteErr) {
-              setError(deleteErr.message ?? 'Erro ao apagar. Tente novamente.');
+              setError(deleteErr.message ?? t('meals.add.errorDelete'));
               setDeleting(false);
             } else {
               onDeleted();
@@ -244,9 +251,9 @@ export default function AddFoodScreen({
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onCancel} hitSlop={8}>
-          <Text style={styles.cancelText}>Cancelar</Text>
+          <Text style={styles.cancelText}>{t('meals.common.cancel')}</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>{isEditing ? 'Editar item' : 'Adicionar item'}</Text>
+        <Text style={styles.title}>{isEditing ? t('meals.add.titleEdit') : t('meals.add.titleNew')}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
@@ -263,7 +270,7 @@ export default function AddFoodScreen({
               onPress={() => switchMode('per100')}
             >
               <Text style={[styles.toggleText, mode === 'per100' && styles.toggleTextActive]}>
-                Por 100g
+                {t('meals.add.modePer100')}
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -271,77 +278,77 @@ export default function AddFoodScreen({
               onPress={() => switchMode('totals')}
             >
               <Text style={[styles.toggleText, mode === 'totals' && styles.toggleTextActive]}>
-                Totais diretos
+                {t('meals.add.modeTotals')}
               </Text>
             </TouchableOpacity>
           </View>
         )}
 
-        <Text style={styles.label}>Nome do alimento</Text>
+        <Text style={styles.label}>{t('meals.add.nameLabel')}</Text>
         <TextInput
           style={styles.input}
           value={name}
           onChangeText={setName}
-          placeholder="Ex: Arroz branco"
-          placeholderTextColor="#aaa"
+          placeholder={t('meals.add.namePlaceholder')}
+          placeholderTextColor={T.textTertiary}
           returnKeyType="next"
         />
 
-        <Text style={styles.label}>Quantidade (g)</Text>
+        <Text style={styles.label}>{t('meals.add.quantityLabel')}</Text>
         <TextInput
           style={styles.input}
           value={quantity}
           onChangeText={setQuantity}
-          placeholder="Ex: 150"
-          placeholderTextColor="#aaa"
+          placeholder={t('meals.add.quantityPlaceholder')}
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Calorias / 100g' : 'Calorias (total)'}
+          {mode === 'per100' ? t('meals.add.calPer100') : t('meals.add.calTotal')}
         </Text>
         <TextInput
           style={styles.input}
           value={cal}
           onChangeText={setCal}
-          placeholder="Ex: 130"
-          placeholderTextColor="#aaa"
+          placeholder="0"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Proteína / 100g' : 'Proteína (g total)'}
+          {mode === 'per100' ? t('meals.add.proteinPer100') : t('meals.add.proteinTotal')}
         </Text>
         <TextInput
           style={styles.input}
           value={protein}
           onChangeText={setProtein}
-          placeholder="Ex: 2,7"
-          placeholderTextColor="#aaa"
+          placeholder="0"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Carbo / 100g' : 'Carbo (g total)'}
+          {mode === 'per100' ? t('meals.add.carbsPer100') : t('meals.add.carbsTotal')}
         </Text>
         <TextInput
           style={styles.input}
           value={carbs}
           onChangeText={setCarbs}
-          placeholder="Ex: 28"
-          placeholderTextColor="#aaa"
+          placeholder="0"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
         <Text style={styles.label}>
-          {mode === 'per100' ? 'Gordura / 100g' : 'Gordura (g total)'}
+          {mode === 'per100' ? t('meals.add.fatPer100') : t('meals.add.fatTotal')}
         </Text>
         <TextInput
           style={styles.input}
           value={fat}
           onChangeText={setFat}
           placeholder="Ex: 0,3"
-          placeholderTextColor="#aaa"
+          placeholderTextColor={T.textTertiary}
           keyboardType="decimal-pad"
         />
 
@@ -353,154 +360,175 @@ export default function AddFoodScreen({
 
         {error !== null && <Text style={styles.errorText}>{error}</Text>}
 
-        <TouchableOpacity
+        <PressableButton
           style={[styles.saveBtn, !canSave && styles.saveBtnDisabled]}
           onPress={handleSave}
           disabled={!canSave}
         >
-          <Text style={styles.saveBtnText}>{saving ? 'Salvando...' : 'Salvar'}</Text>
-        </TouchableOpacity>
+          <Text style={styles.saveBtnText}>{saving ? t('meals.common.saving') : t('meals.add.save')}</Text>
+        </PressableButton>
 
         {isEditing && (
-          <TouchableOpacity
+          <PressableButton
             style={[styles.deleteBtn, deleting && styles.deleteBtnDisabled]}
             onPress={handleDelete}
             disabled={busy}
           >
-            <Text style={styles.deleteBtnText}>{deleting ? 'Apagando...' : 'Apagar'}</Text>
-          </TouchableOpacity>
+            <Text style={styles.deleteBtnText}>{deleting ? t('recipes.common.deleting') : t('common.delete')}</Text>
+          </PressableButton>
         )}
       </ScrollView>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   header: {
     paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: T.sp5,
+    paddingBottom: T.sp4,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: T.sp3,
   },
   cancelText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: T.textMd,
+    color: T.textPrimary,
+    fontFamily: T.fontDisplay,
+    letterSpacing: -0.2,
   },
   body: {
-    padding: 20,
-    paddingBottom: 48,
+    padding: T.sp5,
+    paddingBottom: T.sp8,
   },
   toggle: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
+    borderColor: T.borderSoft,
     overflow: 'hidden',
-    marginBottom: 24,
+    marginBottom: T.sp5,
+    backgroundColor: T.surface1,
   },
   toggleBtn: {
     flex: 1,
-    paddingVertical: 10,
+    paddingVertical: T.sp3,
     alignItems: 'center',
   },
   toggleBtnActive: {
-    backgroundColor: '#222',
+    backgroundColor: T.accent,
   },
   toggleText: {
-    fontSize: 14,
-    fontWeight: '500',
-    color: '#666',
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
   },
   toggleTextActive: {
-    color: '#fff',
+    color: T.bgBase,
+    fontFamily: T.fontMonoMedium,
   },
   label: {
-    fontSize: 13,
-    color: '#666',
-    marginBottom: 6,
-    marginTop: 16,
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    marginBottom: T.sp2,
+    marginTop: T.sp4,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.4,
+    textTransform: 'uppercase',
   },
   input: {
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: '#111',
+    borderColor: T.borderSoft,
+    backgroundColor: T.surface1,
+    paddingHorizontal: T.sp4,
+    paddingVertical: T.sp3,
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    fontFamily: T.fontBody,
   },
   preview: {
-    marginTop: 16,
-    padding: 14,
-    borderRadius: 12,
+    marginTop: T.sp4,
+    padding: T.sp4,
     borderWidth: 1,
-    borderColor: '#eee',
-    backgroundColor: '#fafafa',
+    borderColor: T.accentLine,
+    backgroundColor: T.accentBg,
   },
   previewText: {
-    fontSize: 14,
-    color: '#444',
+    fontSize: T.textSm,
+    color: T.textSecondary,
     textAlign: 'center',
+    fontFamily: T.fontMono,
   },
   errorText: {
-    color: '#c0392b',
-    fontSize: 13,
-    marginTop: 16,
+    color: T.danger,
+    fontSize: T.textXs,
+    marginTop: T.sp4,
     textAlign: 'center',
+    fontFamily: T.fontBody,
   },
   saveBtn: {
-    marginTop: 28,
-    backgroundColor: '#222',
-    borderRadius: 12,
-    paddingVertical: 15,
+    marginTop: T.sp6,
+    backgroundColor: T.accent,
+    borderWidth: 1,
+    borderColor: T.accent,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   saveBtnDisabled: {
-    backgroundColor: '#ccc',
+    backgroundColor: T.surface3,
+    borderColor: T.surface3,
   },
   saveBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: T.textXs,
+    color: T.bgBase,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   deleteBtn: {
-    marginTop: 12,
-    backgroundColor: '#c0392b',
-    borderRadius: 12,
-    paddingVertical: 15,
+    marginTop: T.sp3,
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: T.danger,
+    paddingVertical: 14,
     alignItems: 'center',
   },
   deleteBtnDisabled: {
-    backgroundColor: '#ccc',
+    opacity: 0.45,
   },
   deleteBtnText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+    fontSize: T.textXs,
+    color: T.danger,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
   infoBox: {
-    padding: 12,
-    backgroundColor: '#fafafa',
+    padding: T.sp3,
+    backgroundColor: T.surface1,
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    marginBottom: 16,
+    borderColor: T.borderSoft,
+    marginBottom: T.sp4,
   },
   infoText: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    fontFamily: T.fontBody,
   },
-});
+  });
+}

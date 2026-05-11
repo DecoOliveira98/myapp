@@ -1,6 +1,1 @@
-- [x] Update import paths in App.tsx
-- [x] Update import paths in screens/meals/HomeScreen.tsx
-- [x] Update import paths in screens/meals/MealDetailScreen.tsx
-- [x] Update import paths in screens/meals/AddFoodScreen.tsx (if needed)
-- [x] Run TypeScript check (npx tsc --noEmit)
-- [x] Mark completion summary
+

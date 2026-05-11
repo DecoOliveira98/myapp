@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Modal,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -11,6 +12,14 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '../../lib/supabase';
 import AddFoodScreen from './AddFoodScreen';
 import BarcodeScanScreen, { PrefillData } from '../scanner/BarcodeScanScreen';
+import DescribeMealScreen from './DescribeMealScreen';
+import PhotoMealScreen from './PhotoMealScreen';
+import VoiceMealScreen from './VoiceMealScreen';
+import ApplyRecipeScreen from '../recipes/ApplyRecipeScreen';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
+import PressableButton from '../../components/ui/PressableButton';
 
 type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -36,14 +45,22 @@ type FormMode =
   | { kind: 'add'; prefill?: PrefillData; infoMessage?: string }
   | { kind: 'edit'; food: FoodItem }
   | { kind: 'scan' }
+  | { kind: 'describe' }
+  | { kind: 'photo' }
+  | { kind: 'voice' }
+  | { kind: 'apply_recipe' }
   | null;
 
 type ScreenState = 'loading' | 'error' | 'ready';
 
 export default function MealDetailScreen({ session, mealType, mealLabel, date, onClose }: Props) {
+  const { T } = useTheme();
+  const { t } = useTranslation();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [state, setState] = useState<ScreenState>('loading');
   const [foods, setFoods] = useState<FoodItem[]>([]);
   const [formMode, setFormMode] = useState<FormMode>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const loadFoods = useCallback(async () => {
     setState('loading');
@@ -86,23 +103,72 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
     loadFoods();
   }, [loadFoods]);
 
+  const onFormDone = () => {
+    setFormMode(null);
+    loadFoods();
+  };
+
   if (formMode?.kind === 'scan') {
     return (
       <BarcodeScanScreen
         onCancel={() => setFormMode(null)}
         onProductFound={(data) => setFormMode({ kind: 'add', prefill: data })}
         onProductNotFound={(barcode) =>
-          setFormMode({ kind: 'add', infoMessage: `Produto ${barcode} não encontrado. Adicione manualmente.` })
+          setFormMode({ kind: 'add', infoMessage: t('meals.add.productNotFound', { barcode }) })
         }
       />
     );
   }
 
+  if (formMode?.kind === 'describe') {
+    return (
+      <DescribeMealScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onSaved={onFormDone}
+      />
+    );
+  }
+
+  if (formMode?.kind === 'photo') {
+    return (
+      <PhotoMealScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onSaved={onFormDone}
+      />
+    );
+  }
+
+  if (formMode?.kind === 'voice') {
+    return (
+      <VoiceMealScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onSaved={onFormDone}
+      />
+    );
+  }
+
+  if (formMode?.kind === 'apply_recipe') {
+    return (
+      <ApplyRecipeScreen
+        session={session}
+        mealType={mealType}
+        date={date}
+        onCancel={() => setFormMode(null)}
+        onApplied={onFormDone}
+      />
+    );
+  }
+
   if (formMode !== null) {
-    const onFormDone = () => {
-      setFormMode(null);
-      loadFoods();
-    };
     return (
       <AddFoodScreen
         session={session}
@@ -121,7 +187,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   if (state === 'loading') {
     return (
       <View style={styles.centered}>
-        <ActivityIndicator size="large" color="#222" />
+        <ActivityIndicator size="large" color={T.accent} />
       </View>
     );
   }
@@ -129,7 +195,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
   if (state === 'error') {
     return (
       <View style={styles.centered}>
-        <Text style={styles.secondaryText}>Erro ao carregar</Text>
+        <Text style={styles.secondaryText}>{t('meals.detail.error')}</Text>
       </View>
     );
   }
@@ -138,7 +204,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
     <View style={styles.screen}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onClose} hitSlop={8}>
-          <Text style={styles.backText}>← Voltar</Text>
+          <Text style={styles.backText}>{t('meals.common.back')}</Text>
         </TouchableOpacity>
         <Text style={styles.title}>{mealLabel}</Text>
       </View>
@@ -149,7 +215,7 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            <Text style={styles.emptyText}>Nenhum item ainda</Text>
+            <Text style={styles.emptyText}>{t('meals.detail.empty')}</Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -165,125 +231,230 @@ export default function MealDetailScreen({ session, mealType, mealLabel, date, o
       />
 
       <View style={styles.footer}>
-        <View style={styles.footerRow}>
-          <TouchableOpacity
-            style={[styles.addButton, styles.footerBtnFlex]}
-            onPress={() => setFormMode({ kind: 'add' })}
-          >
-            <Text style={styles.addButtonText}>+ Adicionar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.scanButton, styles.footerBtnFlex]}
-            onPress={() => setFormMode({ kind: 'scan' })}
-          >
-            <Text style={styles.scanButtonText}>📷 Escanear</Text>
-          </TouchableOpacity>
-        </View>
+        <PressableButton
+          style={styles.registerButton}
+          onPress={() => setMenuOpen(true)}
+        >
+          <Text style={styles.registerButtonText}>{t('meals.detail.register')}</Text>
+        </PressableButton>
       </View>
+
+      <Modal
+        visible={menuOpen}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setMenuOpen(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalBackdrop}
+          activeOpacity={1}
+          onPress={() => setMenuOpen(false)}
+        >
+          <View style={styles.sheet} onStartShouldSetResponder={() => true}>
+            <Text style={styles.sheetTitle}>{t('meals.detail.howToRegister')}</Text>
+
+            <PressableButton
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'add' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.manual')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.manualDesc')}</Text>
+            </PressableButton>
+
+            <PressableButton
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'scan' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.scan')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.scanDesc')}</Text>
+            </PressableButton>
+
+            <PressableButton
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'photo' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.photo')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.photoDesc')}</Text>
+            </PressableButton>
+
+            <PressableButton
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'describe' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.describe')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.describeDesc')}</Text>
+            </PressableButton>
+
+            <PressableButton
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'voice' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.voice')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.voiceDesc')}</Text>
+            </PressableButton>
+
+            <PressableButton
+              style={styles.sheetOption}
+              onPress={() => { setMenuOpen(false); setFormMode({ kind: 'apply_recipe' }); }}
+            >
+              <Text style={styles.sheetOptionLabel}>{t('meals.detail.fromRecipe')}</Text>
+              <Text style={styles.sheetOptionDesc}>{t('meals.detail.fromRecipeDesc')}</Text>
+            </PressableButton>
+
+            <TouchableOpacity
+              style={styles.sheetCancel}
+              onPress={() => setMenuOpen(false)}
+            >
+              <Text style={styles.sheetCancelText}>{t('meals.common.cancel')}</Text>
+            </TouchableOpacity>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   centered: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: T.bgBase,
   },
   header: {
     paddingTop: 56,
-    paddingHorizontal: 20,
-    paddingBottom: 16,
+    paddingHorizontal: T.sp5,
+    paddingBottom: T.sp4,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: T.borderSoft,
   },
   backText: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    marginBottom: T.sp2,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111',
+    fontSize: T.textXl,
+    color: T.textPrimary,
+    fontFamily: T.fontDisplay,
+    letterSpacing: -0.5,
   },
   listContent: {
-    padding: 20,
+    padding: T.sp5,
     paddingBottom: 0,
     flexGrow: 1,
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
-    paddingTop: 60,
+    paddingTop: T.sp7,
   },
   emptyText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textBase,
+    color: T.textSecondary,
+    fontFamily: T.fontBody,
   },
   secondaryText: {
-    fontSize: 15,
-    color: '#666',
+    fontSize: T.textBase,
+    color: T.textSecondary,
+    fontFamily: T.fontBody,
   },
   foodCard: {
     borderWidth: 1,
-    borderColor: '#eee',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    backgroundColor: '#fff',
+    borderColor: T.borderSoft,
+    padding: T.sp4,
+    marginBottom: T.sp3,
+    backgroundColor: T.surface1,
   },
   foodName: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111',
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    fontFamily: T.fontBodySemiBold,
   },
   foodMeta: {
-    fontSize: 13,
-    color: '#666',
+    fontSize: T.textSm,
+    color: T.textSecondary,
     marginTop: 2,
+    fontFamily: T.fontBody,
   },
   footer: {
-    padding: 20,
+    padding: T.sp5,
     paddingBottom: 36,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: T.borderSoft,
   },
-  addButton: {
+  registerButton: {
+    backgroundColor: T.accent,
     borderWidth: 1,
-    borderColor: '#222',
-    borderRadius: 12,
+    borderColor: T.accent,
     paddingVertical: 14,
     alignItems: 'center',
   },
-  addButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#222',
+  registerButtonText: {
+    fontSize: T.textXs,
+    color: T.bgBase,
+    fontFamily: T.fontMonoMedium,
+    letterSpacing: 2,
+    textTransform: 'uppercase',
   },
-  footerRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  footerBtnFlex: {
+  modalBackdrop: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    justifyContent: 'flex-end',
   },
-  scanButton: {
-    borderWidth: 1,
-    borderColor: '#222',
-    borderRadius: 12,
+  sheet: {
+    backgroundColor: T.bgWarm,
+    borderTopWidth: 1,
+    borderTopColor: T.borderSoft,
+    padding: T.sp5,
+    paddingBottom: 36,
+  },
+  sheetTitle: {
+    fontSize: T.textXs,
+    color: T.textTertiary,
+    textAlign: 'center',
+    marginBottom: T.sp4,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
+  },
+  sheetOption: {
     paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: T.borderSoft,
+  },
+  sheetOptionLabel: {
+    fontSize: T.textBase,
+    color: T.textPrimary,
+    fontFamily: T.fontBodySemiBold,
+  },
+  sheetOptionDesc: {
+    fontSize: T.textSm,
+    color: T.textSecondary,
+    marginTop: 2,
+    fontFamily: T.fontBody,
+  },
+  sheetCancel: {
+    marginTop: T.sp4,
+    paddingVertical: T.sp3,
     alignItems: 'center',
-    backgroundColor: '#222',
+    borderWidth: 1,
+    borderColor: T.borderStrong,
   },
-  scanButtonText: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#fff',
+  sheetCancelText: {
+    fontSize: T.textXs,
+    color: T.textSecondary,
+    fontFamily: T.fontMono,
+    letterSpacing: 1.6,
+    textTransform: 'uppercase',
   },
-});
+  });
+}

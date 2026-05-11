@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -8,6 +8,10 @@ import {
   View,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 export type PrefillData = {
   name: string;
@@ -24,6 +28,9 @@ type Props = {
 };
 
 export default function BarcodeScanScreen({ onCancel, onProductFound, onProductNotFound }: Props) {
+  const { T } = useTheme();
+  const { t } = useTranslation();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [permission, requestPermission] = useCameraPermissions();
   const [status, setStatus] = useState<'scanning' | 'fetching'>('scanning');
   const scannedRef = useRef<boolean>(false);
@@ -46,11 +53,11 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
       }
 
       onProductFound({
-        name: product.product_name_pt || product.product_name || 'Produto sem nome',
-        cal_per_100g:     nutriments['energy-kcal_100g'],
-        protein_per_100g: nutriments.proteins_100g       ?? 0,
-        carbs_per_100g:   nutriments.carbohydrates_100g  ?? 0,
-        fat_per_100g:     nutriments.fat_100g            ?? 0,
+        name: product.product_name_pt || product.product_name || t('scanner.unnamedProduct'),
+        cal_per_100g: nutriments['energy-kcal_100g'],
+        protein_per_100g: nutriments.proteins_100g ?? 0,
+        carbs_per_100g: nutriments.carbohydrates_100g ?? 0,
+        fat_per_100g: nutriments.fat_100g ?? 0,
       });
     } catch {
       onProductNotFound(barcode);
@@ -64,12 +71,12 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
   if (!permission.granted && permission.canAskAgain) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.permissionText}>Permitir acesso à câmera</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={requestPermission}>
-          <Text style={styles.primaryButtonText}>Permitir</Text>
-        </TouchableOpacity>
+        <Text style={styles.permissionText}>{t('scanner.allowCameraAccess')}</Text>
+        <PressableButton style={styles.primaryButton} onPress={requestPermission}>
+          <Text style={styles.primaryButtonText}>{t('scanner.allow')}</Text>
+        </PressableButton>
         <TouchableOpacity style={styles.secondaryButton} onPress={onCancel}>
-          <Text style={styles.secondaryButtonText}>Cancelar</Text>
+          <Text style={styles.secondaryButtonText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -78,10 +85,10 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
   if (!permission.granted && !permission.canAskAgain) {
     return (
       <View style={styles.centered}>
-        <Text style={styles.permissionText}>Permissão negada. Habilite em Configurações.</Text>
-        <TouchableOpacity style={styles.primaryButton} onPress={onCancel}>
-          <Text style={styles.primaryButtonText}>Voltar</Text>
-        </TouchableOpacity>
+        <Text style={styles.permissionText}>{t('scanner.permissionDenied')}</Text>
+        <PressableButton style={styles.primaryButton} onPress={onCancel}>
+          <Text style={styles.primaryButtonText}>{t('common.back')}</Text>
+        </PressableButton>
       </View>
     );
   }
@@ -102,20 +109,20 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
             onPress={onCancel}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
-            <Text style={styles.cancelText}>Cancelar</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Escanear código</Text>
+          <Text style={styles.headerTitle}>{t('scanner.scanCode')}</Text>
           <View style={{ width: 60 }} />
         </View>
 
         {/* Centro */}
         <View style={styles.infoBox}>
           {status === 'scanning' ? (
-            <Text style={styles.infoText}>Aponte para o código de barras</Text>
+            <Text style={styles.infoText}>{t('scanner.pointToBarcode')}</Text>
           ) : (
             <>
-              <Text style={styles.infoText}>Buscando...</Text>
-              <ActivityIndicator style={{ marginTop: 8 }} color="#222" />
+              <Text style={styles.infoText}>{t('scanner.searching')}</Text>
+              <ActivityIndicator style={{ marginTop: 8 }} color={T.accent} />
             </>
           )}
         </View>
@@ -124,83 +131,98 @@ export default function BarcodeScanScreen({ onCancel, onProductFound, onProductN
   );
 }
 
-const styles = StyleSheet.create({
-  centered: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 32,
-    gap: 12,
-  },
-  permissionText: {
-    fontSize: 16,
-    color: '#222',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  primaryButton: {
-    backgroundColor: '#222',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    width: '100%',
-    alignItems: 'center',
-  },
-  primaryButtonText: {
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  secondaryButton: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 32,
-    width: '100%',
-    alignItems: 'center',
-  },
-  secondaryButtonText: {
-    color: '#444',
-    fontSize: 15,
-  },
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
+    centered: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: T.bgBase,
+      padding: T.sp6,
+      gap: T.sp3,
+    },
+    permissionText: {
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      textAlign: 'center',
+      marginBottom: T.sp2,
+      fontFamily: T.fontBody,
+    },
+    primaryButton: {
+      backgroundColor: T.accent,
+      borderWidth: 1,
+      borderColor: T.accent,
+      paddingVertical: 12,
+      paddingHorizontal: T.sp6,
+      width: '100%',
+      alignItems: 'center',
+    },
+    primaryButtonText: {
+      color: T.onAccent,
+      fontSize: T.textXs,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
+    secondaryButton: {
+      borderWidth: 1,
+      borderColor: T.borderStrong,
+      paddingVertical: 12,
+      paddingHorizontal: T.sp6,
+      width: '100%',
+      alignItems: 'center',
+      backgroundColor: 'transparent',
+    },
+    secondaryButtonText: {
+      color: T.textSecondary,
+      fontSize: T.textXs,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
 
-  // Camera overlay
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'space-between',
-    paddingBottom: 80,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 56,
-    paddingBottom: 12,
-  },
-  cancelText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '500',
-    width: 60,
-  },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  infoBox: {
-    marginHorizontal: 40,
-    backgroundColor: 'rgba(255,255,255,0.92)',
-    padding: 16,
-    borderRadius: 12,
-    alignItems: 'center',
-  },
-  infoText: {
-    fontSize: 15,
-    color: '#222',
-    textAlign: 'center',
-  },
-});
+    // Camera overlay
+    overlay: {
+      ...StyleSheet.absoluteFillObject,
+      justifyContent: 'space-between',
+      paddingBottom: 80,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: T.sp5,
+      paddingTop: 56,
+      paddingBottom: T.sp3,
+    },
+    cancelText: {
+      color: T.textPrimary,
+      fontSize: T.textSm,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.2,
+      width: 70,
+      textTransform: 'uppercase',
+    },
+    headerTitle: {
+      color: T.textPrimary,
+      fontSize: T.textSm,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 1.6,
+      textTransform: 'uppercase',
+    },
+    infoBox: {
+      marginHorizontal: 40,
+      backgroundColor: 'rgba(14,14,16,0.92)',
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      padding: T.sp4,
+      alignItems: 'center',
+    },
+    infoText: {
+      fontSize: T.textSm,
+      color: T.textPrimary,
+      textAlign: 'center',
+      fontFamily: T.fontBody,
+    },
+  });
+}

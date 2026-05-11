@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   ScrollView,
@@ -9,6 +9,10 @@ import {
   View,
 } from 'react-native';
 import { supabase } from '../../lib/supabase';
+import { useTheme } from '../../theme/ThemeContext';
+import { type TokenSet } from '../../theme/tokens';
+import { useTranslation } from 'react-i18next';
+import PressableButton from '../../components/ui/PressableButton';
 
 // Tipos auxiliares para deixar as opções de chip fortemente tipadas
 type Gender = 'male' | 'female';
@@ -37,6 +41,9 @@ const GOAL_ADJUSTMENT: Record<Goal, number> = {
 };
 
 export default function Onboarding({ onComplete }: Props) {
+  const { T } = useTheme();
+  const { t } = useTranslation();
+  const styles = useMemo(() => makeStyles(T), [T]);
   const [age, setAge] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
   const [heightCm, setHeightCm] = useState('');
@@ -76,19 +83,19 @@ export default function Onboarding({ onComplete }: Props) {
   async function handleSave() {
     // Validação básica antes de qualquer chamada de rede
     if (!age || !heightCm || !weightKg) {
-      Alert.alert('Campos obrigatórios', 'Preencha idade, altura e peso.');
+      Alert.alert(t('onboarding.validation.requiredFieldsTitle'), t('onboarding.validation.requiredFieldsMessage'));
       return;
     }
     if (!gender) {
-      Alert.alert('Selecione o sexo', 'Escolha masculino ou feminino.');
+      Alert.alert(t('onboarding.validation.selectGenderTitle'), t('onboarding.validation.selectGenderMessage'));
       return;
     }
     if (!activity) {
-      Alert.alert('Selecione a atividade', 'Escolha seu nível de atividade física.');
+      Alert.alert(t('onboarding.validation.selectActivityTitle'), t('onboarding.validation.selectActivityMessage'));
       return;
     }
     if (!goal) {
-      Alert.alert('Selecione a meta', 'Escolha perder, manter ou ganhar peso.');
+      Alert.alert(t('onboarding.validation.selectGoalTitle'), t('onboarding.validation.selectGoalMessage'));
       return;
     }
 
@@ -97,7 +104,7 @@ export default function Onboarding({ onComplete }: Props) {
     const cm = parseFloat(heightCm);
 
     if (isNaN(ageNum) || isNaN(kg) || isNaN(cm)) {
-      Alert.alert('Valores inválidos', 'Certifique-se de usar apenas números.');
+      Alert.alert(t('onboarding.validation.invalidValuesTitle'), t('onboarding.validation.invalidValuesMessage'));
       return;
     }
 
@@ -113,7 +120,7 @@ export default function Onboarding({ onComplete }: Props) {
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      Alert.alert('Erro', 'Não foi possível identificar o usuário. Faça login novamente.');
+      Alert.alert(t('common.error'), t('onboarding.validation.userFetchError'));
       setSaving(false);
       return;
     }
@@ -138,7 +145,7 @@ export default function Onboarding({ onComplete }: Props) {
     });
 
     if (upsertError) {
-      Alert.alert('Erro ao salvar', upsertError.message);
+      Alert.alert(t('onboarding.validation.saveErrorTitle'), upsertError.message);
       setSaving(false);
       return;
     }
@@ -152,81 +159,85 @@ export default function Onboarding({ onComplete }: Props) {
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>Vamos te conhecer!</Text>
-      <Text style={styles.subtitle}>Essas informações calculam suas metas diárias.</Text>
+      <Text style={styles.eyebrow}>{t('onboarding.titleEyebrow')}</Text>
+      <Text style={styles.title}>{t('onboarding.title')}</Text>
+      <Text style={styles.subtitle}>{t('onboarding.subtitle')}</Text>
 
       {/* ── Idade ─────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Idade</Text>
+      <Text style={styles.label}>{t('onboarding.age')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: 25"
+        placeholder={t('onboarding.placeholders.age')}
+        placeholderTextColor={T.textTertiary}
         value={age}
         onChangeText={setAge}
         keyboardType="numeric"
       />
 
       {/* ── Sexo ──────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Sexo</Text>
+      <Text style={styles.label}>{t('onboarding.gender')}</Text>
       <View style={styles.chipRow}>
         <Chip
-          label="Masculino"
+          label={t('onboarding.male')}
           selected={gender === 'male'}
           onPress={() => setGender('male')}
         />
         <Chip
-          label="Feminino"
+          label={t('onboarding.female')}
           selected={gender === 'female'}
           onPress={() => setGender('female')}
         />
       </View>
 
       {/* ── Altura ────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Altura (cm)</Text>
+      <Text style={styles.label}>{t('onboarding.height')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: 170"
+        placeholder={t('onboarding.placeholders.height')}
+        placeholderTextColor={T.textTertiary}
         value={heightCm}
         onChangeText={setHeightCm}
         keyboardType="numeric"
       />
 
       {/* ── Peso ──────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Peso (kg)</Text>
+      <Text style={styles.label}>{t('onboarding.weight')}</Text>
       <TextInput
         style={styles.input}
-        placeholder="Ex: 70"
+        placeholder={t('onboarding.placeholders.weight')}
+        placeholderTextColor={T.textTertiary}
         value={weightKg}
         onChangeText={setWeightKg}
         keyboardType="numeric"
       />
 
       {/* ── Nível de atividade ────────────────────────────────────── */}
-      <Text style={styles.label}>Nível de atividade</Text>
+      <Text style={styles.label}>{t('onboarding.activityLevel')}</Text>
       <View style={styles.chipRow}>
-        <Chip label="Sedentário"  selected={activity === 'sedentary'}  onPress={() => setActivity('sedentary')} />
-        <Chip label="Leve"        selected={activity === 'light'}      onPress={() => setActivity('light')} />
-        <Chip label="Moderado"    selected={activity === 'moderate'}   onPress={() => setActivity('moderate')} />
-        <Chip label="Ativo"       selected={activity === 'active'}     onPress={() => setActivity('active')} />
-        <Chip label="Muito ativo" selected={activity === 'very_active'} onPress={() => setActivity('very_active')} />
+        <Chip label={t('onboarding.sedentary')} selected={activity === 'sedentary'} onPress={() => setActivity('sedentary')} />
+        <Chip label={t('onboarding.light')} selected={activity === 'light'} onPress={() => setActivity('light')} />
+        <Chip label={t('onboarding.moderate')} selected={activity === 'moderate'} onPress={() => setActivity('moderate')} />
+        <Chip label={t('onboarding.active')} selected={activity === 'active'} onPress={() => setActivity('active')} />
+        <Chip label={t('onboarding.veryActive')} selected={activity === 'very_active'} onPress={() => setActivity('very_active')} />
       </View>
 
       {/* ── Meta ──────────────────────────────────────────────────── */}
-      <Text style={styles.label}>Meta</Text>
+      <Text style={styles.label}>{t('onboarding.goal')}</Text>
       <View style={styles.chipRow}>
-        <Chip label="Perder peso" selected={goal === 'lose'}     onPress={() => setGoal('lose')} />
-        <Chip label="Manter"      selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
-        <Chip label="Ganhar peso" selected={goal === 'gain'}     onPress={() => setGoal('gain')} />
+        <Chip label={t('onboarding.loseWeight')} selected={goal === 'lose'} onPress={() => setGoal('lose')} />
+        <Chip label={t('onboarding.maintain')} selected={goal === 'maintain'} onPress={() => setGoal('maintain')} />
+        <Chip label={t('onboarding.gainWeight')} selected={goal === 'gain'} onPress={() => setGoal('gain')} />
       </View>
 
-      <TouchableOpacity
+      <PressableButton
         style={[styles.saveButton, saving && styles.saveButtonDisabled]}
         onPress={handleSave}
         disabled={saving}
       >
         <Text style={styles.saveButtonText}>
-          {saving ? 'Salvando...' : 'Salvar e continuar'}
+          {saving ? t('onboarding.saving') : t('onboarding.saveAndContinue')}
         </Text>
-      </TouchableOpacity>
+      </PressableButton>
     </ScrollView>
   );
 }
@@ -240,6 +251,8 @@ type ChipProps = {
 };
 
 function Chip({ label, selected, onPress }: ChipProps) {
+  const { T } = useTheme();
+  const styles = useMemo(() => makeStyles(T), [T]);
   return (
     <TouchableOpacity
       style={[styles.chip, selected && styles.chipSelected]}
@@ -252,73 +265,95 @@ function Chip({ label, selected, onPress }: ChipProps) {
 }
 
 // ── Estilos ───────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  container: {
-    padding: 24,
-    paddingTop: 60,
-    backgroundColor: '#fff',
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#888',
-    marginBottom: 28,
-  },
-  label: {
-    fontSize: 15,
-    fontWeight: '600',
-    marginBottom: 8,
-    marginTop: 16,
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 16,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  chip: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 999,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-  },
-  chipSelected: {
-    backgroundColor: '#222',
-    borderColor: '#222',
-  },
-  chipText: {
-    fontSize: 14,
-    color: '#444',
-  },
-  chipTextSelected: {
-    color: '#fff',
-  },
-  saveButton: {
-    backgroundColor: '#222',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 36,
-    marginBottom: 24,
-  },
-  saveButtonDisabled: {
-    opacity: 0.5,
-  },
-  saveButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-});
+function makeStyles(T: TokenSet) {
+  return StyleSheet.create({
+    container: {
+      padding: T.sp5,
+      paddingTop: 60,
+      backgroundColor: T.bgBase,
+    },
+    eyebrow: {
+      fontFamily: T.fontMono,
+      fontSize: T.textXs,
+      letterSpacing: 2,
+      color: T.textTertiary,
+      marginBottom: T.sp2,
+      textTransform: 'uppercase',
+    },
+    title: {
+      fontSize: T.textXl,
+      color: T.textPrimary,
+      marginBottom: T.sp1,
+      fontFamily: T.fontDisplay,
+    },
+    subtitle: {
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      marginBottom: T.sp6,
+      fontFamily: T.fontBody,
+    },
+    label: {
+      fontSize: T.textXs,
+      color: T.textTertiary,
+      marginBottom: T.sp2,
+      marginTop: T.sp4,
+      fontFamily: T.fontMono,
+      letterSpacing: 1.4,
+      textTransform: 'uppercase',
+    },
+    input: {
+      borderWidth: 1,
+      borderColor: T.borderSoft,
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp3,
+      fontSize: T.textBase,
+      color: T.textPrimary,
+      backgroundColor: T.surface1,
+      fontFamily: T.fontBody,
+    },
+    chipRow: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: T.sp2,
+    },
+    chip: {
+      borderWidth: 1,
+      borderColor: T.borderStrong,
+      paddingHorizontal: T.sp4,
+      paddingVertical: T.sp2,
+      backgroundColor: 'transparent',
+    },
+    chipSelected: {
+      backgroundColor: T.accentBg,
+      borderColor: T.accent,
+    },
+    chipText: {
+      fontSize: T.textSm,
+      color: T.textSecondary,
+      fontFamily: T.fontBody,
+    },
+    chipTextSelected: {
+      color: T.accent,
+      fontFamily: T.fontBodySemiBold,
+    },
+    saveButton: {
+      backgroundColor: T.accent,
+      borderWidth: 1,
+      borderColor: T.accent,
+      paddingVertical: 14,
+      alignItems: 'center',
+      marginTop: T.sp7,
+      marginBottom: T.sp5,
+    },
+    saveButtonDisabled: {
+      opacity: 0.5,
+    },
+    saveButtonText: {
+      color: T.onAccent,
+      fontSize: T.textXs,
+      fontFamily: T.fontMonoMedium,
+      letterSpacing: 2,
+      textTransform: 'uppercase',
+    },
+  });
+}
