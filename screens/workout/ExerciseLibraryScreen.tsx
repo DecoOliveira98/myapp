@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next';
 import { useExerciseSearch } from '../../hooks/useExerciseSearch';
 import { getExerciseImageUrl } from '../../lib/exerciseImages';
 import { Exercise } from '../../types/exercise';
+import ExerciseDetailScreen from './ExerciseDetailScreen';
 
 type Props = {
   onClose: () => void;
@@ -94,6 +95,16 @@ export default function ExerciseLibraryScreen({ onClose, onSelectExercise }: Pro
   const { t } = useTranslation();
   const styles = useMemo(() => makeStyles(T), [T]);
   const { query, setQuery, filters, setFilters, results } = useExerciseSearch();
+  const [detailExerciseId, setDetailExerciseId] = useState<string | null>(null);
+
+  if (detailExerciseId && !onSelectExercise) {
+    return (
+      <ExerciseDetailScreen
+        exerciseId={detailExerciseId}
+        onClose={() => setDetailExerciseId(null)}
+      />
+    );
+  }
 
   function isChipActive(chip: FilterChip) {
     if (chip.category) return filters.category === chip.category;
@@ -179,7 +190,10 @@ export default function ExerciseLibraryScreen({ onClose, onSelectExercise }: Pro
           <ExerciseListItem
             exercise={item}
             styles={styles}
-            onPress={() => onSelectExercise?.(item.id)}
+            onPress={() => {
+              if (onSelectExercise) onSelectExercise(item.id);
+              else setDetailExerciseId(item.id);
+            }}
           />
         )}
       />
