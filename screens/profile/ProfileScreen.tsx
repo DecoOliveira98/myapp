@@ -14,7 +14,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import { Session } from '@supabase/supabase-js';
@@ -32,6 +31,7 @@ import {
   setLanguagePreference,
   type LanguagePreference,
 } from '../../i18n';
+import { isExpoGo, loadNotifications } from '../../lib/notifications/client';
 import {
   getNotificationsEnabled,
   setNotificationsEnabled as persistNotificationsEnabled,
@@ -310,6 +310,11 @@ export default function ProfileScreen({
   }, []);
 
   async function handleNotificationsToggle(next: boolean) {
+    if (isExpoGo) return;
+
+    const Notifications = await loadNotifications();
+    if (!Notifications) return;
+
     if (next) {
       const { status } = await Notifications.requestPermissionsAsync();
       if (status !== 'granted') {
@@ -801,11 +806,14 @@ export default function ProfileScreen({
               <Switch
                 value={notificationsEnabled}
                 onValueChange={handleNotificationsToggle}
+                disabled={isExpoGo}
                 trackColor={{ false: T.borderSoft, true: T.accentLine }}
-                thumbColor={notificationsEnabled ? T.accent : T.surface2}
+                thumbColor={notificationsEnabled && !isExpoGo ? T.accent : T.surface2}
                 accessibilityLabel={t('profile.notificationsSection')}
+                accessibilityState={{ disabled: isExpoGo }}
               />
             </View>
+            {isExpoGo ? <Text style={ps.microcopy}>{t('profile.notifications.expoGoOnly')}</Text> : null}
           </View>
 
           <View style={ps.card}>

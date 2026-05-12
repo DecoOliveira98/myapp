@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { isExpoGo } from './client';
 
 export const NOTIFICATIONS_ENABLED_KEY = 'notificationsEnabled';
 export const LAST_APP_OPENED_AT_KEY = 'lastAppOpenedAt';
@@ -9,6 +10,7 @@ export async function getNotificationsEnabled(): Promise<boolean> {
 }
 
 export async function setNotificationsEnabled(enabled: boolean): Promise<void> {
+  if (isExpoGo && enabled) return;
   await AsyncStorage.setItem(NOTIFICATIONS_ENABLED_KEY, enabled ? 'true' : 'false');
 }
 

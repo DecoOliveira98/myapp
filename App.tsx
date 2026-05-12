@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import * as Notifications from 'expo-notifications';
 import * as WebBrowser from 'expo-web-browser';
 import { Session } from '@supabase/supabase-js';
 import { supabase } from './lib/supabase';
@@ -20,21 +19,28 @@ import AuthCallbackScreen from './screens/auth/AuthCallbackScreen';
 import LoadingPage from './components/feedback/LoadingPage/LoadingPage';
 import HomeScreen from './screens/meals/HomeScreen';
 import Onboarding from './screens/auth/Onboarding';
+import { loadNotifications } from './lib/notifications/client';
 import { touchLastAppOpenedAt } from './lib/notifications/preferences';
-
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: false,
-    shouldSetBadge: false,
-  }),
-});
 
 WebBrowser.maybeCompleteAuthSession();
 
 export default function App() {
+  useEffect(() => {
+    void loadNotifications().then((Notifications) => {
+      if (!Notifications) return;
+
+      Notifications.setNotificationHandler({
+        handleNotification: async () => ({
+          shouldShowAlert: true,
+          shouldShowBanner: true,
+          shouldShowList: true,
+          shouldPlaySound: false,
+          shouldSetBadge: false,
+        }),
+      });
+    });
+  }, []);
+
   const [session, setSession] = useState<Session | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);

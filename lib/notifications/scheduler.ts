@@ -1,8 +1,8 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
 import type { TFunction } from 'i18next';
 import i18n from '../../i18n';
 import { pickVoiceFrase } from '../../hooks/useVoiceHeadline';
+import { isExpoGo, loadNotifications } from './client';
 import { getLastAppOpenedAt, getNotificationsEnabled } from './preferences';
 
 export type UserVoiceContext = {
@@ -56,7 +56,9 @@ function nextSundayAt18(now = new Date()): Date {
   return candidate;
 }
 
-async function ensureAndroidChannel() {
+async function ensureAndroidChannel(
+  Notifications: NonNullable<Awaited<ReturnType<typeof loadNotifications>>>,
+) {
   if (Platform.OS !== 'android') return;
   await Notifications.setNotificationChannelAsync('default', {
     name: 'default',
@@ -71,6 +73,7 @@ function resolveTranslator(locale: string): TFunction {
 }
 
 async function scheduleAt(
+  Notifications: NonNullable<Awaited<ReturnType<typeof loadNotifications>>>,
   identifier: string,
   triggerKey: string,
   date: Date,
@@ -91,6 +94,12 @@ async function scheduleAt(
 }
 
 export async function rescheduleAllNotifications(ctx: UserVoiceContext, locale: string): Promise<void> {
+  // Notifications require a dev-client or EAS Build — no-op in Expo Go to keep the bundle bootable.
+  if (isExpoGo) return;
+
+  const Notifications = await loadNotifications();
+  if (!Notifications) return;
+
   await Notifications.cancelAllScheduledNotificationsAsync();
 
   const enabled = await getNotificationsEnabled();
@@ -99,28 +108,28 @@ export async function rescheduleAllNotifications(ctx: UserVoiceContext, locale: 
   const permission = await Notifications.getPermissionsAsync();
   if (!permission.granted) return;
 
-  await ensureAndroidChannel();
+  await ensureAndroidChannel(Notifications);
 
   const now = new Date();
   const t = resolveTranslator(locale);
 
   if (!ctx.hasLoggedToday) {
-    await scheduleAt(TRIGGER_MORNING_EMPTY, 'emptyMorning', nextOccurrence(9, 30, now), t);
+    await scheduleAt(Notifications, TRIGGER_MORNING_EMPTY, 'emptyMorning', nextOccurrence(9, 30, now), t);
   }
 
   const lastOpened = (await getLastAppOpenedAt()) ?? now;
   const absenceAt = shiftOutOfQuietHours(new Date(lastOpened.getTime() + 48 * 60 * 60 * 1000), 8);
   if (absenceAt.getTime() > now.getTime()) {
-    await scheduleAt(TRIGGER_ABSENCE, 'pushAbsence', absenceAt, t);
+    await scheduleAt(Notifications, TRIGGER_ABSENCE, 'pushAbsence', absenceAt, t);
   }
 
   if (ctx.streakDays >= 3 && !ctx.hasLoggedToday) {
     const streakAt = withTime(now, 21, 0);
     if (streakAt.getTime() > now.getTime()) {
-      await scheduleAt(TRIGGER_STREAK_WARNING, 'pushStreakWarning', streakAt, t);
+      await scheduleAt(Notifications, TRIGGER_STREAK_WARNING, 'pushStreakWarning', streakAt, t);
     }
   }
 
   const weeklyAt = shiftOutOfQuietHours(nextSundayAt18(now), 7);
-  await scheduleAt(TRIGGER_WEEKLY_WEIGH_IN, 'pushWeeklyWeighIn', weeklyAt, t);
+  await scheduleAt(Notifications, TRIGGER_WEEKLY_WEIGH_IN, 'pushWeeklyWeighIn', weeklyAt, t);
 }
