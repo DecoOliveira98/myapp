@@ -28,8 +28,9 @@ import { useUserVoiceContext } from '../../hooks/useUserVoiceContext';
 import { useVoiceHeadline } from '../../hooks/useVoiceHeadline';
 import ProfileScreen from '../profile/ProfileScreen';
 import MealsTabContent from './MealsTabContent';
-import ExerciseLibraryScreen from '../workout/ExerciseLibraryScreen';
-import ExerciseDetailScreen from '../workout/ExerciseDetailScreen';
+import RoutinesListScreen from '../workout/RoutinesListScreen';
+import ActiveWorkoutScreen from '../workout/ActiveWorkoutScreen';
+import GenerateWorkoutScreen from '../workout/GenerateWorkoutScreen';
 import { rescheduleAllNotifications } from '../../lib/notifications/scheduler';
 import { useTranslation } from 'react-i18next';
 import PressableButton from '../../components/ui/PressableButton';
@@ -113,8 +114,11 @@ export default function HomeScreen({ session }: Props) {
   const [showReport, setShowReport] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
-  const [showExerciseLibrary, setShowExerciseLibrary] = useState(false);
-  const [selectedExerciseId, setSelectedExerciseId] = useState<string | null>(null);
+  const [showRoutinesList, setShowRoutinesList] = useState(false);
+  const [activeWorkoutRoutineId, setActiveWorkoutRoutineId] = useState<string | null | undefined>(
+    undefined,
+  );
+  const [showGenerateWorkout, setShowGenerateWorkout] = useState(false);
 
   const { profile, loading, error: profileError, refetch: refetchProfile } = useProfile(session);
   const {
@@ -468,22 +472,35 @@ export default function HomeScreen({ session }: Props) {
     );
   }
   if (showWeight) return <WeightScreen session={session} onClose={() => setShowWeight(false)} />;
-  if (selectedExerciseId) {
+  if (showGenerateWorkout) {
     return (
-      <ExerciseDetailScreen
-        exerciseId={selectedExerciseId}
-        onClose={() => setSelectedExerciseId(null)}
+      <GenerateWorkoutScreen
+        session={session}
+        onClose={() => setShowGenerateWorkout(false)}
+        onPlanSaved={() => setShowGenerateWorkout(false)}
       />
     );
   }
-  if (showExerciseLibrary) {
+  if (activeWorkoutRoutineId !== undefined) {
     return (
-      <ExerciseLibraryScreen
+      <ActiveWorkoutScreen
+        session={session}
+        routineId={activeWorkoutRoutineId}
+        onClose={() => setActiveWorkoutRoutineId(undefined)}
+        onWorkoutSaved={() => setActiveWorkoutRoutineId(undefined)}
+      />
+    );
+  }
+  if (showRoutinesList) {
+    return (
+      <RoutinesListScreen
+        session={session}
         onClose={() => {
-          setShowExerciseLibrary(false);
+          setShowRoutinesList(false);
           setActiveTab(0);
         }}
-        onSelectExercise={(id) => setSelectedExerciseId(id)}
+        onStartWorkout={(routineId) => setActiveWorkoutRoutineId(routineId)}
+        onGenerateWorkout={() => setShowGenerateWorkout(true)}
       />
     );
   }
@@ -611,11 +628,12 @@ export default function HomeScreen({ session }: Props) {
           setShowReport(false);
           setShowProfile(false);
           setShowFasting(false);
-          setShowExerciseLibrary(false);
-          setSelectedExerciseId(null);
+          setShowRoutinesList(false);
+          setActiveWorkoutRoutineId(undefined);
+          setShowGenerateWorkout(false);
 
           if (index === 2) setShowChat(true);
-          if (index === 3) setShowExerciseLibrary(true);
+          if (index === 3) setShowRoutinesList(true);
           if (index === 4) setShowWeight(true);
         }}
       />
