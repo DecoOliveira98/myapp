@@ -22,8 +22,10 @@
       "infoPlist": {
         "NSCameraUsageDescription": "Usado para escanear códigos de barras de alimentos",
         "NSPhotoLibraryUsageDescription": "Usado para escolher foto da refeição",
-        "NSMicrophoneUsageDescription": "Usado para gravar a descrição da refeição"
-      }
+        "NSMicrophoneUsageDescription": "Usado para gravar a descrição da refeição",
+        "ITSAppUsesNonExemptEncryption": false
+      },
+      "bundleIdentifier": "com.aloliveira98.myapp"
     },
     "android": {
       "adaptiveIcon": {
