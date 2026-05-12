@@ -8,11 +8,11 @@ import { useTranslation } from 'react-i18next';
 const TAB_WIDTH = 70;
 
 const menuItems = [
-    { icon: 'grid-outline', activeIcon: 'grid', labelKey: 'nav.home' },
-    { icon: 'person-outline', activeIcon: 'person', labelKey: 'nav.profile' },
+    { icon: 'home-outline', activeIcon: 'home', labelKey: 'nav.home' },
+    { icon: 'restaurant-outline', activeIcon: 'restaurant', labelKey: 'nav.meals' },
     { icon: 'sparkles-outline', activeIcon: 'sparkles', labelKey: 'nav.ai', isAI: true },
-    { icon: 'barcode-outline', activeIcon: 'barcode', labelKey: 'nav.scanner' },
-    { icon: 'trending-up-outline', activeIcon: 'trending-up', labelKey: 'nav.weight' },
+    { icon: 'fitness-outline', activeIcon: 'fitness', labelKey: 'nav.workout' },
+    { icon: 'stats-chart-outline', activeIcon: 'stats-chart', labelKey: 'nav.charts' },
 ];
 
 interface NavBarProps {
